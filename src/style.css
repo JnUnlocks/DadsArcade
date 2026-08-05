@@ -576,6 +576,42 @@ body {
   fill: currentColor;
 }
 
+/* ---------- Fire button (Mallard Challenge) ---------- */
+
+.fire-btn {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+  transform: translateX(-50%);
+  min-width: 168px;
+  min-height: 56px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 2px solid #e0a53c;
+  background: rgba(224, 165, 60, 0.16);
+  color: #fff6d8;
+  font-family: var(--font);
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  z-index: 5;
+  transition:
+    transform 90ms ease,
+    background 140ms ease;
+}
+
+.fire-btn:active:not(:disabled) {
+  transform: translateX(-50%) scale(0.95);
+  background: rgba(224, 165, 60, 0.32);
+}
+
+.fire-btn:disabled {
+  opacity: 0.4;
+  border-color: rgba(224, 165, 60, 0.4);
+  cursor: not-allowed;
+}
+
 /* ---------- Resume countdown ---------- */
 
 .countdown {

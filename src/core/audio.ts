@@ -18,7 +18,15 @@ export type SoundName =
   | "bossHit"
   | "extraLife"
   | "uiMove"
-  | "uiSelect";
+  | "uiSelect"
+  // Mallard Challenge
+  | "shotgunBlast"
+  | "duckFlush"
+  | "duckHit"
+  | "dogLaugh"
+  | "dogBark"
+  | "roundClear"
+  | "roundFail";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -121,6 +129,42 @@ export class AudioEngine {
         break;
       case "uiSelect":
         this.arpeggio(t, [660, 990], 0.05, "square", 0.16);
+        break;
+
+      // ----- Mallard Challenge -----
+      case "shotgunBlast":
+        // A noise burst gives it weight; the short high blip on top is the
+        // transient "crack" that a pure low-pass sweep alone doesn't have.
+        this.burst(t, 0.22, 2400, 140, 0.42);
+        this.blip(t, "square", 1200, 200, 0.03, 0.16);
+        break;
+      case "duckFlush":
+        // Two quick wobbling blips read as "wak-wak" without needing a
+        // sampled quack.
+        this.blip(t, "sawtooth", 520, 340, 0.09, 0.17, 26);
+        this.blip(t + 0.11, "sawtooth", 480, 320, 0.09, 0.15, 26);
+        break;
+      case "duckHit":
+        // Lighter and airier than enemyExplode -- a poof of feathers, not
+        // a metal explosion.
+        this.burst(t, 0.16, 2600, 700, 0.2);
+        break;
+      case "dogLaugh":
+        // Three descending, wobbling blips -- the mocking "ha-ha-ha".
+        this.blip(t, "square", 500, 400, 0.13, 0.2, 20);
+        this.blip(t + 0.16, "square", 430, 340, 0.13, 0.2, 20);
+        this.blip(t + 0.32, "square", 360, 280, 0.15, 0.2, 20);
+        break;
+      case "dogBark":
+        this.blip(t, "sawtooth", 260, 160, 0.09, 0.24);
+        break;
+      case "roundClear":
+        this.arpeggio(t, [440, 554, 659, 880], 0.08, "square", 0.22);
+        break;
+      case "roundFail":
+        // A two-note falling sting -- the "aw, missed" beat.
+        this.blip(t, "sawtooth", 300, 220, 0.18, 0.22);
+        this.blip(t + 0.19, "sawtooth", 220, 120, 0.24, 0.22);
         break;
     }
   }

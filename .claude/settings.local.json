@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm -v)"
+      "Bash(npm -v)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(curl -s -m 20 \"https://play.hyperdrive-arcade.workers.dev/?cb=$\\(date +%s\\)\")"
     ]
   }
 }

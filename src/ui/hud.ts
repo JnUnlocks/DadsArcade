@@ -6,7 +6,7 @@
  * pause button, menus) stays in the DOM where it gets real tap targets.
  */
 
-import type { HudState } from "../core/game";
+import type { GameModule, HudState } from "../core/game";
 import type { Settings } from "../core/storage";
 import type { View } from "../core/view";
 
@@ -18,6 +18,7 @@ export function drawHud(
   score: number,
   hud: HudState,
   settings: Settings,
+  module: GameModule | null,
 ): void {
   const top = view.insetTop + 14;
   const scale = settings.largeText ? 1.2 : 1;
@@ -47,23 +48,25 @@ export function drawHud(
   ctx.fillStyle = settings.highContrast ? "#ffffff" : "#46e0ff";
   ctx.fillText(String(hud.progress), view.w / 2 - 26, top + labelSize + 4);
 
-  // Lives, bottom-left, drawn as little ship silhouettes.
+  // Lives, bottom-left. Each game can supply its own pip shape; falls back
+  // to the ship glyph for games that don't (Starfighter never needs to know
+  // this hook exists).
   const lifeY = view.h - view.insetBottom - 22;
+  const icon = module?.drawLifeIcon?.bind(module) ?? drawShipLifeGlyph;
   for (let i = 0; i < hud.lives; i += 1) {
-    drawLifeGlyph(ctx, 16 + i * 18, lifeY, settings.highContrast);
+    ctx.save();
+    ctx.translate(16 + i * 18, lifeY);
+    icon(ctx, settings.highContrast);
+    ctx.restore();
   }
 
   ctx.restore();
 }
 
-function drawLifeGlyph(
+function drawShipLifeGlyph(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
   highContrast: boolean,
 ): void {
-  ctx.save();
-  ctx.translate(x, y);
   ctx.fillStyle = highContrast ? "#ffffff" : "#46e0ff";
   ctx.beginPath();
   ctx.moveTo(0, -7);
@@ -72,7 +75,6 @@ function drawLifeGlyph(
   ctx.lineTo(-5, 6);
   ctx.closePath();
   ctx.fill();
-  ctx.restore();
 }
 
 /**

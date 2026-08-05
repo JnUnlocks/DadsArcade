@@ -183,7 +183,14 @@ export class Shell implements GameHost {
       this.instance.render(ctx, alpha);
       ctx.restore();
 
-      drawHud(ctx, this.view, this._score, this.instance.hud(), this._settings);
+      drawHud(
+        ctx,
+        this.view,
+        this._score,
+        this.instance.hud(),
+        this._settings,
+        this.module,
+      );
     }
 
     ctx.restore();
@@ -306,6 +313,8 @@ export class Shell implements GameHost {
     this.screen = "playing";
     this.clearUi();
     this.ui.append(this.buildPauseButton());
+    const extra = this.instance.extraControls?.();
+    if (extra) this.ui.append(extra);
     void this.wakeLock.acquire();
     this.loop.resume();
   }

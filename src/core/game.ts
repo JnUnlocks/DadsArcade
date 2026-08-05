@@ -66,6 +66,14 @@ export interface GameInstance {
   /** Optional hooks for games that need to react to the pause overlay. */
   onPause?(): void;
   onResume?(): void;
+
+  /**
+   * Extra DOM control(s) a game needs beyond the shared pause button -- a
+   * fire trigger, for instance. Mounted once when the game starts; the game
+   * owns the returned element and may mutate it directly from its own
+   * update() as state changes (e.g. a shell counter).
+   */
+  extraControls?(): HTMLElement;
 }
 
 export interface GameModule {
@@ -77,5 +85,12 @@ export interface GameModule {
   readonly accent: string;
   /** Draw the cabinet's marquee art into a size x size box at the origin. */
   drawIcon(ctx: CanvasRenderingContext2D, size: number): void;
+  /**
+   * Draw one "lives remaining" pip into a ~10x10 box centered at the origin.
+   * Optional -- games that don't supply one get the default ship glyph. A
+   * shooter's lives are ships; a shotgun game's are shells, so this is the
+   * one piece of chrome the shell lets a game reskin rather than hardcode.
+   */
+  drawLifeIcon?(ctx: CanvasRenderingContext2D, highContrast: boolean): void;
   create(host: GameHost): GameInstance;
 }
