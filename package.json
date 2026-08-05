@@ -1,0 +1,27 @@
+{
+  "name": "hyperdrive-arcade",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p worker/tsconfig.json",
+    "build": "npm run typecheck && vite build",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\"",
+    "preview": "vite preview",
+    "db:local": "wrangler d1 execute hyperdrive-arcade --local --file=worker/schema.sql",
+    "db:remote": "wrangler d1 execute hyperdrive-arcade --remote --file=worker/schema.sql",
+    "feedback": "wrangler d1 execute hyperdrive-arcade --remote --command \"SELECT datetime(created_at/1000,'unixepoch') AS at, initials, message, context FROM feedback ORDER BY created_at DESC LIMIT 30\"",
+    "feedback:local": "wrangler d1 execute hyperdrive-arcade --local --command \"SELECT datetime(created_at/1000,'unixepoch') AS at, initials, message, context FROM feedback ORDER BY created_at DESC LIMIT 30\"",
+    "cf:dev": "npm run build && wrangler dev",
+    "deploy": "node scripts/deploy.mjs",
+    "cf:deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260804.1",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "wrangler": "^4.118.0"
+  }
+}

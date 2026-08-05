@@ -1,0 +1,20 @@
+{
+  // The Worker runs on workerd, not in a browser, so it gets its own config:
+  // Cloudflare's globals instead of the DOM lib, which would otherwise let
+  // browser-only APIs typecheck here and then fail at runtime.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["."]
+}

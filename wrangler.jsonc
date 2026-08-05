@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hyperdrive-arcade",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-04",
+
+  // One Worker serves both the built PWA and the API. Cloudflare now steers
+  // new projects here rather than Pages, and it means no CORS and one deploy.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Let the Worker handle /api/* before the static asset router sees it.
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "hyperdrive-arcade",
+      // Filled in by `wrangler d1 create hyperdrive-arcade`.
+      "database_id": "52a2a764-e0ea-4980-af4e-113154829596"
+    }
+  ],
+
+  "observability": { "enabled": true }
+}
