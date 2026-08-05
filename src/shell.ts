@@ -24,6 +24,7 @@ import {
 import { View } from "./core/view";
 import { WakeLock } from "./core/wakelock";
 import { drawCrtOverlay, drawHud } from "./ui/hud";
+import { buildAboutScreen } from "./ui/about";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 
@@ -238,8 +239,25 @@ export class Shell implements GameHost {
       this.showSettings();
     });
 
-    screen.append(board, settings);
+    const about = el("button", "btn btn--quiet", "ⓘ  THE STORY");
+    about.addEventListener("click", () => {
+      this.audio.unlock();
+      this.audio.play("uiMove");
+      this.showAbout();
+    });
+
+    screen.append(board, settings, about);
     this.ui.append(screen);
+  }
+
+  showAbout(): void {
+    this.clearUi();
+    this.ui.append(
+      buildAboutScreen(
+        () => this.showMenu(),
+        () => this.showSettings(true),
+      ),
+    );
   }
 
   showLeaderboard(gameId: string): void {
@@ -249,7 +267,8 @@ export class Shell implements GameHost {
     );
   }
 
-  showSettings(): void {
+  /** `openFeedback` jumps straight to the note box, scrolled into view. */
+  showSettings(openFeedback = false): void {
     this.clearUi();
     this.ui.append(
       buildSettingsScreen(
@@ -257,6 +276,7 @@ export class Shell implements GameHost {
         this.player,
         (patch) => this.updateSettings(patch),
         () => this.showMenu(),
+        openFeedback,
       ),
     );
   }

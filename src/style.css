@@ -172,6 +172,23 @@ body {
   min-width: 0;
 }
 
+/* Present but not competing with PLAY. */
+.btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--dim);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  font-size: calc(12px * var(--ui-scale));
+  min-height: calc(48px * var(--ui-scale));
+  min-width: 0;
+}
+
+.btn--quiet:active {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+}
+
 .btn--danger {
   border-color: rgba(255, 77, 109, 0.5);
   color: var(--danger);
@@ -299,6 +316,49 @@ body {
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* ---------- The story ---------- */
+
+.screen--about {
+  justify-content: flex-start;
+  gap: calc(14px * var(--ui-scale));
+}
+
+.story {
+  width: 100%;
+  max-width: 400px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 4px;
+}
+
+.story p {
+  font-size: calc(13.5px * var(--ui-scale));
+  line-height: 1.72;
+  color: var(--dim);
+  max-width: none;
+}
+
+/* The two one-line beats carry the weight -- let them land. */
+.story p:nth-child(3) {
+  color: var(--accent);
+  font-size: calc(16px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.story-sign {
+  color: var(--accent-warm) !important;
+  letter-spacing: 0.1em;
+  padding-top: 4px;
 }
 
 /* ---------- Settings ---------- */

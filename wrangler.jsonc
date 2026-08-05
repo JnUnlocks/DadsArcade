@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hyperdrive-arcade",
+  // The worker's name becomes the first label of the URL, so this is
+  // deliberately short: play.hyperdrive-arcade.workers.dev
+  "name": "play",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-04",
 

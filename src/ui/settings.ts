@@ -13,6 +13,7 @@ export function buildSettingsScreen(
   player: Player | null,
   onChange: (patch: Partial<Settings>) => void,
   onBack: () => void,
+  openFeedback = false,
 ): HTMLElement {
   const screen = document.createElement("div");
   screen.className = "screen screen--settings";
@@ -69,8 +70,18 @@ export function buildSettingsScreen(
     ),
   );
 
-  list.append(buildFeedbackSection(player));
+  const feedback = buildFeedbackSection(player);
+  list.append(feedback);
   screen.append(list);
+
+  if (openFeedback) {
+    // Arrived here from "SEND A NOTE" -- open the box and bring it into view
+    // rather than dropping them at the top of a long settings list.
+    feedback.querySelector<HTMLButtonElement>(".btn--inline")?.click();
+    requestAnimationFrame(() => {
+      feedback.scrollIntoView({ block: "center" });
+    });
+  }
 
   const back = document.createElement("button");
   back.className = "btn btn--ghost";
