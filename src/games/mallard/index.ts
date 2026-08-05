@@ -43,10 +43,18 @@ const DOUBLE_DUCK_ROUND = 4;
 const ESCAPE_AGE = 5.5;
 const HIT_RADIUS = 18;
 const BANNER_DURATION = 1.3;
-/** How long the dog's success/fail animation holds before the next round. */
-const RESOLVE_DURATION = 1.8;
+/** How long the dog's retrieve animation holds before the next round. */
+const SUCCESS_DURATION = 1.7;
+/**
+ * The mocking laugh gets noticeably longer than the win. On the NES this was
+ * the moment everyone remembers -- the dog filling the screen, unavoidable --
+ * so it's given room to land rather than being rushed past.
+ */
+const FAIL_DURATION = 2.7;
 /** The dog is drawn at this multiple of his base art size. */
 const DOG_SCALE = 1.55;
+/** ...and much larger for the laugh, where he takes over the screen. */
+const LAUGH_SCALE = 3.7;
 
 // The dog's opening routine, in seconds. Ducks go up at the end of the leap.
 const WALK_TIME = 1.0;
@@ -95,6 +103,8 @@ class MallardChallenge implements GameInstance {
   private dogPose: DogPose = "walking";
   private dogPoseTime = 0;
   private introTimer = 0;
+  /** Guards the one-shot laugh sound so it fires on the pose, not the frame. */
+  private laughed = false;
   private dogDrawX = 0;
   /** Vertical offset used to pop the dog up out of, and back into, cover. */
   private dogDrawY = 0;
@@ -208,7 +218,7 @@ class MallardChallenge implements GameInstance {
     } else {
       this.phaseTime += dt;
       this.updateDogPopup();
-      if (this.phaseTime > RESOLVE_DURATION) this.advanceAfterResolve();
+      if (this.phaseTime > this.resolveDuration()) this.advanceAfterResolve();
     }
   }
 
@@ -249,14 +259,30 @@ class MallardChallenge implements GameInstance {
 
   /** Rise out of cover for the reaction, then drop back before the next round. */
   private updateDogPopup(): void {
-    const RISE = 0.25;
-    const SINK_AT = RESOLVE_DURATION - 0.3;
-    if (this.phaseTime < RISE) {
-      this.dogDrawY = 34 * (1 - this.phaseTime / RISE);
-    } else if (this.phaseTime > SINK_AT) {
-      this.dogDrawY = 34 * ((this.phaseTime - SINK_AT) / 0.3);
+    const laughing = this.phase === "fail";
+    // The laugh climbs from fully offscreen; the retrieve is a modest bob.
+    const travel = laughing ? 190 : 34;
+    const rise = laughing ? 0.34 : 0.25;
+    const total = this.resolveDuration();
+    const sinkAt = total - 0.35;
+
+    if (this.phaseTime < rise) {
+      const p = this.phaseTime / rise;
+      // Ease out with a slight overshoot so he lands with a bit of weight.
+      const eased = 1 - Math.pow(1 - p, 3);
+      this.dogDrawY = travel * (1 - eased);
+    } else if (this.phaseTime > sinkAt) {
+      this.dogDrawY = travel * ((this.phaseTime - sinkAt) / 0.35);
     } else {
       this.dogDrawY = 0;
+    }
+
+    // Fire the laugh the instant he's fully up, not when the round resolved --
+    // the sound has to land with the pose.
+    if (laughing && !this.laughed && this.phaseTime >= rise) {
+      this.laughed = true;
+      this.host.sfx("dogLaugh");
+      this.host.shake(7);
     }
   }
 
@@ -350,12 +376,17 @@ class MallardChallenge implements GameInstance {
     this.phaseTime = 0;
     this.dogPose = this.roundFailed ? "laugh" : "retrieve";
     this.dogPoseTime = 0;
+    this.laughed = false;
     this.host.sfx(this.roundFailed ? "roundFail" : "roundClear");
     if (this.roundFailed) {
       this.lives -= 1;
       this.host.shake(4);
     }
     this.refreshFireButton(this.fireButton);
+  }
+
+  private resolveDuration(): number {
+    return this.phase === "fail" ? FAIL_DURATION : SUCCESS_DURATION;
   }
 
   private advanceAfterResolve(): void {
@@ -437,20 +468,24 @@ class MallardChallenge implements GameInstance {
       drawDuck(ctx, duck.x, duck.y, duck.vx, duck.flapPhase, duck.falling);
     }
 
-    drawDog(
-      ctx,
-      this.dogDrawX,
-      this.dogY + this.dogDrawY,
-      this.dogPose,
-      this.dogPoseTime,
-      DOG_SCALE,
-    );
+    if (this.phase === "fail") {
+      this.drawLaughMoment(ctx);
+    } else {
+      drawDog(
+        ctx,
+        this.dogDrawX,
+        this.dogY + this.dogDrawY,
+        this.dogPose,
+        this.dogPoseTime,
+        DOG_SCALE,
+      );
 
-    // Cover drawn *over* the dog, so a head poking out of the grass reads as
-    // hiding in it rather than floating above it. Also masks the bottom of
-    // the pop-up poses as he rises and sinks.
-    if (this.phase !== "intro") {
-      drawGrassTuft(ctx, this.dogDrawX, this.dogY + 16, DOG_SCALE);
+      // Cover drawn *over* the dog, so a head poking out of the grass reads as
+      // hiding in it rather than floating above it. Also masks the bottom of
+      // the pop-up poses as he rises and sinks.
+      if (this.phase !== "intro") {
+        drawGrassTuft(ctx, this.dogDrawX, this.dogY + 16, DOG_SCALE);
+      }
     }
 
     this.particles.render(ctx);
@@ -472,6 +507,54 @@ class MallardChallenge implements GameInstance {
       this.drawBanner(ctx, "MISSED!");
     } else if (this.phase === "success" && this.phaseTime < 1) {
       this.drawBanner(ctx, "CLEAR!");
+    }
+  }
+
+  /**
+   * The moment the whole game is built around: the dog rears up huge in the
+   * foreground and laughs at you. Staged rather than just scaled -- the world
+   * dims behind him so there's nowhere else to look.
+   */
+  private drawLaughMoment(ctx: CanvasRenderingContext2D): void {
+    const { w, h } = this.host.view;
+    const originY = this.grassTop + 88 + this.dogDrawY;
+
+    // Dim everything except him.
+    const focus = ctx.createRadialGradient(
+      w / 2,
+      originY - 30,
+      40,
+      w / 2,
+      originY - 30,
+      Math.max(w, h) * 0.62,
+    );
+    focus.addColorStop(0, "rgba(0,0,0,0)");
+    focus.addColorStop(1, "rgba(6,10,4,0.5)");
+    ctx.fillStyle = focus;
+    ctx.fillRect(0, 0, w, h);
+
+    // Nudged left of centre: the head sits well right of the body origin, so
+    // drawing at dead centre leaves the whole silhouette leaning right.
+    const dogX = w / 2 - 20;
+    drawDog(ctx, dogX, originY, "laugh", this.dogPoseTime, LAUGH_SCALE);
+    // Grass in front of him, so he reads as rearing up out of the field.
+    drawGrassTuft(ctx, dogX + 10, originY + 34, LAUGH_SCALE * 1.15);
+
+    // The taunt, popping in just after he lands.
+    if (this.phaseTime > 0.36) {
+      const pop = Math.min(1, (this.phaseTime - 0.36) * 6);
+      ctx.save();
+      ctx.translate(w / 2 - 4, originY - 118);
+      ctx.rotate(-0.12 + Math.sin(this.phaseTime * 18) * 0.02);
+      ctx.scale(pop, pop);
+      ctx.font = '700 26px ui-monospace, "SF Mono", Menlo, monospace';
+      ctx.textAlign = "center";
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#2a1d10";
+      ctx.strokeText("HA HA HA!", 0, 0);
+      ctx.fillStyle = "#fff6d8";
+      ctx.fillText("HA HA HA!", 0, 0);
+      ctx.restore();
     }
   }
 
