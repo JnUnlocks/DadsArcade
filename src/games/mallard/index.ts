@@ -28,6 +28,7 @@ import {
   drawCrosshair,
   drawDog,
   drawDuck,
+  drawGrassTuft,
   drawScorePopup,
   drawShellIcon,
 } from "./render";
@@ -35,13 +36,29 @@ import type { Duck, DogPose } from "./types";
 
 const SHELLS_PER_ROUND = 3;
 const DOUBLE_DUCK_ROUND = 4;
-/** A duck that survives this long without being hit flies off unshot. */
-const ESCAPE_AGE = 3.8;
+/**
+ * How long a duck wanders before breaking for the sky. Generous on purpose:
+ * the fun is in tracking and leading the bird, not in a reflex test.
+ */
+const ESCAPE_AGE = 5.5;
 const HIT_RADIUS = 18;
 const BANNER_DURATION = 1.3;
 /** How long the dog's success/fail animation holds before the next round. */
-const RESOLVE_DURATION = 1.5;
-const FLUSH_POSE_DURATION = 0.65;
+const RESOLVE_DURATION = 1.8;
+/** The dog is drawn at this multiple of his base art size. */
+const DOG_SCALE = 1.55;
+
+// The dog's opening routine, in seconds. Ducks go up at the end of the leap.
+const WALK_TIME = 1.0;
+const SNIFF_TIME = 0.45;
+const LEAP_TIME = 0.4;
+const INTRO_TIME = WALK_TIME + SNIFF_TIME + LEAP_TIME;
+
+/**
+ * Seconds of hard climb straight after the flush. After this the duck levels
+ * off and wanders, which is what makes it trackable.
+ */
+const CLIMB_TIME = 0.55;
 
 interface Popup {
   x: number;
@@ -66,7 +83,7 @@ class MallardChallenge implements GameInstance {
   private crosshairY: number;
   private recoil = 0;
 
-  private phase: "hunting" | "success" | "fail" = "hunting";
+  private phase: "intro" | "hunting" | "success" | "fail" = "intro";
   private phaseTime = 0;
   private bannerTimer = 0;
   private roundFailed = false;
@@ -75,8 +92,12 @@ class MallardChallenge implements GameInstance {
   private lives = 3;
   private shells = SHELLS_PER_ROUND;
 
-  private dogPose: DogPose = "idle";
+  private dogPose: DogPose = "walking";
   private dogPoseTime = 0;
+  private introTimer = 0;
+  private dogDrawX = 0;
+  /** Vertical offset used to pop the dog up out of, and back into, cover. */
+  private dogDrawY = 0;
 
   private gameEnded = false;
 
@@ -87,6 +108,7 @@ class MallardChallenge implements GameInstance {
     this.dogY = this.grassTop + (h - this.grassTop) * 0.42;
     this.crosshairX = w / 2;
     this.crosshairY = this.grassTop * 0.5;
+    this.dogDrawX = this.dogX;
 
     this.fireButton = this.buildFireButton();
     this.startRound();
@@ -117,34 +139,49 @@ class MallardChallenge implements GameInstance {
   private startRound(): void {
     this.shells = SHELLS_PER_ROUND;
     this.roundFailed = false;
-    this.phase = "hunting";
+    this.phase = "intro";
+    this.introTimer = 0;
     this.bannerTimer = BANNER_DURATION;
     this.ducks = [];
 
+    this.dogPose = "walking";
+    this.dogPoseTime = 0;
+    this.dogDrawY = 0;
+    this.refreshFireButton(this.fireButton);
+  }
+
+  /** How much faster things move this round. Gentle ramp, not a cliff. */
+  private speedScale(): number {
+    return 1 + (this.round - 1) * 0.08;
+  }
+
+  private flushDucks(): void {
     const count = this.round >= DOUBLE_DUCK_ROUND ? 2 : 1;
     for (let i = 0; i < count; i += 1) {
       const spread = count > 1 ? (i === 0 ? -40 : 40) : 0;
       this.ducks.push(this.spawnDuck(spread));
     }
-
-    this.dogPose = "flush";
-    this.dogPoseTime = 0;
     this.host.sfx("duckFlush");
     this.refreshFireButton(this.fireButton);
   }
 
   private spawnDuck(xOffset: number): Duck {
+    const scale = this.speedScale();
     return {
       x: this.dogX + xOffset + this.rng.range(-8, 8),
       y: this.grassTop - 4,
-      vx: this.rng.range(-30, 30),
-      vy: this.rng.range(-230, -190) - this.round * 2,
-      turnTimer: this.rng.range(0.5, 1.0),
+      vx: this.rng.range(-22, 22) * scale,
+      // Round 1 is deliberately gentle. The old value launched birds at
+      // ~210 units/sec, which crossed the whole sky in about two seconds --
+      // fast enough that round one felt like a reflex test.
+      vy: this.rng.range(-150, -120) * scale,
+      turnTimer: this.rng.range(0.4, 0.8),
       flapPhase: this.rng.range(0, Math.PI * 2),
       alive: true,
       falling: false,
       fallTimer: 0,
       age: 0,
+      escaping: false,
     };
   }
 
@@ -158,7 +195,9 @@ class MallardChallenge implements GameInstance {
     this.updatePopups(dt);
     this.updateDogPose(dt);
 
-    if (this.phase === "hunting") {
+    if (this.phase === "intro") {
+      this.updateIntro(dt);
+    } else if (this.phase === "hunting") {
       // Aim with one thumb, tap anywhere with the other to shoot -- the
       // FIRE button is the discoverable version of the same action, not the
       // only way in. One shot per frame regardless of how many taps landed,
@@ -168,7 +207,56 @@ class MallardChallenge implements GameInstance {
       if (this.ducks.length === 0) this.resolveRound();
     } else {
       this.phaseTime += dt;
+      this.updateDogPopup();
       if (this.phaseTime > RESOLVE_DURATION) this.advanceAfterResolve();
+    }
+  }
+
+  /** The dog's walk-sniff-leap opening, ending with the birds going up. */
+  private updateIntro(dt: number): void {
+    this.introTimer += dt;
+    const t = this.introTimer;
+
+    if (t < WALK_TIME) {
+      this.setDogPose("walking");
+      // Trot in from the left and arrive at the brush.
+      const progress = t / WALK_TIME;
+      this.dogDrawX = this.host.view.w * 0.16 + (this.dogX - this.host.view.w * 0.16) * progress;
+      this.dogDrawY = 0;
+    } else if (t < WALK_TIME + SNIFF_TIME) {
+      this.setDogPose("sniff");
+      this.dogDrawX = this.dogX;
+    } else if (t < INTRO_TIME) {
+      if (this.dogPose !== "leap") this.host.sfx("dogBark");
+      this.setDogPose("leap");
+      // Arc up into the brush.
+      const progress = (t - WALK_TIME - SNIFF_TIME) / LEAP_TIME;
+      this.dogDrawY = -Math.sin(progress * Math.PI) * 26;
+    } else {
+      // He lands in cover and the birds break.
+      this.setDogPose("watching");
+      this.dogDrawY = 0;
+      this.phase = "hunting";
+      this.flushDucks();
+    }
+  }
+
+  private setDogPose(pose: DogPose): void {
+    if (this.dogPose === pose) return;
+    this.dogPose = pose;
+    this.dogPoseTime = 0;
+  }
+
+  /** Rise out of cover for the reaction, then drop back before the next round. */
+  private updateDogPopup(): void {
+    const RISE = 0.25;
+    const SINK_AT = RESOLVE_DURATION - 0.3;
+    if (this.phaseTime < RISE) {
+      this.dogDrawY = 34 * (1 - this.phaseTime / RISE);
+    } else if (this.phaseTime > SINK_AT) {
+      this.dogDrawY = 34 * ((this.phaseTime - SINK_AT) / 0.3);
+    } else {
+      this.dogDrawY = 0;
     }
   }
 
@@ -182,10 +270,6 @@ class MallardChallenge implements GameInstance {
 
   private updateDogPose(dt: number): void {
     this.dogPoseTime += dt;
-    if (this.dogPose === "flush" && this.dogPoseTime > FLUSH_POSE_DURATION) {
-      this.dogPose = "idle";
-      this.dogPoseTime = 0;
-    }
   }
 
   private updateDucks(dt: number): void {
@@ -206,13 +290,30 @@ class MallardChallenge implements GameInstance {
       }
 
       duck.age += dt;
-      duck.turnTimer -= dt;
-      if (duck.turnTimer <= 0) {
-        duck.turnTimer = this.rng.range(0.5, 1.1);
-        duck.vx = clamp(duck.vx + this.rng.range(-60, 60), -140, 140);
-        // Slight upward bias on average -- ducks trend toward escaping the
-        // longer they're airborne, same pressure the original creates.
-        duck.vy = clamp(duck.vy + this.rng.range(-40, 12), -260, -20);
+      const scale = this.speedScale();
+
+      // Out of time -- break hard for the sky. Only now can it actually leave.
+      if (duck.age > ESCAPE_AGE && !duck.escaping) {
+        duck.escaping = true;
+        duck.vy = -260 * scale;
+      }
+
+      if (!duck.escaping) {
+        duck.turnTimer -= dt;
+        if (duck.turnTimer <= 0) {
+          duck.turnTimer = this.rng.range(0.45, 0.95);
+          duck.vx = clamp(duck.vx + this.rng.range(-70, 70) * scale, -130 * scale, 130 * scale);
+          if (duck.age > CLIMB_TIME) {
+            // Levelled off: drift up OR down. The old code clamped vy
+            // permanently negative, so ducks climbed relentlessly and were
+            // gone before you could line one up.
+            duck.vy = clamp(duck.vy + this.rng.range(-45, 55) * scale, -85 * scale, 60 * scale);
+          }
+        }
+        // Ease out of the initial climb into level flight.
+        if (duck.age > CLIMB_TIME && duck.vy < -95 * scale) {
+          duck.vy += 150 * scale * dt;
+        }
       }
 
       duck.x += duck.vx * dt;
@@ -223,9 +324,23 @@ class MallardChallenge implements GameInstance {
       if (duck.x < 14 || duck.x > w - 14) duck.vx *= -1;
       duck.x = clamp(duck.x, 14, w - 14);
 
-      if (duck.y < topBound || duck.age > ESCAPE_AGE) {
-        this.roundFailed = true;
-        removeAt(this.ducks, i);
+      // Ceiling: bounce while it still has time left, so a duck that reaches
+      // the top early stays huntable instead of instantly escaping.
+      if (duck.y < topBound) {
+        if (duck.escaping) {
+          this.roundFailed = true;
+          removeAt(this.ducks, i);
+          continue;
+        }
+        duck.y = topBound;
+        duck.vy = Math.abs(duck.vy) * 0.6;
+      }
+
+      // Don't let a levelled-off duck wander back into the grass.
+      const floor = this.grassTop - 18;
+      if (duck.y > floor) {
+        duck.y = floor;
+        duck.vy = -Math.abs(duck.vy) * 0.6;
       }
     }
   }
@@ -322,7 +437,21 @@ class MallardChallenge implements GameInstance {
       drawDuck(ctx, duck.x, duck.y, duck.vx, duck.flapPhase, duck.falling);
     }
 
-    drawDog(ctx, this.dogX, this.dogY, this.dogPose, this.dogPoseTime);
+    drawDog(
+      ctx,
+      this.dogDrawX,
+      this.dogY + this.dogDrawY,
+      this.dogPose,
+      this.dogPoseTime,
+      DOG_SCALE,
+    );
+
+    // Cover drawn *over* the dog, so a head poking out of the grass reads as
+    // hiding in it rather than floating above it. Also masks the bottom of
+    // the pop-up poses as he rises and sinks.
+    if (this.phase !== "intro") {
+      drawGrassTuft(ctx, this.dogDrawX, this.dogY + 16, DOG_SCALE);
+    }
 
     this.particles.render(ctx);
     for (const popup of this.popups) {
@@ -334,7 +463,10 @@ class MallardChallenge implements GameInstance {
     // Mutually exclusive: a fast double-kill (or, as in testing, a forced
     // escape) can otherwise land inside the still-fading "ROUND N" banner
     // and draw both texts on top of each other.
-    if (this.phase === "hunting" && this.bannerTimer > 0) {
+    if (
+      (this.phase === "intro" || this.phase === "hunting") &&
+      this.bannerTimer > 0
+    ) {
       this.drawBanner(ctx, `ROUND ${this.round}`);
     } else if (this.phase === "fail" && this.phaseTime < 1) {
       this.drawBanner(ctx, "MISSED!");

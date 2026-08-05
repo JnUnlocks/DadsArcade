@@ -11,19 +11,32 @@ export interface Duck {
   /** True for the brief tumble-and-fall animation after being hit. */
   falling: boolean;
   fallTimer: number;
-  /** Seconds this duck has been flying -- forces an eventual escape. */
+  /** Seconds this duck has been flying. */
   age: number;
+  /**
+   * Set once the duck gives up on wandering and breaks for the sky. Until
+   * then it bounces off the top of the screen rather than escaping, which is
+   * what gives the player time to actually line up a shot.
+   */
+  escaping: boolean;
 }
 
 /**
- * The dog's four beats. Idle and the two round-outcome poses are the classic
- * NES Duck Hunt cast; flush -- bounding into the brush to kick the birds up --
- * is the original's opening beat too, not an invention.
+ * The dog's full routine, following the NES original's beats rather than
+ * leaving him parked in the grass: he walks the field, sniffs, leaps into the
+ * brush to put the birds up, watches from cover while you shoot, then pops up
+ * to either gloat or mock you.
  */
-export type DogPose = "idle" | "flush" | "laugh" | "retrieve";
+export type DogPose =
+  | "walking"
+  | "sniff"
+  | "leap"
+  | "watching" // in cover during the hunt -- only his head shows
+  | "laugh"
+  | "retrieve";
 
 export type RoundPhase =
-  | "banner" // "ROUND N" card, dog about to flush
+  | "intro" // the dog's walk-sniff-leap routine; ducks not up yet
   | "hunting" // ducks are up, shells are live
   | "success" // every duck downed -- retrieve animation playing
   | "fail"; // a duck got away -- laugh animation playing

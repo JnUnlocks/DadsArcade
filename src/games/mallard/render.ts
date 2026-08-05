@@ -159,81 +159,115 @@ export function drawDuck(
  * Shared body -- the tan coat, cream chest, and collar every pose starts
  * from. Individual poses transform/add to this rather than redrawing it.
  */
+/**
+ * Everything is outlined. Flat tan fills on flat green grass blur into a
+ * single lump at small sizes -- the dark keyline is what actually makes the
+ * dog readable in motion.
+ */
+const OUTLINE = "#4a3620";
+
+function outlined(ctx: CanvasRenderingContext2D, fill: string, width = 1.3): void {
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
 function drawDogBody(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = PALETTE.dogTanDark;
   ctx.beginPath();
-  ctx.ellipse(0, 6, 15, 9, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = PALETTE.dogTan;
-  ctx.beginPath();
-  ctx.ellipse(0, 4, 14, 8.5, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.ellipse(0, 5, 15, 9, 0, 0, Math.PI * 2);
+  outlined(ctx, PALETTE.dogTan);
   // Cream chest/belly patch, the light marking the reference photo has.
-  ctx.fillStyle = PALETTE.dogCream;
   ctx.beginPath();
-  ctx.ellipse(-2, 8, 8, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(-2, 9, 8.5, 4.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PALETTE.dogCream;
   ctx.fill();
 }
 
-function drawDogHead(
-  ctx: CanvasRenderingContext2D,
-  earTilt: number,
-  mouthOpen: number,
-): void {
+interface HeadOptions {
+  /** Where the head sits relative to the body origin. */
+  x?: number;
+  y?: number;
+  /** Head tilt, radians. Negative throws it back -- the laugh. */
+  rotate?: number;
+  earTilt?: number;
+  /** 0 = closed, 1 = wide open. */
+  mouthOpen?: number;
+}
+
+function drawDogHead(ctx: CanvasRenderingContext2D, opts: HeadOptions = {}): void {
+  const {
+    x = 10,
+    y = -7,
+    rotate = 0,
+    earTilt = 0.08,
+    mouthOpen = 0,
+  } = opts;
+
   ctx.save();
-  ctx.translate(9, -6);
+  ctx.translate(x, y);
+  ctx.rotate(rotate);
 
-  ctx.fillStyle = PALETTE.dogTan;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 8, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Upright, pointed ears -- the defining departure from the floppy-eared
-  // original, matching this dog specifically.
-  ctx.fillStyle = PALETTE.dogTanDark;
+  // Ears first so they tuck behind the skull.
   for (const side of [-1, 1] as const) {
     ctx.save();
-    ctx.translate(side * 4, -6);
+    ctx.translate(side * 3.5, -5);
     ctx.rotate(side * earTilt);
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(side * 3.2, -9);
-    ctx.lineTo(side * -1.5, -1);
+    ctx.moveTo(0, 2);
+    ctx.lineTo(side * 3.4, -9.5);
+    ctx.lineTo(side * -2, -1);
     ctx.closePath();
-    ctx.fill();
+    outlined(ctx, PALETTE.dogTanDark, 1.1);
     ctx.restore();
   }
 
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 8, 7, 0, 0, Math.PI * 2);
+  outlined(ctx, PALETTE.dogTan);
+
   // Cream muzzle.
-  ctx.fillStyle = PALETTE.dogCream;
   ctx.beginPath();
-  ctx.ellipse(4.5, 2, 4.5, 3.6, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.ellipse(5, 2.5, 5, 3.8, 0, 0, Math.PI * 2);
+  outlined(ctx, PALETTE.dogCream, 1);
 
-  ctx.fillStyle = PALETTE.dogNose;
-  ctx.beginPath();
-  ctx.ellipse(8.3, 1, 1.4, 1.1, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Mouth -- closed line normally, open arc for the laugh.
   if (mouthOpen > 0) {
+    // Wide open, dark, with a tongue -- has to read at a glance.
     ctx.beginPath();
-    ctx.ellipse(4.5, 4.5, 2.6, 1.2 + mouthOpen * 2.2, 0, 0, Math.PI);
+    ctx.ellipse(5.5, 5, 3.4, 1.6 + mouthOpen * 3.4, 0, 0, Math.PI * 2);
+    outlined(ctx, "#3a1d18", 1);
+    ctx.beginPath();
+    ctx.ellipse(5.5, 6.5 + mouthOpen, 2, 1.4, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#e2757f";
     ctx.fill();
   } else {
-    ctx.strokeStyle = PALETTE.dogNose;
-    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 0.9;
     ctx.beginPath();
-    ctx.moveTo(2, 4.2);
-    ctx.quadraticCurveTo(4.5, 5.6, 7, 4.2);
+    ctx.moveTo(2.5, 5);
+    ctx.quadraticCurveTo(5, 6.6, 7.5, 5);
     ctx.stroke();
   }
 
-  // Eye.
-  ctx.fillStyle = PALETTE.dogNose;
   ctx.beginPath();
-  ctx.ellipse(1, -1, 1, mouthOpen > 0 ? 0.4 : 1, 0, 0, Math.PI * 2);
+  ctx.ellipse(9.4, 1, 1.6, 1.3, 0, 0, Math.PI * 2);
+  ctx.fillStyle = PALETTE.dogNose;
   ctx.fill();
+
+  // Eye -- a happy closed crescent when laughing, open otherwise.
+  ctx.strokeStyle = PALETTE.dogNose;
+  ctx.lineWidth = 1.2;
+  if (mouthOpen > 0.4) {
+    ctx.beginPath();
+    ctx.arc(1.5, -1.5, 2, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.ellipse(1.5, -1.5, 1.2, 1.3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = PALETTE.dogNose;
+    ctx.fill();
+  }
 
   ctx.restore();
 }
@@ -250,67 +284,171 @@ function drawCollar(ctx: CanvasRenderingContext2D): void {
   ctx.fill();
 }
 
+/**
+ * Four legs, animated by a walk-cycle phase. `lift` of 0 plants them.
+ * They run well below the body ellipse (which spans to y=14) so they're
+ * actually visible rather than buried behind it.
+ */
+function drawDogLegs(ctx: CanvasRenderingContext2D, phase: number, lift: number): void {
+  const legs: Array<[number, number]> = [
+    [-8, 0],
+    [-3, Math.PI],
+    [7, Math.PI * 0.6],
+    [11, Math.PI * 1.6],
+  ];
+  for (const [lx, offset] of legs) {
+    const swing = Math.sin(phase + offset) * lift;
+    const footX = lx + swing * 3.5;
+    const footY = 21 - Math.abs(swing) * 2.5;
+    ctx.strokeStyle = PALETTE.dogTanDark;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(lx, 9);
+    ctx.lineTo(footX, footY);
+    ctx.stroke();
+    // Cream paw, matching the reference dog's light feet.
+    ctx.beginPath();
+    ctx.ellipse(footX, footY, 2.4, 1.8, 0, 0, Math.PI * 2);
+    outlined(ctx, PALETTE.dogCream, 0.9);
+  }
+}
+
+/**
+ * A filled plume rather than a stroked line. As a line it read as a stray
+ * stick poking out of the dog at an odd angle.
+ */
+function drawTail(
+  ctx: CanvasRenderingContext2D,
+  wag: number,
+  raised: number,
+): void {
+  ctx.save();
+  ctx.translate(-13, 3);
+  ctx.rotate(-0.45 - raised * 0.05 + wag * 0.03);
+  ctx.beginPath();
+  ctx.moveTo(1, 4);
+  ctx.quadraticCurveTo(-7, 0, -12, -9);
+  ctx.quadraticCurveTo(-3, -3, 1, -3);
+  ctx.closePath();
+  outlined(ctx, PALETTE.dogTanDark, 1.1);
+  ctx.restore();
+}
+
+/** A tuft of cover, drawn in front of the dog so he reads as hidden in it. */
+export function drawGrassTuft(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale = 1,
+): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = PALETTE.brush;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 30, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = PALETTE.grassDark;
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  for (let i = -4; i <= 4; i += 1) {
+    ctx.beginPath();
+    ctx.moveTo(i * 6, 2);
+    ctx.lineTo(i * 6 + (i % 2 ? 3 : -3), -10 - (i % 3) * 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export function drawDog(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   pose: DogPose,
   t: number,
+  scale = 1,
 ): void {
   ctx.save();
   ctx.translate(x, y);
+  ctx.scale(scale, scale);
 
   switch (pose) {
-    case "idle": {
-      const bob = Math.sin(t * 2) * 0.6;
-      ctx.translate(0, bob);
+    case "walking": {
+      const phase = t * 11;
+      ctx.translate(0, Math.sin(phase * 2) * 0.8);
+      drawDogLegs(ctx, phase, 1);
       drawDogBody(ctx);
       drawCollar(ctx);
-      drawDogHead(ctx, 0.08, 0);
-      // Tail, wagging.
-      ctx.strokeStyle = PALETTE.dogTanDark;
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-13, 4);
-      ctx.quadraticCurveTo(-20, -2 + Math.sin(t * 8) * 4, -22, -8);
-      ctx.stroke();
+      drawDogHead(ctx);
+      drawTail(ctx, Math.sin(phase) * 4, 0);
       break;
     }
 
-    case "flush": {
-      // Low, lunging toward the brush.
-      ctx.translate(0, 3);
-      ctx.rotate(-0.12);
-      ctx.scale(1.1, 0.85);
+    case "sniff": {
+      // Nose to the ground, tail up and rigid -- the classic point.
+      ctx.translate(0, 2);
+      drawDogLegs(ctx, 0, 0);
       drawDogBody(ctx);
       drawCollar(ctx);
-      drawDogHead(ctx, 0.25, 0);
-      ctx.strokeStyle = PALETTE.dogTanDark;
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-13, 4);
-      ctx.lineTo(-19, -6);
-      ctx.stroke();
+      drawDogHead(ctx, { x: 12, y: 0, rotate: 0.5, earTilt: 0.3 });
+      drawTail(ctx, 0, 8);
+      break;
+    }
+
+    case "leap": {
+      // Springing into the brush. Body tilts up, legs tuck.
+      ctx.rotate(-0.3);
+      ctx.scale(1.05, 0.95);
+      drawDogLegs(ctx, Math.PI / 2, 0.4);
+      drawDogBody(ctx);
+      drawCollar(ctx);
+      drawDogHead(ctx, { earTilt: 0.35, mouthOpen: 0.45 });
+      drawTail(ctx, 0, 6);
+      break;
+    }
+
+    case "watching": {
+      // In cover -- only the head and ears clear the grass, turning slightly
+      // as if tracking the birds. Keeps him present without competing with
+      // the ducks for attention.
+      drawDogHead(ctx, {
+        x: 0,
+        y: -3,
+        rotate: Math.sin(t * 1.4) * 0.14,
+        earTilt: 0.05,
+      });
       break;
     }
 
     case "laugh": {
-      // The signature beat: head back, mouth wide, mocking.
-      const rise = Math.min(1, t * 3);
-      ctx.translate(0, -6 * rise);
+      // The signature beat. The head is placed explicitly rather than by
+      // rotating the whole body frame -- rotating swung it out of position
+      // and the whole pose read as an indistinct lump.
+      const shake = Math.sin(t * 20) * 1.6;
+      ctx.translate(shake, 0);
       drawDogBody(ctx);
       drawCollar(ctx);
-      ctx.save();
-      ctx.rotate(-0.35 * rise);
-      drawDogHead(ctx, -0.15, 0.9);
-      ctx.restore();
-      // A paw up near the mouth -- the "pointing and laughing" read.
-      ctx.fillStyle = PALETTE.dogTan;
+      drawDogHead(ctx, {
+        x: 9,
+        y: -13,
+        rotate: -0.42,
+        earTilt: -0.2,
+        mouthOpen: 1,
+      });
+      // A paw thrown up -- the "pointing and laughing" read.
       ctx.beginPath();
-      ctx.ellipse(14, -4 - 4 * rise, 3, 4, 0.6, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.ellipse(17, -6, 3.4, 4.6, 0.7, 0, Math.PI * 2);
+      outlined(ctx, PALETTE.dogTan, 1.1);
+      // Little motion arcs, so the shake reads even in a still frame.
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 1.4;
+      for (const r of [15, 19] as const) {
+        ctx.beginPath();
+        ctx.arc(9, -14, r, Math.PI * 1.15, Math.PI * 1.45);
+        ctx.stroke();
+      }
+      drawTail(ctx, Math.sin(t * 16) * 5, 2);
       break;
     }
 
@@ -319,21 +457,15 @@ export function drawDog(
       ctx.translate(0, -bob);
       drawDogBody(ctx);
       drawCollar(ctx);
-      drawDogHead(ctx, 0.1, 0);
+      drawDogHead(ctx, { y: -9, rotate: -0.12 });
       // The duck, held proudly.
       ctx.save();
-      ctx.translate(15, 0);
-      ctx.scale(0.55, 0.55);
-      ctx.rotate(0.3);
+      ctx.translate(19, -3);
+      ctx.scale(0.6, 0.6);
+      ctx.rotate(0.35);
       drawDuck(ctx, 0, 0, 1, 0, false);
       ctx.restore();
-      ctx.strokeStyle = PALETTE.dogTanDark;
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-13, 4);
-      ctx.quadraticCurveTo(-20, -2 + Math.sin(t * 14) * 5, -22, -8);
-      ctx.stroke();
+      drawTail(ctx, Math.sin(t * 14) * 5, 3);
       break;
     }
   }
