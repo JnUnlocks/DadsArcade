@@ -26,6 +26,18 @@ export interface InputSnapshot {
   /** True on the frame a tap/click/key press began -- for menus and "tap to start". */
   justPressed: boolean;
   pointerDown: boolean;
+  /**
+   * Taps from fingers *other than* the one currently steering, since the last
+   * frame. This is what makes "aim with one thumb, fire with the other" work:
+   * the steering finger keeps its drag, and the second finger is a discrete
+   * trigger rather than being thrown away.
+   */
+  secondaryTaps: number;
+  /**
+   * True on the frame a fire key went down. Edge-triggered, unlike `firing`,
+   * which is a level and is always true when autofire is on.
+   */
+  firePressed: boolean;
 }
 
 /** True when the event came from somewhere the player is typing. */
@@ -57,6 +69,8 @@ export class Input {
   private dragY = 0;
   private justPressed = false;
   private pointerDown = false;
+  private secondaryTaps = 0;
+  private firePressed = false;
   private activePointer: number | null = null;
   private lastX = 0;
   private lastY = 0;
@@ -86,10 +100,14 @@ export class Input {
       firing: this.autofire || this.pointerDown || this.anyHeld(KEYS_FIRE),
       justPressed: this.justPressed,
       pointerDown: this.pointerDown,
+      secondaryTaps: this.secondaryTaps,
+      firePressed: this.firePressed,
     };
     this.dragX = 0;
     this.dragY = 0;
     this.justPressed = false;
+    this.secondaryTaps = 0;
+    this.firePressed = false;
     return snapshot;
   }
 
@@ -99,6 +117,8 @@ export class Input {
     this.dragY = 0;
     this.justPressed = false;
     this.pointerDown = false;
+    this.secondaryTaps = 0;
+    this.firePressed = false;
     this.activePointer = null;
     this.held.clear();
   }
@@ -119,8 +139,14 @@ export class Input {
 
   private attach(): void {
     const onPointerDown = (e: PointerEvent) => {
-      // Ignore extra fingers; the first one owns steering.
-      if (this.activePointer !== null) return;
+      if (this.activePointer !== null) {
+        // A second finger while the first is steering. Report it as a discrete
+        // tap instead of discarding it -- that's what lets an aim-and-shoot
+        // game use "aim with one thumb, fire with the other". Games that don't
+        // care simply never read secondaryTaps.
+        this.secondaryTaps += 1;
+        return;
+      }
       this.activePointer = e.pointerId;
       this.pointerDown = true;
       this.justPressed = true;
@@ -155,6 +181,7 @@ export class Input {
       if (e.repeat) return;
       this.held.add(e.code);
       this.justPressed = true;
+      if (KEYS_FIRE.has(e.code)) this.firePressed = true;
       // Stop the page scrolling out from under the game.
       if (
         KEYS_FIRE.has(e.code) ||

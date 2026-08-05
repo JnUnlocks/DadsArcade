@@ -98,7 +98,12 @@ class MallardChallenge implements GameInstance {
     const button = document.createElement("button");
     button.className = "fire-btn";
     button.setAttribute("aria-label", "Fire");
-    button.addEventListener("click", () => this.tryFire());
+    // pointerdown, not click. iOS suppresses the synthesized click while
+    // another touch is already down, which is exactly the situation this
+    // game creates -- so a click handler goes dead the moment you try to
+    // aim and fire at once. pointerdown also fires on press rather than
+    // release, which is how a trigger should feel.
+    button.addEventListener("pointerdown", () => this.tryFire());
     this.refreshFireButton(button);
     return button;
   }
@@ -154,6 +159,11 @@ class MallardChallenge implements GameInstance {
     this.updateDogPose(dt);
 
     if (this.phase === "hunting") {
+      // Aim with one thumb, tap anywhere with the other to shoot -- the
+      // FIRE button is the discoverable version of the same action, not the
+      // only way in. One shot per frame regardless of how many taps landed,
+      // so a fumbled two-finger stab can't drain the magazine.
+      if (input.secondaryTaps > 0 || input.firePressed) this.tryFire();
       this.updateDucks(dt);
       if (this.ducks.length === 0) this.resolveRound();
     } else {
@@ -366,7 +376,7 @@ function removeAt<T>(items: T[], index: number): void {
 export const mallardModule: GameModule = {
   id: "mallard-challenge",
   title: "NATHAN'S MALLARD CHALLENGE",
-  blurb: "Drag to aim, tap FIRE. The dog is judging you.",
+  blurb: "Drag to aim. Tap FIRE, or tap with a second finger.",
   accent: "#e0a53c",
 
   drawIcon(ctx, size) {
