@@ -12,9 +12,9 @@
 const STORY: ReadonlyArray<string> = [
   "This started as a conversation that kept coming back.",
 
-  "Dad grew up on Galaga and Space Invaders. Real cabinets, a quarter on the glass to hold your place in line. He always said those games were made by people who knew exactly what they were doing — and that you couldn't just sit down and make one today.",
+  "Dad grew up on Galaga and Space Invaders. Real cabinets, a quarter on the glass to hold your place in line.",
 
-  "So we made one.",
+  "So the idea was: how fast could we bring something like that back to life — and make the building of it as fun as the playing of it.",
 
   "Starfighter keeps the parts that made Galaga what it was: enemies that sweep in along curves instead of sliding across in rows, only two of your shots allowed on screen at once, and a cruiser that can steal your fighter — shoot it down and you fly two abreast for the rest of the wave.",
 
@@ -44,7 +44,7 @@ export function buildAboutScreen(
 
   const sign = document.createElement("p");
   sign.className = "story-sign";
-  sign.textContent = "— Hyperdrive Arcade";
+  sign.textContent = "Made with love, your son";
   body.append(sign);
 
   screen.append(body);

@@ -465,6 +465,13 @@ body {
   height: 32px;
 }
 
+.credit {
+  font-size: calc(10px * var(--ui-scale));
+  color: rgba(142, 163, 200, 0.55);
+  letter-spacing: 0.06em;
+  max-width: none;
+}
+
 /* ---------- Feedback ---------- */
 
 .setting--feedback {

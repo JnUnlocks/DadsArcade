@@ -89,6 +89,11 @@ export function buildSettingsScreen(
   back.addEventListener("click", onBack);
   screen.append(back);
 
+  const credit = document.createElement("p");
+  credit.className = "credit";
+  credit.textContent = `v${__APP_VERSION__} · Developer: JB Unlocks`;
+  screen.append(credit);
+
   return screen;
 }
 
