@@ -7,6 +7,7 @@
 
 import type { GameModule } from "../core/game";
 import { mallardModule } from "./mallard";
+import { reefModule } from "./reef";
 import { starfighterModule } from "./starfighter";
 
-export const GAMES: GameModule[] = [starfighterModule, mallardModule];
+export const GAMES: GameModule[] = [starfighterModule, mallardModule, reefModule];

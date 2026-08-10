@@ -16,11 +16,13 @@ const STORY: ReadonlyArray<string> = [
 
   "So the idea was: how fast could we bring something like that back to life — and make the building of it as fun as the playing of it.",
 
-  "Starfighter keeps the parts that made Galaga what it was: enemies that sweep in along curves instead of sliding across in rows, only two of your shots allowed on screen at once, and a cruiser that can steal your fighter — shoot it down and you fly two abreast for the rest of the wave.",
+  "Then it stopped being one person's game. Nathan wanted ducks, so the dog showed up and started laughing at us. Riley wanted the ocean, so there's a reef full of jellyfish to outswim. Every time someone said \"could it also do…\", it turned out it could.",
 
-  "Everything here is drawn and synthesised from scratch. No borrowed art, no sound files. The ships are shapes, the explosions are noise and a filter, and the whole arcade is smaller than a single photo.",
+  "The old rules are all still in here, because they were good rules. Only two shots on screen at once. Ducks that flush in an arc. Jellyfish that each hunt you differently instead of moving as one clump.",
 
-  "Built for one player in particular.",
+  "Everything is drawn and synthesised from scratch. No borrowed art, no sound files. The ships are shapes, the explosions are noise and a filter, and the whole arcade is smaller than a single photo.",
+
+  "Three machines now, and room on the floor for more. Built for one player in particular — and then, somehow, for all of us.",
 ];
 
 export function buildAboutScreen(
