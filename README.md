@@ -1,10 +1,21 @@
 # Hyperdrive Arcade
 
-A mobile-first PWA arcade. v1 ships **STARFIGHTER**, a Galaga-shaped shooter,
-with a shared online leaderboard and a real pause button.
+A mobile-first PWA arcade, built as a family project. Three games, a shared
+online leaderboard, a real pause button, and it plays with no signal.
 
-Original space-opera theme throughout — no trademarked names, art or audio — so
-it's safe to share with anyone.
+**[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
+— open it on a phone and Add to Home Screen.
+
+| Game | Owes its rules to | What it keeps |
+| --- | --- | --- |
+| **Starfighter** | Galaga | Bezier entry flights, dive attacks, only two shots on screen at once, and a cruiser that steals your fighter — shoot it down and you fly two abreast |
+| **Nathan's Mallard Challenge** | Duck Hunt | The dog's whole routine: walks the field, sniffs, flushes the birds, and rears up laughing when you miss |
+| **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
+
+Every theme is original — no trademarked names, art or audio anywhere — so it's
+safe to share with anyone. All art is vector paths drawn at runtime and every
+sound is synthesised from oscillators and noise. There isn't a single image or
+audio asset in the project, which is why the whole arcade is a ~25 KB download.
 
 ---
 
@@ -30,7 +41,7 @@ To try it on your actual phone while developing, `npm run dev` prints a
 
 ```bash
 npm run typecheck    # app + worker
-npm test             # game-loop / pause behaviour
+npm test             # pause/resume behaviour + reef maze validation
 npm run build        # typecheck, then production bundle into dist/
 ```
 

@@ -5,5 +5,9 @@ dist/
 .wrangler/
 .dev.vars
 
+# Per-machine Claude Code settings -- personal to whoever cloned this, not
+# something the repo should dictate. The shared launch.json stays tracked.
+.claude/settings.local.json
+
 .DS_Store
 *.log
