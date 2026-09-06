@@ -1,6 +1,6 @@
 # Hyperdrive Arcade
 
-A mobile-first PWA arcade, built as a family project. Three games, a shared
+A mobile-first PWA arcade, built as a family project. Four games, a shared
 online leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -11,11 +11,12 @@ online leaderboard, a real pause button, and it plays with no signal.
 | **Starfighter** | Galaga | Bezier entry flights, dive attacks, only two shots on screen at once, and a cruiser that steals your fighter — shoot it down and you fly two abreast |
 | **Nathan's Mallard Challenge** | Duck Hunt | The dog's whole routine: walks the field, sniffs, flushes the birds, and rears up laughing when you miss |
 | **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
+| **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — and a daily challenge everyone plays from the same seed |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
 sound is synthesised from oscillators and noise. There isn't a single image or
-audio asset in the project, which is why the whole arcade is a ~25 KB download.
+audio asset in the project, which is why the whole arcade is a ~37 KB download.
 
 ---
 
@@ -41,7 +42,7 @@ To try it on your actual phone while developing, `npm run dev` prints a
 
 ```bash
 npm run typecheck    # app + worker
-npm test             # pause/resume behaviour + reef maze validation
+npm test             # pause/resume, reef maze validation, slime colour + daily seeding
 npm run build        # typecheck, then production bundle into dist/
 ```
 
@@ -121,6 +122,57 @@ Emulators can't tell you how the controls feel. Worth doing once:
 
 ---
 
+## Riley's Slime Shop, and the daily board
+
+The other three cabinets are arcade classics. This one is a toy, and toys are
+awkward to score: there is nothing to lose at, which is exactly why slime apps
+have no high-score table. Bolting a timer onto a creative toy would have
+spoiled the toy without producing a real skill to rank.
+
+So the scoreable skill is **colour matching**. The five bottles mix in RYB
+paint space ([`color.ts`](src/games/slimeshop/color.ts)), so blue and yellow
+make green the way a child expects and not the muddy grey that averaging RGB
+would give. A customer asks for a specific colour; how close you got is
+measurable, practisable, and quietly teaches colour theory.
+
+Orders are generated **backwards from a recipe** rather than by picking a
+random colour, so every ticket is provably mixable. Losing points to an
+impossible order is the fastest way to make a game feel unfair, and there is a
+test over 400 seeds asserting it can't happen.
+
+The toy rules survive intact: you cannot lose, wrong mix-ins cost nothing (they
+just earn nothing), the speed bonus only ever adds, and **Slime Lab** is a pure
+sandbox with no score at all.
+
+### Three boards, not one
+
+`board_id` had been in the schema since day one, and `weeklySeed()` had been
+sitting in `core/rng.ts` unused with a comment explaining the feature it was
+waiting for. This is that feature.
+
+| Tab | What it ranks |
+| --- | --- |
+| **ALL TIME** | Every ranked run, as before |
+| **THIS WEEK** | Same board, last seven days |
+| **TODAY** | The daily challenge — its own board, per day |
+
+**Today's Special** seeds the day's six orders from the local date, so everyone
+playing on a given day gets the *identical* six orders. That is what makes the
+scores on that board genuinely comparable rather than luck-of-the-draw, and it
+turns the leaderboard from a wall of unrelated numbers into a head-to-head on
+the same challenge — which is a far better reason for a seven-year-old to come
+back tomorrow than an abstract number.
+
+Runs are filed under `daily-YYYY-MM-DD`. The seed and the board id come from
+the same local date, so they always roll over together — deliberately local
+rather than UTC, because a challenge that changes at 3pm is a bug however
+correct the clock is.
+
+Any future game gets the same treatment by setting `hasDailyChallenge` and
+returning a `boardId` from its `RunSummary`.
+
+---
+
 ## Adding another game
 
 The shell owns the loop, pause, audio, scoring, HUD and leaderboard. A game
@@ -133,6 +185,20 @@ gets all of that for free.
 That's the whole integration. Its scores are keyed on the module's `id`, so it
 gets its own leaderboard automatically. Don't change an `id` once it's live —
 that's the leaderboard key.
+
+A few optional hooks, all of which default to the old behaviour:
+
+- `drawLifeIcon` reskins the HUD's life pips (Slime Shop draws jars still to
+  fill, because a slime counter has no lives).
+- `extraControls()` mounts DOM chrome for games that need real tap targets
+  rather than canvas hit-testing — Slime Shop's whole counter is DOM for the
+  same reason the leaderboard is: real targets, real focus rings, and it grows
+  with the large-text setting.
+- `RunSummary.ranked: false` marks a run as practice, so the shell skips
+  submission and the personal best instead of posting a zero.
+- `RunSummary.boardId` files a run on a specific board (see the daily board
+  above); `RunSummary.headline` replaces "GAME OVER" for modes where losing
+  isn't a concept.
 
 ---
 

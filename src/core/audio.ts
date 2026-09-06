@@ -26,7 +26,14 @@ export type SoundName =
   | "dogLaugh"
   | "dogBark"
   | "roundClear"
-  | "roundFail";
+  | "roundFail"
+  // Riley's Slime Shop
+  | "slimePour"
+  | "slimeStir"
+  | "slimeServe"
+  | "orderIn"
+  | "perfectOrder"
+  | "shopClose";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -165,6 +172,35 @@ export class AudioEngine {
         // A two-note falling sting -- the "aw, missed" beat.
         this.blip(t, "sawtooth", 300, 220, 0.18, 0.22);
         this.blip(t + 0.19, "sawtooth", 220, 120, 0.24, 0.22);
+        break;
+
+      // ----- Riley's Slime Shop -----
+      case "slimePour":
+        // A short *bloop* -- a sine sliding downward is about as close to the
+        // sound of thick liquid landing as two oscillators get.
+        this.blip(t, "sine", 620, 280, 0.11, 0.2);
+        break;
+      case "slimeStir":
+        // Muted, low noise: a squelch rather than a note.
+        this.burst(t, 0.13, 900, 220, 0.16);
+        break;
+      case "slimeServe":
+        this.blip(t, "sine", 400, 720, 0.16, 0.2);
+        this.burst(t, 0.14, 1400, 400, 0.14);
+        break;
+      case "orderIn":
+        // The counter bell.
+        this.arpeggio(t, [880, 1320], 0.06, "sine", 0.16);
+        break;
+      case "perfectOrder":
+        // Deliberately the brightest sound in the game. It is the only
+        // feedback that says "you nailed the colour", and it should be worth
+        // chasing.
+        this.arpeggio(t, [659, 880, 1047, 1319], 0.07, "square", 0.2);
+        this.blip(t + 0.28, "sine", 1568, 1568, 0.22, 0.14);
+        break;
+      case "shopClose":
+        this.arpeggio(t, [784, 659, 523], 0.13, "sine", 0.2);
         break;
     }
   }

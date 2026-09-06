@@ -52,3 +52,28 @@ export function weeklySeed(date = new Date()): number {
   const week = Math.floor(utc / (7 * 24 * 60 * 60 * 1000));
   return week >>> 0;
 }
+
+/**
+ * Seed derived from the calendar day.
+ *
+ * Deliberately *local* rather than UTC. A daily challenge is a thing you do
+ * "today", and a child in a UTC-9 timezone finding that tomorrow's puzzle
+ * arrived at 3pm -- or that today's vanished mid-afternoon -- is a bug in
+ * every way that matters, even though the clock is behaving correctly.
+ * The board id is derived from the same local date, so the seed and the board
+ * always roll over together.
+ */
+export function dailySeed(date = new Date()): number {
+  const days = Math.floor(
+    (date.getTime() - date.getTimezoneOffset() * 60_000) / 86_400_000,
+  );
+  return days >>> 0;
+}
+
+/** `YYYY-MM-DD` in local time -- the board id suffix for a daily challenge. */
+export function dailyKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}

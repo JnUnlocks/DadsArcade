@@ -30,6 +30,7 @@ interface ScoreSubmission {
   score: number;
   wave: number;
   durationMs: number;
+  boardId: string;
 }
 
 const MAX_LIMIT = 50;
@@ -97,6 +98,7 @@ async function getScores(env: Env, url: URL): Promise<Response> {
   if (!gameId) return json({ error: "missing_game" }, 400);
 
   const boardId = url.searchParams.get("board")?.trim() || "global";
+  if (!/^[a-z0-9-]{1,40}$/.test(boardId)) return json({ error: "invalid_board" }, 400);
   const limit = clampInt(
     Number(url.searchParams.get("limit")) || DEFAULT_LIMIT,
     1,
@@ -172,9 +174,10 @@ async function postScore(request: Request, env: Env): Promise<Response> {
   await env.DB.prepare(
     `INSERT INTO scores
        (board_id, game_id, initials, device_id, score, wave, duration_ms, created_at)
-     VALUES ('global', ?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
   )
     .bind(
+      submission.boardId,
       submission.gameId,
       submission.initials,
       submission.deviceId,
@@ -186,16 +189,18 @@ async function postScore(request: Request, env: Env): Promise<Response> {
     .run();
 
   // Tell the client where it landed, so the game-over screen can say
-  // "3rd on the board" instead of just "submitted".
+  // "3rd on the board" instead of just "submitted". Ranked within the board it
+  // was actually filed under -- being told you came 4th all-time when you were
+  // playing today's challenge would be a lie, and a discouraging one.
   const rank = await env.DB.prepare(
     `SELECT COUNT(*) + 1 AS rank
        FROM (SELECT MAX(score) AS best
                FROM scores
-              WHERE board_id = 'global' AND game_id = ?1
+              WHERE board_id = ?1 AND game_id = ?2
               GROUP BY device_id)
-      WHERE best > ?2`,
+      WHERE best > ?3`,
   )
-    .bind(submission.gameId, submission.score)
+    .bind(submission.boardId, submission.gameId, submission.score)
     .first<{ rank: number }>();
 
   return json({ ok: true, rank: rank?.rank ?? null });
@@ -286,6 +291,16 @@ function validate(body: unknown): ScoreSubmission | { error: string } {
   const gameId = typeof raw.gameId === "string" ? raw.gameId.trim() : "";
   if (!/^[a-z0-9-]{1,32}$/.test(gameId)) return { error: "invalid_game" };
 
+  // Absent means the main board, which is what every existing game sends.
+  // The charset is deliberately narrow: board ids are concatenated into
+  // nothing, but they are player-influenced input that ends up as a stored
+  // key, and there is no reason to accept anything but the shape we issue.
+  const boardId =
+    typeof raw.boardId === "string" && raw.boardId.trim().length > 0
+      ? raw.boardId.trim()
+      : "global";
+  if (!/^[a-z0-9-]{1,40}$/.test(boardId)) return { error: "invalid_board" };
+
   const deviceId = typeof raw.deviceId === "string" ? raw.deviceId.trim() : "";
   if (deviceId.length < 8 || deviceId.length > 64) {
     return { error: "invalid_device" };
@@ -317,7 +332,7 @@ function validate(body: unknown): ScoreSubmission | { error: string } {
   ) + SCORE_GRACE;
   if (score > ceiling) return { error: "implausible_score" };
 
-  return { gameId, initials, deviceId, score, wave, durationMs };
+  return { gameId, initials, deviceId, score, wave, durationMs, boardId };
 }
 
 function toInt(value: unknown): number | null {

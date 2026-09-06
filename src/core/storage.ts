@@ -38,6 +38,14 @@ export interface QueuedScore {
   wave: number;
   durationMs: number;
   playedAt: number;
+  /**
+   * Which board it belongs on. Absent means the game's main board.
+   *
+   * It has to ride along in the queue rather than being recomputed at upload
+   * time: a daily-challenge run played offline on Saturday and uploaded on
+   * Monday still belongs on Saturday's board.
+   */
+  boardId?: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
