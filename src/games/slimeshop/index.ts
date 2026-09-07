@@ -146,12 +146,27 @@ export class SlimeShop implements GameInstance {
   private verdictTimer = 0;
   private mood: Mood = "waiting";
 
+  /**
+   * The daily board this run belongs to, captured when the run starts.
+   *
+   * Sampling the date again at the end would mean a run begun at 23:58 and
+   * finished at 00:03 was seeded from one day's orders and filed on the next
+   * day's board -- ranked against six colours it never mixed.
+   */
+  private boardId: string | undefined;
+
   private time = 0;
   /** Bumped on every new bowl so glitter re-scatters between slimes. */
   private scatterSeed = 1;
 
-  /** Panel height in virtual units, so canvas art can sit clear of it. */
-  private panelUnits = 210;
+  /**
+   * Panel height in CSS pixels, converted to virtual units at read time.
+   *
+   * Storing the converted value instead would go stale on rotation: the
+   * conversion depends on view.scale, which changes with the viewport, while
+   * the ResizeObserver only fires when the panel's own pixel height moves.
+   */
+  private panelPx = 200;
   private panelObserver: ResizeObserver | null = null;
 
   constructor(private readonly host: GameHost) {
@@ -327,8 +342,9 @@ export class SlimeShop implements GameInstance {
     // blank placeholder disc filling the screen. Ghosting it instead makes it
     // read as "nothing in here yet" and leaves the first pour something to
     // visibly arrive into.
-    ctx.save();
-    if (empty) ctx.globalAlpha = 0.16;
+    // Ghosting has to go through the blob rather than the context: canvas
+    // globalAlpha is absolute, so anything set out here is simply overwritten
+    // by the blob's own alpha the moment it starts drawing.
     this.blob.render(
       ctx,
       cx,
@@ -339,14 +355,14 @@ export class SlimeShop implements GameInstance {
       empty ? EMPTY_MIX_INS : this.mixIns,
       this.scatterSeed,
       settings.reducedMotion,
+      empty ? 0.16 : 1,
     );
-    ctx.restore();
 
     if (empty) {
       ctx.save();
       ctx.textAlign = "center";
-      ctx.fillStyle = SHOP_PALETTE.dim;
-      ctx.font = "10px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillStyle = SHOP_PALETTE.neonCool;
+      ctx.font = "700 11px ui-monospace, Menlo, Consolas, monospace";
       ctx.fillText("TAP A BOTTLE TO POUR", cx, cy + 4);
       ctx.restore();
     }
@@ -408,7 +424,7 @@ export class SlimeShop implements GameInstance {
 
     ctx.fillStyle = SHOP_PALETTE.dim;
     ctx.font = "8px ui-monospace, Menlo, Consolas, monospace";
-    const bits = [`COLOUR ${Math.round((v.colourScore / COLOUR_POINTS) * 100)}%`];
+    const bits = [`COLOUR ${v.colourPercent}%`];
     if (v.textureMatched) bits.push("TEXTURE");
     if (v.mixInsCorrect > 0) bits.push(`${v.mixInsCorrect} MIX-IN`);
     if (v.streakAfter > 1) bits.push(`x${v.streakAfter} STREAK`);
@@ -439,7 +455,8 @@ export class SlimeShop implements GameInstance {
     blobRadius: number;
   } {
     const { view } = this.host;
-    const counterY = Math.max(view.h * 0.42, view.h - this.panelUnits - 8);
+    const panelUnits = view.toWorldDistance(this.panelPx);
+    const counterY = Math.max(view.h * 0.42, view.h - panelUnits - 8);
     // Clears the shell 56px pause button in the top-right corner.
     const headerY = view.insetTop + 74;
     const headerH = this.mode === "lab" ? 44 : 96;
@@ -455,7 +472,7 @@ export class SlimeShop implements GameInstance {
   private watchPanelHeight(): void {
     const measure = () => {
       const px = this.root.offsetHeight;
-      if (px > 0) this.panelUnits = this.host.view.toWorldDistance(px);
+      if (px > 0) this.panelPx = px;
     };
     if (typeof ResizeObserver !== "undefined") {
       this.panelObserver = new ResizeObserver(measure);
@@ -499,11 +516,16 @@ export class SlimeShop implements GameInstance {
     this.mode = mode;
     this.host.sfx("uiSelect");
 
+    // One reading of the clock, used for both the seed and the board id, so
+    // they cannot disagree however long the run takes.
+    const now = new Date();
+    this.boardId = mode === "daily" ? `daily-${dailyKey(now)}` : undefined;
+
     this.rng =
       mode === "daily"
         ? // Salted per game, so this shop and any future daily challenge
           // don't march in lockstep on the same date.
-          new Rng((dailySeed() ^ SEED_SALT) >>> 0)
+          new Rng((dailySeed(now) ^ SEED_SALT) >>> 0)
         : new Rng((Date.now() ^ (Math.random() * 0xffffffff)) >>> 0);
 
     this.orderIndex = 0;
@@ -552,7 +574,7 @@ export class SlimeShop implements GameInstance {
     this.host.gameOver({
       progress: ORDERS_PER_DAY,
       progressLabel: "Orders",
-      boardId: this.mode === "daily" ? `daily-${dailyKey()}` : undefined,
+      boardId: this.boardId,
     });
   }
 
@@ -571,6 +593,10 @@ export class SlimeShop implements GameInstance {
     // the range feeling dead.
     const t = clamp01((match - COLOUR_FLOOR) / (1 - COLOUR_FLOOR));
     const colourScore = Math.round(COLOUR_POINTS * Math.sqrt(t));
+    // Shown on the verdict card. Deliberately the raw match rather than the
+    // scored value: those are on different curves, and reporting the scored
+    // one meant a PERFECT order could be captioned "COLOUR 89%".
+    const colourPercent = Math.round(match * 100);
 
     const textureMatched = this.texture === order.texture;
     const wanted = new Set(order.mixIns);
@@ -604,6 +630,7 @@ export class SlimeShop implements GameInstance {
 
     this.verdict = {
       colourScore,
+      colourPercent,
       textureMatched,
       mixInsCorrect: correct,
       mixInsMissed: missed,

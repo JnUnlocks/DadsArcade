@@ -106,6 +106,8 @@ export interface Order {
 /** The breakdown shown after serving, and the numbers the score comes from. */
 export interface Verdict {
   colourScore: number;
+  /** Raw match as a percentage, for display. See the note in serve(). */
+  colourPercent: number;
   textureMatched: boolean;
   mixInsCorrect: number;
   mixInsMissed: number;

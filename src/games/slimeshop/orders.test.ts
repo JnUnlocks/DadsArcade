@@ -62,6 +62,27 @@ describe("daily challenge", () => {
     assert.equal(dailySeed(date), dailySeed(new Date("2026-09-06T00:30:00")));
     assert.notEqual(dailySeed(date), dailySeed(new Date("2026-09-07T00:30:00")));
   });
+
+  it("rolls the seed and the board id over on the very same minute", () => {
+    // The game must read the clock once per run and derive both from it. It
+    // used to sample the date at the start for the seed and again at the end
+    // for the board id, so a run begun at 23:58 and finished at 00:03 was
+    // seeded from one day's orders and filed on the next day's board --
+    // ranked against six colours it never mixed. This asserts the two
+    // quantities are in lockstep, which is what makes a single reading safe.
+    const start = new Date("2026-09-06T23:50:00");
+
+    for (let minute = 0; minute <= 30; minute += 1) {
+      const at = new Date(start.getTime() + minute * 60_000);
+      const seedChanged = dailySeed(at) !== dailySeed(start);
+      const keyChanged = dailyKey(at) !== dailyKey(start);
+      assert.equal(
+        seedChanged,
+        keyChanged,
+        `seed and board id disagree ${minute} minutes after ${start.toISOString()}`,
+      );
+    }
+  });
 });
 
 describe("order generation", () => {

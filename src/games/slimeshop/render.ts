@@ -141,6 +141,12 @@ export class SlimeBlob {
     mixIns: ReadonlySet<MixIn>,
     seed: number,
     reducedMotion: boolean,
+    /**
+     * Overall opacity, multiplied into every layer. A caller cannot simply set
+     * ctx.globalAlpha before calling: canvas alpha is absolute, so the first
+     * assignment in here would discard it.
+     */
+    alphaScale = 1,
   ): void {
     const feel = TEXTURE_FEEL[texture];
     const breathe = reducedMotion ? 0 : Math.sin(this.phase) * 1.4;
@@ -164,27 +170,27 @@ export class SlimeBlob {
 
     // Cloud slime gets a soft halo so it reads as matte and airy.
     if (texture === "cloud") {
-      ctx.globalAlpha = 0.22;
+      ctx.globalAlpha = 0.22 * alphaScale;
       ctx.fillStyle = toCss(shift(colour, 0.25));
       traceBlob(ctx, points, 5);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
 
-    ctx.globalAlpha = feel.alpha;
+    ctx.globalAlpha = feel.alpha * alphaScale;
     ctx.fillStyle = toCss(colour);
     traceBlob(ctx, points, 0);
     ctx.fill();
 
     // Rim: darker at the bottom, so the blob reads as a volume with weight
     // rather than a flat sticker.
-    ctx.globalAlpha = feel.alpha * 0.9;
+    ctx.globalAlpha = feel.alpha * 0.9 * alphaScale;
     ctx.strokeStyle = toCss(shift(colour, -0.32), 0.85);
     ctx.lineWidth = 1.6;
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    this.drawGloss(ctx, cx, cy, radius, colour, feel.gloss);
+    this.drawGloss(ctx, cx, cy, radius, colour, feel.gloss * alphaScale);
     this.drawMixIns(ctx, cx, cy, radius, colour, mixIns, seed, reducedMotion);
 
     ctx.restore();
@@ -327,12 +333,24 @@ function traceBlob(
   grow: number,
 ): void {
   const n = points.length;
+
+  // Hoisted: the centroid is the same for every point, and pt() is called
+  // ~2n times per frame. Recomputing it inside made the halo O(n^2).
+  let cx = 0;
+  let cy = 0;
+  if (grow !== 0) {
+    for (const q of points) {
+      cx += q.x;
+      cy += q.y;
+    }
+    cx /= n;
+    cy /= n;
+  }
+
   const pt = (i: number) => {
     const p = points[((i % n) + n) % n]!;
     if (grow === 0) return p;
     // Expanding for the halo: push each point out along its own normal.
-    const cx = points.reduce((s, q) => s + q.x, 0) / n;
-    const cy = points.reduce((s, q) => s + q.y, 0) / n;
     const dx = p.x - cx;
     const dy = p.y - cy;
     const len = Math.hypot(dx, dy) || 1;
