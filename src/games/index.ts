@@ -8,6 +8,12 @@
 import type { GameModule } from "../core/game";
 import { mallardModule } from "./mallard";
 import { reefModule } from "./reef";
+import { slimeShopModule } from "./slimeshop";
 import { starfighterModule } from "./starfighter";
 
-export const GAMES: GameModule[] = [starfighterModule, mallardModule, reefModule];
+export const GAMES: GameModule[] = [
+  starfighterModule,
+  mallardModule,
+  reefModule,
+  slimeShopModule,
+];

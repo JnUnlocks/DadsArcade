@@ -6,12 +6,25 @@
  */
 
 import { fetchLeaderboard, type LeaderboardRow } from "../core/api";
+import { dailyKey } from "../core/rng";
 import type { Player } from "../core/storage";
+
+/**
+ * Which slice of the board we're looking at.
+ *
+ * "today" is not a date filter like "week" is -- it's a different board
+ * entirely. Everyone playing the daily challenge got the same seeded run, so
+ * those scores are the only ones in the arcade that are strictly comparable,
+ * and mixing them into the all-time list would throw away the one property
+ * that makes them worth ranking.
+ */
+type Slice = "all" | "week" | "today";
 
 export function buildLeaderboardScreen(
   gameId: string,
   player: Player | null,
   onBack: () => void,
+  hasDailyChallenge = false,
 ): HTMLElement {
   const screen = document.createElement("div");
   screen.className = "screen screen--board";
@@ -24,7 +37,11 @@ export function buildLeaderboardScreen(
   tabs.className = "tabs";
   const allTab = tabButton("ALL TIME", true);
   const weekTab = tabButton("THIS WEEK", false);
+  // Only offered by games that actually file runs under a per-day board --
+  // otherwise it would be a tab that is permanently empty.
+  const todayTab = hasDailyChallenge ? tabButton("TODAY", false) : null;
   tabs.append(allTab, weekTab);
+  if (todayTab) tabs.append(todayTab);
   screen.append(tabs);
 
   const body = document.createElement("div");
@@ -37,15 +54,27 @@ export function buildLeaderboardScreen(
   back.addEventListener("click", onBack);
   screen.append(back);
 
-  let period: "all" | "week" = "all";
+  let slice: Slice = "all";
 
   const load = async () => {
     body.replaceChildren(message("LOADING…"));
+    const period = slice === "week" ? "week" : "all";
+    const board = slice === "today" ? `daily-${dailyKey()}` : "";
     try {
-      const rows = await fetchLeaderboard(gameId, period, 20, player?.deviceId);
+      const rows = await fetchLeaderboard(
+        gameId,
+        period,
+        20,
+        player?.deviceId,
+        board,
+      );
       if (rows.length === 0) {
         body.replaceChildren(
-          message("No scores yet. Be the first one on the board."),
+          message(
+            slice === "today"
+              ? "Nobody has played today’s special yet. Go set the mark."
+              : "No scores yet. Be the first one on the board.",
+          ),
         );
         return;
       }
@@ -57,18 +86,22 @@ export function buildLeaderboardScreen(
     }
   };
 
-  allTab.addEventListener("click", () => {
-    period = "all";
-    allTab.classList.add("is-active");
-    weekTab.classList.remove("is-active");
-    void load();
-  });
-  weekTab.addEventListener("click", () => {
-    period = "week";
-    weekTab.classList.add("is-active");
-    allTab.classList.remove("is-active");
-    void load();
-  });
+  const tabsBySlice: Array<[Slice, HTMLButtonElement | null]> = [
+    ["all", allTab],
+    ["week", weekTab],
+    ["today", todayTab],
+  ];
+
+  for (const [name, tab] of tabsBySlice) {
+    if (!tab) continue;
+    tab.addEventListener("click", () => {
+      slice = name;
+      for (const [, other] of tabsBySlice) {
+        other?.classList.toggle("is-active", other === tab);
+      }
+      void load();
+    });
+  }
 
   void load();
   return screen;

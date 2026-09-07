@@ -36,10 +36,12 @@ export async function fetchLeaderboard(
   period: "all" | "week" = "all",
   limit = 20,
   deviceId = "",
+  boardId = "",
 ): Promise<LeaderboardRow[]> {
   const url =
     `/api/scores?game=${encodeURIComponent(gameId)}&period=${period}&limit=${limit}` +
-    (deviceId ? `&device=${encodeURIComponent(deviceId)}` : "");
+    (deviceId ? `&device=${encodeURIComponent(deviceId)}` : "") +
+    (boardId ? `&board=${encodeURIComponent(boardId)}` : "");
   const response = await request(url, { method: "GET" });
   if (!response?.ok) throw new Error("leaderboard_unavailable");
   const data = (await response.json()) as { scores?: LeaderboardRow[] };
@@ -146,6 +148,9 @@ async function send(entry: QueuedScore, player: Player): Promise<SubmitResult> {
       score: entry.score,
       wave: entry.wave,
       durationMs: entry.durationMs,
+      // Omitted for ordinary runs, so the server falls back to 'global' and
+      // every existing game keeps posting exactly what it always did.
+      ...(entry.boardId ? { boardId: entry.boardId } : {}),
     }),
   });
 

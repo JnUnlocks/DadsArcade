@@ -49,6 +49,26 @@ export interface RunSummary {
   progress: number;
   /** Label for that number in the UI, e.g. "Wave" or "Length". */
   progressLabel: string;
+
+  /**
+   * Which leaderboard this run belongs on. Defaults to the game's main board.
+   *
+   * This is what makes a seeded challenge possible: a run of the same game can
+   * be filed under `daily-2026-09-06` so it's only ever compared against other
+   * people playing that exact set of orders, rather than muddled in with the
+   * all-time board.
+   */
+  boardId?: string;
+
+  /**
+   * False for a run that shouldn't be scored at all -- a sandbox or practice
+   * mode. The shell skips submission entirely rather than posting a zero and
+   * polluting the board with runs that were never a competition.
+   */
+  ranked?: boolean;
+
+  /** Replaces "GAME OVER" -- for modes where losing isn't a concept. */
+  headline?: string;
 }
 
 /** Values the shell paints into the HUD each frame. */
@@ -68,6 +88,13 @@ export interface GameInstance {
   onResume?(): void;
 
   /**
+   * Release anything the garbage collector won't -- observers, timers,
+   * listeners on nodes outside the game's own subtree. Called when the run
+   * ends or the player quits to the arcade.
+   */
+  destroy?(): void;
+
+  /**
    * Extra DOM control(s) a game needs beyond the shared pause button -- a
    * fire trigger, for instance. Mounted once when the game starts; the game
    * owns the returned element and may mutate it directly from its own
@@ -83,6 +110,12 @@ export interface GameModule {
   readonly blurb: string;
   /** Accent colour for this game's cabinet in the arcade menu. */
   readonly accent: string;
+  /**
+   * True when this game files some runs under a per-day board, which tells the
+   * leaderboard screen to offer the "TODAY" tab. Games without one never show
+   * an empty tab.
+   */
+  readonly hasDailyChallenge?: boolean;
   /** Draw the cabinet's marquee art into a size x size box at the origin. */
   drawIcon(ctx: CanvasRenderingContext2D, size: number): void;
   /**

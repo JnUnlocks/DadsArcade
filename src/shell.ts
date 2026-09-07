@@ -109,7 +109,11 @@ export class Shell implements GameHost {
     this.loop.pause();
     this.input.reset();
     this.wakeLock.release();
-    const isBest = this.module ? recordBest(this.module.id, this._score) : false;
+    // An unranked run is practice: it shouldn't touch the personal best any
+    // more than it should reach the server.
+    const ranked = summary.ranked !== false;
+    const isBest =
+      ranked && this.module ? recordBest(this.module.id, this._score) : false;
     this.renderGameOver(summary, isBest);
   }
 
@@ -206,6 +210,7 @@ export class Shell implements GameHost {
 
   showMenu(): void {
     this.screen = "menu";
+    this.instance?.destroy?.();
     this.module = null;
     this.instance = null;
     this.wakeLock.release();
@@ -269,8 +274,14 @@ export class Shell implements GameHost {
 
   showLeaderboard(gameId: string): void {
     this.clearUi();
+    const module = this.games.find((game) => game.id === gameId);
     this.ui.append(
-      buildLeaderboardScreen(gameId, this.player, () => this.showMenu()),
+      buildLeaderboardScreen(
+        gameId,
+        this.player,
+        () => this.showMenu(),
+        module?.hasDailyChallenge ?? false,
+      ),
     );
   }
 
@@ -303,6 +314,7 @@ export class Shell implements GameHost {
       return;
     }
 
+    this.instance?.destroy?.();
     this.module = module;
     this._score = 0;
     this.elapsedMs = 0;
@@ -416,9 +428,12 @@ export class Shell implements GameHost {
 
   private renderGameOver(summary: RunSummary, isBest: boolean): void {
     this.clearUi();
+    const ranked = summary.ranked !== false;
     const screen = el("div", "screen");
-    screen.append(el("h2", "", "GAME OVER"));
-    screen.append(el("h1", "", String(this._score).padStart(6, "0")));
+    screen.append(el("h2", "", summary.headline ?? "GAME OVER"));
+    if (ranked) {
+      screen.append(el("h1", "", String(this._score).padStart(6, "0")));
+    }
     if (isBest) {
       const badge = el("p", "", "NEW PERSONAL BEST");
       badge.style.color = "var(--accent-warm)";
@@ -456,7 +471,16 @@ export class Shell implements GameHost {
       wave: summary.progress,
       durationMs: Math.round(this.elapsedMs),
       playedAt: Date.now(),
+      ...(summary.boardId ? { boardId: summary.boardId } : {}),
     };
+
+    // A sandbox run ends here: no upload, and no initials prompt, because
+    // there is nothing to put a name to.
+    if (!ranked) {
+      screen.append(again, board, menu);
+      this.ui.append(screen);
+      return;
+    }
 
     if (this.player) {
       screen.append(again, board, menu);
