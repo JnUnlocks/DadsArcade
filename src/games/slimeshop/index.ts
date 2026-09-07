@@ -57,8 +57,11 @@ import {
   type Rgb,
 } from "./color";
 import {
+  drawBuriedPrize,
   drawCustomer,
+  drawDigMeter,
   drawJarIcon,
+  drawPoppedPrize,
   drawShop,
   drawShopIcon,
   drawTicket,
@@ -66,7 +69,18 @@ import {
   SlimeBlob,
   type Mood,
 } from "./render";
+import { addToCollection, collectionStats, loadCollection } from "./collection";
 import { makeOrder, ORDERS_PER_DAY } from "./orders";
+import {
+  ALL_PRIZES,
+  buryPrizes,
+  prizeCount,
+  rollPrizes,
+  RARITY_COLOURS,
+  RARITY_LABELS,
+  type BuriedPrize,
+  type Prize,
+} from "./prizes";
 import {
   MIX_IN_LABELS,
   MIX_INS,
@@ -117,7 +131,19 @@ const VERDICT_SECONDS = 2.4;
 /** Salts this game's daily seed so two daily challenges never correlate. */
 const SEED_SALT = 0x511e00;
 
-type Phase = "choosing" | "serving" | "verdict" | "closed";
+/**
+ * Work earned per virtual unit of drag on the squish screen.
+ *
+ * Paired with the thresholds in prizes.ts: vigorous squishing is roughly 5
+ * work per second. Gentle poking still counts, just slower -- nothing here
+ * demands strength, only patience.
+ */
+const DIG_RATE = 0.003;
+
+/** Minimum gap between squelch sounds, so dragging isn't a wall of noise. */
+const SQUELCH_COOLDOWN = 0.22;
+
+type Phase = "choosing" | "serving" | "verdict" | "playing" | "closed";
 
 /** Shared empty set -- an empty bowl shows no mix-ins whatever is selected. */
 const EMPTY_MIX_INS: ReadonlySet<MixIn> = new Set<MixIn>();
@@ -145,6 +171,16 @@ export class SlimeShop implements GameInstance {
   private verdict: Verdict | null = null;
   private verdictTimer = 0;
   private mood: Mood = "waiting";
+
+  // ----- The squish screen -----
+  private buried: BuriedPrize[] = [];
+  private popped: Array<{ emoji: string; x: number; y: number; age: number; accent: string }> = [];
+  private digEnergy = 0;
+  private squelchTimer = 0;
+  private lastFound: { prize: Prize; isNew: boolean } | null = null;
+  private lastFoundAge = 0;
+  /** Running colour accuracy, so a well-mixed day rolls better prizes. */
+  private colourTotal = 0;
 
   /**
    * The daily board this run belongs to, captured when the run starts.
@@ -189,9 +225,18 @@ export class SlimeShop implements GameInstance {
     // Squish. Relative deltas suit this better than an absolute position would:
     // you can drag anywhere on the counter and never cover the slime with your
     // own thumb.
-    if (this.phase === "serving" || this.phase === "choosing") {
+    if (
+      this.phase === "serving" ||
+      this.phase === "choosing" ||
+      this.phase === "playing"
+    ) {
       if (input.pointerDown && (input.dragX !== 0 || input.dragY !== 0)) {
         this.blob.pull(input.dragX, input.dragY, this.texture);
+        if (this.phase === "playing") {
+          // Drag magnitude is already a per-frame distance, so total work
+          // is frame-rate independent without scaling by dt.
+          this.dig(Math.hypot(input.dragX, input.dragY));
+        }
       } else if (!input.pointerDown) {
         this.blob.release();
       }
@@ -201,10 +246,74 @@ export class SlimeShop implements GameInstance {
       this.orderElapsed += dt;
     }
 
+    if (this.phase === "playing") {
+      this.squelchTimer = Math.max(0, this.squelchTimer - dt);
+      this.lastFoundAge += dt;
+      for (let i = this.popped.length - 1; i >= 0; i -= 1) {
+        const p = this.popped[i]!;
+        p.age += dt;
+        if (p.age > 0.9) this.popped.splice(i, 1);
+      }
+    }
+
     if (this.phase === "verdict") {
       this.verdictTimer -= dt;
       if (this.verdictTimer <= 0) this.advance();
     }
+  }
+
+  /**
+   * Turn squishing into progress against whatever is still buried.
+   *
+   * Only the shallowest unfound prize accrues work, so they surface one at a
+   * time. Digging them in parallel would mean three popping at once and the
+   * child missing two of them.
+   */
+  private dig(dragMagnitude: number): void {
+    if (dragMagnitude <= 0) return;
+    this.digEnergy += dragMagnitude * DIG_RATE;
+
+    if (this.squelchTimer <= 0 && dragMagnitude > 6) {
+      this.host.sfx("slimeSquelch");
+      this.squelchTimer = SQUELCH_COOLDOWN;
+    }
+
+    const next = this.buried.find((b) => !b.found);
+    if (!next) return;
+
+    next.progress = this.digEnergy;
+    if (next.progress < next.threshold) return;
+
+    next.found = true;
+    next.isNew = addToCollection(next.prize);
+    this.lastFound = { prize: next.prize, isNew: next.isNew };
+    this.lastFoundAge = 0;
+
+    const { blobY, blobRadius } = this.layout();
+    const accent = RARITY_COLOURS[next.prize.rarity];
+    this.popped.push({
+      emoji: next.prize.emoji,
+      x: this.host.view.w / 2 + Math.cos(next.offsetAngle) * blobRadius * next.offsetDistance,
+      y: blobY + Math.sin(next.offsetAngle) * blobRadius * next.offsetDistance,
+      age: 0,
+      accent,
+    });
+
+    this.blob.splash(22);
+    this.particles.burst(this.host.view.w / 2, blobY, accent, 18, 100);
+
+    if (next.prize.rarity === "legendary") {
+      this.host.sfx("prizeLegendary");
+      this.host.shake(4);
+      this.particles.burst(this.host.view.w / 2, blobY, "#ffffff", 26, 150);
+    } else if (next.prize.rarity === "rare") {
+      this.host.sfx("prizeRare");
+      this.host.shake(2);
+    } else {
+      this.host.sfx("prizePop");
+    }
+
+    this.refreshPlayControls();
   }
 
   render(ctx: CanvasRenderingContext2D, _alpha: number): void {
@@ -247,7 +356,9 @@ export class SlimeShop implements GameInstance {
       );
     }
 
-    if (this.mode === "lab") {
+    // The dig banner takes over this slot on the squish screen, so the lab
+    // title stands down rather than printing on top of it.
+    if (this.mode === "lab" && this.phase !== "playing") {
       ctx.save();
       ctx.textAlign = "center";
       ctx.fillStyle = SHOP_PALETTE.neonCool;
@@ -260,11 +371,91 @@ export class SlimeShop implements GameInstance {
     }
 
     this.renderBowl(ctx, blobY, blobRadius);
+
+    if (this.phase === "playing") {
+      this.renderDig(ctx, view.w, blobY, blobRadius, reduced);
+    }
+
     this.particles.render(ctx);
+
+    for (const p of this.popped) {
+      drawPoppedPrize(ctx, p.x, p.y, p.emoji, p.age, p.accent);
+    }
 
     if (this.phase === "verdict" && this.verdict) {
       this.renderVerdict(ctx, view.w, blobY, blobRadius);
     }
+  }
+
+  /** Buried prizes, the dig meter, and the banner for the latest find. */
+  private renderDig(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    blobY: number,
+    blobRadius: number,
+    reduced: boolean,
+  ): void {
+    const colour = mixRecipe(this.recipe);
+
+    for (const b of this.buried) {
+      if (b.found) continue;
+      // Only the one currently being worked on shows through, so the slime
+      // doesn't look like a bag of visible objects from the first second.
+      const progress = b.threshold > 0 ? clamp01(b.progress / b.threshold) : 0;
+      if (progress <= 0.08) continue;
+      drawBuriedPrize(
+        ctx,
+        w / 2 + Math.cos(b.offsetAngle) * blobRadius * b.offsetDistance,
+        blobY + Math.sin(b.offsetAngle) * blobRadius * b.offsetDistance,
+        b.prize.emoji,
+        progress,
+        colour,
+        this.time,
+        reduced,
+      );
+    }
+
+    const found = this.buried.filter((b) => b.found).length;
+    drawDigMeter(ctx, w / 2, blobY + blobRadius + 26, found, this.buried.length);
+
+    const header = this.layout().headerY;
+    ctx.save();
+    ctx.textAlign = "center";
+
+    if (this.lastFound && this.lastFoundAge < 2.6) {
+      const { prize, isNew } = this.lastFound;
+      ctx.fillStyle = RARITY_COLOURS[prize.rarity];
+      ctx.font = "700 15px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(
+        `${prize.emoji}  ${prize.name.toUpperCase()}`,
+        w / 2,
+        header + 14,
+      );
+      ctx.font = "9px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(
+        isNew ? `NEW!  ·  ${RARITY_LABELS[prize.rarity]}` : RARITY_LABELS[prize.rarity],
+        w / 2,
+        header + 30,
+      );
+    } else {
+      ctx.fillStyle = SHOP_PALETTE.neonCool;
+      ctx.font = "700 15px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(
+        found >= this.buried.length ? "ALL FOUND!" : "SQUISH IT!",
+        w / 2,
+        header + 14,
+      );
+      ctx.fillStyle = SHOP_PALETTE.dim;
+      ctx.font = "9px ui-monospace, Menlo, Consolas, monospace";
+      ctx.fillText(
+        found >= this.buried.length
+          ? "every prize is in your jar"
+          : "drag anywhere to stretch — something is in there",
+        w / 2,
+        header + 30,
+      );
+    }
+    ctx.restore();
   }
 
   hud(): HudState {
@@ -531,6 +722,7 @@ export class SlimeShop implements GameInstance {
     this.orderIndex = 0;
     this.streak = 0;
     this.slimesMade = 0;
+    this.colourTotal = 0;
     this.buildControls();
 
     if (mode === "lab") {
@@ -561,10 +753,37 @@ export class SlimeShop implements GameInstance {
   private advance(): void {
     this.orderIndex += 1;
     if (this.orderIndex >= ORDERS_PER_DAY) {
-      this.closeShop();
+      // The day's takings, as one last slime to pull apart. Ending a shop day
+      // on a score screen wastes the best thing the game has.
+      const quality = clamp01(
+        this.colourTotal / (ORDERS_PER_DAY * COLOUR_POINTS),
+      );
+      this.enterPlay(quality);
       return;
     }
     this.nextOrder();
+  }
+
+  /**
+   * Hand the finished slime over to be played with.
+   *
+   * `quality` (0..1) only tilts the prize table -- it never gates the dig. A
+   * badly mixed slime still hides prizes, because the squish screen is the
+   * toy and the toy is not something you can fail your way out of.
+   */
+  private enterPlay(quality: number): void {
+    this.phase = "playing";
+    this.digEnergy = 0;
+    this.popped = [];
+    this.lastFound = null;
+    this.lastFoundAge = 99;
+    this.buried = buryPrizes(
+      this.rng,
+      rollPrizes(this.rng, prizeCount(this.rng, quality), quality),
+    );
+    this.blob.splash(14);
+    this.host.sfx("slimeStretch");
+    this.buildPlayControls();
   }
 
   private closeShop(): void {
@@ -643,6 +862,7 @@ export class SlimeShop implements GameInstance {
 
     this.host.addScore(points);
     this.slimesMade += 1;
+    this.colourTotal += colourScore;
 
     // Nobody is ever told they failed. The worst outcome on screen is a
     // customer who looks unsure.
@@ -771,13 +991,15 @@ export class SlimeShop implements GameInstance {
     const serve = document.createElement("button");
     serve.className = "slime-act slime-act--serve";
     serve.dataset.role = "serve";
-    serve.textContent = this.mode === "lab" ? "NEW BATCH" : "SERVE";
+    serve.textContent = this.mode === "lab" ? "PLAY WITH IT" : "SERVE";
     serve.addEventListener("click", () => {
       if (this.mode === "lab") {
         this.slimesMade += 1;
         this.host.sfx("slimeServe");
-        this.blob.splash(24);
-        this.newBowl();
+        // Straight to the squish screen. Mixing a slime and then binning it
+        // was the old flow's mistake -- the thing you made should be the
+        // thing you get to play with.
+        this.enterPlay(0.5);
       } else {
         this.serve();
       }
@@ -840,6 +1062,129 @@ export class SlimeShop implements GameInstance {
       // implausibly fast anyway.
       serve.disabled = !active || totalPours(this.recipe) === 0;
     }
+  }
+
+  // ----- The squish screen's controls -----
+
+  private buildPlayControls(): void {
+    const panel = div("slime-panel slime-panel--play");
+
+    const tray = div("slime-tray");
+    tray.dataset.role = "tray";
+    panel.append(tray);
+
+    const actions = div("slime-row slime-actions");
+
+    const jar = document.createElement("button");
+    jar.className = "slime-act slime-act--jar";
+    jar.textContent = "PRIZE JAR";
+    jar.addEventListener("click", () => this.showJar());
+    actions.append(jar);
+
+    if (this.mode === "lab") {
+      const again = document.createElement("button");
+      again.className = "slime-act slime-act--serve";
+      again.textContent = "NEW SLIME";
+      again.addEventListener("click", () => this.backToMixing());
+
+      const done = document.createElement("button");
+      done.className = "slime-act slime-act--finish";
+      done.textContent = "DONE";
+      done.addEventListener("click", () => this.finishLab());
+
+      actions.append(again, done);
+    } else {
+      const finish = document.createElement("button");
+      finish.className = "slime-act slime-act--serve";
+      finish.textContent = "FINISH DAY";
+      finish.addEventListener("click", () => this.closeShop());
+      actions.append(finish);
+    }
+
+    panel.append(actions);
+    this.root.replaceChildren(panel);
+    this.refreshPlayControls();
+  }
+
+  /** Repaint the tray of what has surfaced so far. */
+  private refreshPlayControls(): void {
+    const tray = this.root.querySelector<HTMLElement>('[data-role="tray"]');
+    if (!tray) return;
+
+    const chips = this.buried.map((b) => {
+      const chip = div(
+        b.found ? `slime-prize is-found is-${b.prize.rarity}` : "slime-prize",
+      );
+      // Unfound slots stay as empty sockets rather than being hidden, so the
+      // tray shows how much is still in there -- that's the reason to keep
+      // squishing.
+      chip.textContent = b.found ? b.prize.emoji : "?";
+      if (b.found && b.isNew) chip.classList.add("is-new");
+      chip.title = b.found ? b.prize.name : "Still buried";
+      return chip;
+    });
+    tray.replaceChildren(...chips);
+  }
+
+  private backToMixing(): void {
+    this.phase = "serving";
+    this.buried = [];
+    this.popped = [];
+    this.lastFound = null;
+    this.newBowl();
+    this.buildControls();
+    this.host.sfx("uiSelect");
+  }
+
+  /**
+   * The Prize Jar.
+   *
+   * DOM rather than canvas for the same reason the leaderboard is: it scrolls,
+   * it scales with the large-text setting, and a screen reader can read it.
+   */
+  private showJar(): void {
+    const collection = loadCollection();
+    const stats = collectionStats(collection);
+
+    const panel = div("slime-panel slime-panel--jar");
+
+    const head = div("slime-jar-head");
+    const title = div("slime-jar-title");
+    title.textContent = "PRIZE JAR";
+    const count = div("slime-jar-count");
+    count.textContent = `${stats.distinct}/${stats.possible} kinds · ${stats.total} found`;
+    head.append(title, count);
+
+    const grid = div("slime-jar-grid");
+    for (const prize of ALL_PRIZES) {
+      const owned = collection[prize.emoji] ?? 0;
+      const cell = div(
+        owned > 0 ? `slime-jar-cell is-owned is-${prize.rarity}` : "slime-jar-cell",
+      );
+      const face = div("slime-jar-emoji");
+      // Undiscovered prizes stay silhouetted, so the jar doubles as a list of
+      // what there is still to find.
+      face.textContent = owned > 0 ? prize.emoji : "?";
+      cell.append(face);
+      if (owned > 1) {
+        const n = div("slime-jar-n");
+        n.textContent = `x${owned}`;
+        cell.append(n);
+      }
+      cell.title = owned > 0 ? `${prize.name} (${RARITY_LABELS[prize.rarity]})` : "Not found yet";
+      grid.append(cell);
+    }
+
+    const back = document.createElement("button");
+    back.className = "slime-act slime-act--serve";
+    back.textContent = "BACK TO THE SLIME";
+    back.addEventListener("click", () => {
+      this.host.sfx("uiSelect");
+      this.buildPlayControls();
+    });
+
+    panel.append(head, grid, back);
+    this.root.replaceChildren(panel);
   }
 
   destroy(): void {

@@ -11,7 +11,7 @@ online leaderboard, a real pause button, and it plays with no signal.
 | **Starfighter** | Galaga | Bezier entry flights, dive attacks, only two shots on screen at once, and a cruiser that steals your fighter — shoot it down and you fly two abreast |
 | **Nathan's Mallard Challenge** | Duck Hunt | The dog's whole routine: walks the field, sniffs, flushes the birds, and rears up laughing when you miss |
 | **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
-| **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — and a daily challenge everyone plays from the same seed |
+| **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
@@ -128,6 +128,8 @@ Emulators can't tell you how the controls feel. Worth doing once:
       squishes the slime.
 - [ ] Play **Today's Special** on two devices and confirm both get the same six
       orders, and that both land on the **TODAY** board.
+- [ ] Squish a slime until every prize is out, then open the **Prize Jar** and
+      confirm they're still there after a reload.
 
 ---
 
@@ -163,7 +165,7 @@ Pick a mode, then work the counter at the bottom of the screen:
 | **Texture** | Cloud, butter, clear, crunchy, fluffy — changes how the slime looks and jiggles. |
 | **Mix-ins** | Glitter, beads, boba, and star / heart / taco charms. Toggle on and off freely. |
 | **DUMP** | Empties the bowl. Free, unlimited, no penalty. |
-| **SERVE** | Hands it over. Disabled while the bowl is empty. |
+| **PLAY WITH IT** / **SERVE** | Takes the slime to the squish screen (lab), or hands it to the customer (shop). Disabled while the bowl is empty. |
 | **Drag anywhere** | Squishes and stretches the slime. You don't have to touch the blob. |
 
 Three modes:
@@ -175,6 +177,50 @@ Three modes:
 Each order scores on colour accuracy (worth more than everything else
 combined), texture match, mix-ins, and a speed bonus, with a streak multiplier
 on consecutive perfect orders.
+
+### The squish screen, and prizes
+
+Every finished slime has prizes buried in it, and the only way to get them out
+is to actually stretch and squash the thing.
+
+That's the point. A prize that appeared the moment the slime was finished would
+be a loot box — one tap, read the result, done. Making them surface only as you
+work the slime means **the playing is the opening**, which is the whole reason
+to have a squish screen rather than a results screen.
+
+- **Nothing is on a timer and nothing can be missed.** Keep squishing and
+  everything comes out. There's no way to lose a prize, only to not have found
+  it yet.
+- Prizes surface **one at a time**, shallowest first, so a child never misses
+  two because they popped together. `buryPrizes()` makes the depths strictly
+  increasing by construction rather than by arithmetic that can invert — a test
+  holds that line.
+- A vague lump shows through the slime before a prize breaks the surface. Fully
+  hidden gives you nothing to aim at; fully visible removes the reason to dig.
+- **Rarity** runs common → uncommon → rare → legendary, each with its own
+  colour and its own fanfare. A legendary is deliberately the loudest sound in
+  the arcade.
+- Mixing well **tilts the odds** toward better prizes (a Shop Day's colour
+  accuracy becomes the `luck` argument), but never gates them. A badly mixed
+  slime still hides prizes, because the toy is not something you can fail.
+
+Shop Day now ends on a reward slime — the day's takings, one last thing to pull
+apart — instead of going straight to a score card.
+
+### The Prize Jar
+
+Everything ever dug out is kept in **`hyperdrive.slimeshop.prizes`**, so the jar
+survives between sessions and every future slime is progress toward completing
+it. Undiscovered prizes show as silhouettes, so the jar doubles as a want-list;
+duplicates show a count.
+
+Deliberately local-only — it never touches the leaderboard API. There's nothing
+to cheat at, and nothing about a child's play habits leaves the device.
+
+Emoji are the one exception to the project's no-assets rule. They're font
+glyphs rather than files, so they cost nothing to download and still honour
+"every asset is drawn at runtime" — and they buy ~33 instantly recognisable
+collectables that would otherwise be ~33 hand-written path functions.
 
 ### Three boards, not one
 
@@ -248,14 +294,17 @@ worth testing away from the DOM:
 
 ```
 src/games/slimeshop/
-  color.ts      RYB paint mixing, colour matching, colour naming
-  orders.ts     seeded order generation (pure, so the daily seed is testable)
-  render.ts     the springy blob, the cast, the counter, the ticket
-  types.ts      textures, mix-ins, order and verdict shapes
-  index.ts      the GameModule: modes, scoring, the DOM counter panel
+  color.ts       RYB paint mixing, colour matching, colour naming
+  orders.ts      seeded order generation (pure, so the daily seed is testable)
+  prizes.ts      the prize table, rarity rolls, and how deep each one is buried
+  collection.ts  the Prize Jar, persisted to localStorage
+  render.ts      the springy blob, the cast, the counter, the ticket, the prizes
+  types.ts       textures, mix-ins, order and verdict shapes
+  index.ts       the GameModule: modes, scoring, digging, the DOM panels
 ```
 
-`color.ts` and `orders.ts` have no DOM dependencies and carry the test suite.
+`color.ts`, `orders.ts` and `prizes.ts` have no DOM dependencies and carry the
+test suite.
 Note that both use explicit `.ts` extensions on their relative imports — Node's
 type stripping requires it for anything reachable from a test.
 

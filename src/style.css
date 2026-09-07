@@ -875,3 +875,138 @@ body {
     transform: none;
   }
 }
+
+/* ---------- The squish screen and the Prize Jar ---------- */
+
+.slime-panel--play {
+  gap: calc(10px * var(--ui-scale));
+}
+
+/* The tray shows every prize slot, found or not, so how much is still buried
+   is visible at a glance. Hiding the empty ones would remove the reason to
+   keep squishing. */
+.slime-tray {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: calc(38px * var(--ui-scale));
+}
+
+.slime-prize {
+  width: calc(38px * var(--ui-scale));
+  height: calc(38px * var(--ui-scale));
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  border: 2px dashed rgba(142, 163, 200, 0.32);
+  font-size: calc(19px * var(--ui-scale));
+  color: rgba(142, 163, 200, 0.55);
+}
+
+.slime-prize.is-found {
+  border-style: solid;
+  border-color: #8ea3c8;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.slime-prize.is-uncommon { border-color: #3ddc97; background: rgba(61, 220, 151, 0.14); }
+.slime-prize.is-rare     { border-color: #54e0ff; background: rgba(84, 224, 255, 0.16); }
+.slime-prize.is-legendary{ border-color: #ffd84d; background: rgba(255, 216, 77, 0.18); }
+
+/* First-ever find. The glow is the only thing on this screen that animates on
+   its own, which is what makes a new prize stand out from a duplicate. */
+.slime-prize.is-new {
+  animation: prize-new 1.4s ease-out 3;
+}
+
+@keyframes prize-new {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 216, 77, 0); }
+  50%      { box-shadow: 0 0 14px 3px rgba(255, 216, 77, 0.65); }
+}
+
+.slime-act--jar {
+  border-color: rgba(255, 216, 77, 0.55);
+  background: rgba(255, 216, 77, 0.1);
+}
+
+/* ----- Prize Jar ----- */
+
+.slime-panel--jar {
+  gap: calc(8px * var(--ui-scale));
+  /* Tall enough to browse, capped so the slime stays visible behind it. */
+  max-height: 62vh;
+}
+
+.slime-jar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.slime-jar-title {
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent-warm);
+}
+
+.slime-jar-count {
+  font-size: calc(9px * var(--ui-scale));
+  color: var(--dim);
+}
+
+.slime-jar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(42px * var(--ui-scale)), 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  padding: 2px;
+  /* Let a finger scroll the jar even though the page disables touch actions. */
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.slime-jar-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(142, 163, 200, 0.22);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.slime-jar-emoji {
+  font-size: calc(19px * var(--ui-scale));
+  /* Undiscovered prizes are silhouettes, so the jar is also a want-list. */
+  opacity: 0.32;
+  color: var(--dim);
+}
+
+.slime-jar-cell.is-owned .slime-jar-emoji {
+  opacity: 1;
+}
+
+.slime-jar-cell.is-owned { border-color: rgba(142, 163, 200, 0.6); }
+.slime-jar-cell.is-owned.is-uncommon  { border-color: #3ddc97; }
+.slime-jar-cell.is-owned.is-rare      { border-color: #54e0ff; }
+.slime-jar-cell.is-owned.is-legendary { border-color: #ffd84d; background: rgba(255, 216, 77, 0.1); }
+
+.slime-jar-n {
+  position: absolute;
+  right: 3px;
+  bottom: 2px;
+  font-size: calc(8px * var(--ui-scale));
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: 0 1px 3px #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slime-prize.is-new {
+    animation: none;
+    border-color: var(--accent-warm);
+  }
+}

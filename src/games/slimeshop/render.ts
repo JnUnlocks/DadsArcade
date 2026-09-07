@@ -745,3 +745,108 @@ export function drawJarIcon(
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
+
+// ----- Prizes in the slime -----
+
+/**
+ * Something still buried, seen through the slime.
+ *
+ * Drawn as a soft lump that sharpens as it works loose, rather than popping
+ * into existence at the end. Seeing a vague shape you can't identify yet is
+ * what makes the next stretch worth doing -- an invisible prize gives you
+ * nothing to aim at, and a fully visible one removes the reason to dig.
+ */
+export function drawBuriedPrize(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  emoji: string,
+  progress: number,
+  slimeColour: Rgb,
+  time: number,
+  reducedMotion: boolean,
+): void {
+  const t = Math.max(0, Math.min(1, progress));
+  const bob = reducedMotion ? 0 : Math.sin(time * 2 + x) * 1.2;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+
+  // The lump pressing up through the surface.
+  ctx.globalAlpha = 0.35 + t * 0.35;
+  ctx.fillStyle = toCss(shift(slimeColour, 0.4));
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 9 + t * 3, 7 + t * 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // The prize itself, fading up from a silhouette.
+  ctx.globalAlpha = 0.18 + t * 0.82;
+  ctx.font = `${13 + t * 5}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(emoji, 0, 0);
+
+  ctx.restore();
+}
+
+/** A prize that has just broken the surface, on its way to the tray. */
+export function drawPoppedPrize(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  emoji: string,
+  age: number,
+  accent: string,
+): void {
+  // Scale overshoots then settles -- the pop is the payoff, so it gets the
+  // most exaggerated easing in the game.
+  const t = Math.min(1, age / 0.45);
+  const scale = t < 0.5 ? 1 + t * 1.6 : 1.8 - (t - 0.5) * 1.0;
+  const rise = t * 26;
+
+  ctx.save();
+  ctx.translate(x, y - rise);
+  ctx.globalAlpha = Math.max(0, 1 - Math.max(0, t - 0.7) / 0.3);
+
+  // A burst ring behind it, sized off the same curve.
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha *= 1 - t;
+  ctx.beginPath();
+  ctx.arc(0, 0, 10 + t * 26, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.globalAlpha = Math.max(0, 1 - Math.max(0, t - 0.7) / 0.3);
+  ctx.font = `${20 * scale}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(emoji, 0, 0);
+  ctx.restore();
+}
+
+/** How much digging is left, as a ring under the slime. */
+export function drawDigMeter(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  found: number,
+  total: number,
+): void {
+  const gap = 13;
+  const startX = cx - ((total - 1) * gap) / 2;
+
+  ctx.save();
+  for (let i = 0; i < total; i += 1) {
+    ctx.beginPath();
+    ctx.arc(startX + i * gap, cy, 4, 0, Math.PI * 2);
+    if (i < found) {
+      ctx.fillStyle = SHOP_PALETTE.neon;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "rgba(198,178,224,0.5)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}

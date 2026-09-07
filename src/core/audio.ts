@@ -33,7 +33,12 @@ export type SoundName =
   | "slimeServe"
   | "orderIn"
   | "perfectOrder"
-  | "shopClose";
+  | "shopClose"
+  | "slimeStretch"
+  | "slimeSquelch"
+  | "prizePop"
+  | "prizeRare"
+  | "prizeLegendary";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -201,6 +206,38 @@ export class AudioEngine {
         break;
       case "shopClose":
         this.arpeggio(t, [784, 659, 523], 0.13, "sine", 0.2);
+        break;
+
+      // ----- The squish screen -----
+      case "slimeStretch":
+        // A slow upward bend with a wobble on it. Pitch rising as the slime
+        // is pulled is what sells "this is under tension" -- a flat tone
+        // reads as a machine noise instead.
+        this.blip(t, "sine", 220, 460, 0.26, 0.1, 9);
+        break;
+      case "slimeSquelch":
+        // Wet and dull: noise swept hard downward, no pitched component. The
+        // absence of a note is what makes it read as a substance rather than
+        // an instrument.
+        this.burst(t, 0.19, 1100, 130, 0.2);
+        break;
+      case "prizePop":
+        // The cork-out-of-a-bottle moment: a very short noise transient with
+        // a fast upward blip riding on top.
+        this.burst(t, 0.05, 3000, 900, 0.22);
+        this.blip(t + 0.01, "sine", 500, 1150, 0.12, 0.2);
+        break;
+      case "prizeRare":
+        this.burst(t, 0.06, 3200, 1000, 0.2);
+        this.arpeggio(t + 0.02, [784, 1047, 1319], 0.07, "sine", 0.2);
+        break;
+      case "prizeLegendary":
+        // Deliberately the longest and brightest sound in the arcade. A child
+        // should be able to hear from the next room that something good just
+        // came out of the slime.
+        this.burst(t, 0.08, 3600, 1200, 0.22);
+        this.arpeggio(t + 0.02, [523, 659, 784, 1047, 1319, 1568], 0.075, "square", 0.19);
+        this.blip(t + 0.5, "sine", 2093, 2093, 0.42, 0.15, 7);
         break;
     }
   }
