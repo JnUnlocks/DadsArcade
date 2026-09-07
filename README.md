@@ -75,6 +75,11 @@ npm run cf:deploy
 
 </details>
 
+No database migration is needed to pick up the daily board — `board_id` has
+been in `worker/schema.sql` since the first release and the slime shop only
+started writing to it. `npm run db:remote` is idempotent (`CREATE TABLE IF NOT
+EXISTS`), so re-running it on an existing deployment is safe and a no-op.
+
 Wrangler prints the live URL. Open it on the phone → Share → **Add to Home
 Screen**. It then launches full-screen with no browser chrome, and works with no
 signal.
@@ -119,6 +124,10 @@ Emulators can't tell you how the controls feel. Worth doing once:
 - [ ] Turn on airplane mode, play a run, and confirm the score says it'll upload
       later. Turn Wi-Fi back on and check it lands on the board.
 - [ ] Screen shouldn't dim during a long run.
+- [ ] Slime Shop: the counter is reachable one-handed, and dragging anywhere
+      squishes the slime.
+- [ ] Play **Today's Special** on two devices and confirm both get the same six
+      orders, and that both land on the **TODAY** board.
 
 ---
 
@@ -143,6 +152,29 @@ test over 400 seeds asserting it can't happen.
 The toy rules survive intact: you cannot lose, wrong mix-ins cost nothing (they
 just earn nothing), the speed bonus only ever adds, and **Slime Lab** is a pure
 sandbox with no score at all.
+
+### How you play it
+
+Pick a mode, then work the counter at the bottom of the screen:
+
+| Control | What it does |
+| --- | --- |
+| **Bottles** (red / yellow / blue / white / black) | Tap to pour. The badge shows how many parts are in the bowl. |
+| **Texture** | Cloud, butter, clear, crunchy, fluffy — changes how the slime looks and jiggles. |
+| **Mix-ins** | Glitter, beads, boba, and star / heart / taco charms. Toggle on and off freely. |
+| **DUMP** | Empties the bowl. Free, unlimited, no penalty. |
+| **SERVE** | Hands it over. Disabled while the bowl is empty. |
+| **Drag anywhere** | Squishes and stretches the slime. You don't have to touch the blob. |
+
+Three modes:
+
+- **SLIME LAB** — free play. No score, no timer, no orders. DONE leaves.
+- **SHOP DAY** — six random customers, ranked on the all-time board.
+- **TODAY'S SPECIAL** — six *seeded* customers, ranked on today's board.
+
+Each order scores on colour accuracy (worth more than everything else
+combined), texture match, mix-ins, and a speed bonus, with a streak multiplier
+on consecutive perfect orders.
 
 ### Three boards, not one
 
@@ -210,6 +242,22 @@ src/ui/       hud, leaderboard, settings
 src/games/    one folder per game
 worker/       leaderboard API + D1 schema
 ```
+
+Slime Shop is the one game split across several files, because its rules are
+worth testing away from the DOM:
+
+```
+src/games/slimeshop/
+  color.ts      RYB paint mixing, colour matching, colour naming
+  orders.ts     seeded order generation (pure, so the daily seed is testable)
+  render.ts     the springy blob, the cast, the counter, the ticket
+  types.ts      textures, mix-ins, order and verdict shapes
+  index.ts      the GameModule: modes, scoring, the DOM counter panel
+```
+
+`color.ts` and `orders.ts` have no DOM dependencies and carry the test suite.
+Note that both use explicit `.ts` extensions on their relative imports — Node's
+type stripping requires it for anything reachable from a test.
 
 ## Notes on scores
 
