@@ -15,10 +15,28 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const DB_NAME = "hyperdrive-arcade";
 const CONFIG = "wrangler.jsonc";
 const PLACEHOLDER = "REPLACE_WITH_DATABASE_ID";
+
+/**
+ * Everything is launched as `node <some .js>` rather than through `npx`/`npm`.
+ *
+ * On Windows those are `npx.cmd`/`npm.cmd`, and execFileSync can't run them:
+ * without a shell it throws ENOENT, and naming the `.cmd` explicitly throws
+ * EINVAL because Node now refuses to spawn batch files unshelled (the fix for
+ * CVE-2024-27980). Passing `shell: true` would work but concatenates arguments
+ * unescaped, which Node also warns about.
+ *
+ * Resolving the package's own JS entrypoint sidesteps all of it, needs no
+ * shell, and behaves identically on macOS and Windows. This script previously
+ * died at step 1 on Windows and blamed it on not being logged in.
+ */
+const WRANGLER = fileURLToPath(
+  new URL("../node_modules/wrangler/bin/wrangler.js", import.meta.url),
+);
 
 const step = (n, msg) => console.log(`\n\x1b[36m[${n}/5]\x1b[0m ${msg}`);
 const ok = (msg) => console.log(`      \x1b[32m✓\x1b[0m ${msg}`);
@@ -27,30 +45,61 @@ const fail = (msg) => {
   process.exit(1);
 };
 
-/** Run a command, streaming its output to the terminal. */
-function run(cmd, args) {
-  execFileSync(cmd, args, { stdio: "inherit", env: { ...process.env, CI: "1" } });
+/** Run `node <script> ...`, streaming output to the terminal. */
+function run(script, args) {
+  execFileSync(process.execPath, [script, ...args], {
+    stdio: "inherit",
+    env: { ...process.env, CI: "1" },
+  });
 }
 
-/** Run a command and capture stdout. */
-function capture(cmd, args) {
-  return execFileSync(cmd, args, {
+/** Run `node <script> ...` and capture stdout. */
+function capture(script, args) {
+  return execFileSync(process.execPath, [script, ...args], {
     encoding: "utf8",
     env: { ...process.env, CI: "1" },
   });
 }
 
+/**
+ * Run one of this project's own npm scripts.
+ *
+ * `npm_execpath` is set by npm for any script it launches and points at
+ * npm-cli.js, so this stays a plain `node` invocation. If the file is somehow
+ * run outside npm there's nothing sensible to fall back to, so say so plainly
+ * rather than failing later with a confusing error.
+ */
+function npmScript(name) {
+  const npmCli = process.env.npm_execpath;
+  if (!npmCli || !npmCli.endsWith(".js")) {
+    fail(
+      `Couldn't locate npm to run "${name}".\n` +
+        `Run this through npm:\n\n    npm run deploy\n`,
+    );
+  }
+  run(npmCli, ["run", name]);
+}
+
 // ---- 1. Confirm login -------------------------------------------------------
 
 step(1, "Checking your Cloudflare login…");
+let who;
 try {
-  const who = capture("npx", ["wrangler", "whoami"]);
-  if (/not authenticated/i.test(who)) throw new Error("not authenticated");
-  const email = who.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0];
-  ok(email ? `Logged in as ${email}` : "Logged in");
-} catch {
+  who = capture(WRANGLER, ["whoami"]);
+} catch (error) {
+  // Distinguish "wrangler wouldn't start" from "wrangler says you're logged
+  // out". Reporting a spawn failure as a login problem sends you off to run
+  // `wrangler login` over and over while the real fault is somewhere else.
+  fail(
+    `Couldn't run wrangler.\n\n${error.message}\n\n` +
+      `Are dependencies installed? Try: npm install`,
+  );
+}
+if (/not authenticated/i.test(who)) {
   fail("Not logged in. Run this first:\n\n    npx wrangler login\n");
 }
+const email = who.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0];
+ok(email ? `Logged in as ${email}` : "Logged in");
 
 // ---- 2. Find or create the database ----------------------------------------
 
@@ -58,7 +107,7 @@ step(2, `Looking for the "${DB_NAME}" database…`);
 
 function findDatabaseId() {
   try {
-    const raw = capture("npx", ["wrangler", "d1", "list", "--json"]);
+    const raw = capture(WRANGLER, ["d1", "list", "--json"]);
     // Wrangler prints a banner before the JSON; take from the first bracket.
     const json = raw.slice(raw.indexOf("["));
     const list = JSON.parse(json);
@@ -74,7 +123,7 @@ if (databaseId) {
   ok(`Found existing database (${databaseId})`);
 } else {
   ok("Not found — creating it");
-  run("npx", ["wrangler", "d1", "create", DB_NAME]);
+  run(WRANGLER, ["d1", "create", DB_NAME]);
   databaseId = findDatabaseId();
   if (!databaseId) {
     fail(
@@ -107,21 +156,14 @@ if (config.includes(`"${databaseId}"`)) {
 // ---- 4. Schema --------------------------------------------------------------
 
 step(4, "Creating the tables (scores + feedback)…");
-run("npx", [
-  "wrangler",
-  "d1",
-  "execute",
-  DB_NAME,
-  "--remote",
-  "--file=worker/schema.sql",
-]);
+run(WRANGLER, ["d1", "execute", DB_NAME, "--remote", "--file=worker/schema.sql"]);
 ok("Schema applied");
 
 // ---- 5. Build and ship ------------------------------------------------------
 
 step(5, "Building and deploying…");
-run("npm", ["run", "build"]);
-run("npx", ["wrangler", "deploy"]);
+npmScript("build");
+run(WRANGLER, ["deploy"]);
 
 console.log(`
 \x1b[32m✓ Deployed.\x1b[0m
