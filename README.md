@@ -1,10 +1,19 @@
-# Hyperdrive Arcade
+# Dad's Arcade
 
-A mobile-first PWA arcade, built as a family project. Four games, a shared
-online leaderboard, a real pause button, and it plays with no signal.
+A mobile-first PWA arcade, built for Dad. Four games, a shared online
+leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
 — open it on a phone and Add to Home Screen.
+
+> **Why does the code still say `hyperdrive`?** The arcade was called Hyperdrive
+> when it was one game, and the name stuck to a few things that are *identifiers
+> rather than branding*: the deployed URL, the D1 database name, and the
+> `hyperdrive.*` localStorage keys. Those were left alone deliberately — renaming
+> them would change the URL people have on their home screens, point the worker
+> at a new empty database, and wipe every saved setting, personal best and Prize
+> Jar on every device. The name on the screen is what matters; those strings are
+> just keys.
 
 | Game | Owes its rules to | What it keeps |
 | --- | --- | --- |

@@ -81,7 +81,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* `safe` matters here. With plain `center`, a menu taller than the viewport
+     overflows equally off both ends and the top becomes unreachable even with
+     scrolling -- which is exactly what happened on a short phone once the
+     arcade grew to four cabinets: the title scrolled off and could not be got
+     back. `safe center` centres only while it fits and falls back to
+     flex-start when it doesn't. */
+  justify-content: safe center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* body sets touch-action: none to stop the page fighting the game controls,
+     so a menu that needs scrolling has to opt back in explicitly. */
+  touch-action: pan-y;
   gap: calc(18px * var(--ui-scale));
   padding: calc(env(safe-area-inset-top, 0px) + 20px) 22px
     calc(env(safe-area-inset-bottom, 0px) + 20px);

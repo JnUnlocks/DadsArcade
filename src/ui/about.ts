@@ -16,13 +16,13 @@ const STORY: ReadonlyArray<string> = [
 
   "So the idea was: how fast could we bring something like that back to life — and make the building of it as fun as the playing of it.",
 
-  "Then it stopped being one person's game. Nathan wanted ducks, so the dog showed up and started laughing at us. Riley wanted the ocean, so there's a reef full of jellyfish to outswim. Every time someone said \"could it also do…\", it turned out it could.",
+  "Then it stopped being one person's game. Nathan wanted ducks, so the dog showed up and started laughing at us. Riley wanted the ocean, so there's a reef full of jellyfish to outswim — and then she wanted slime, so now there's a counter where you mix it, and prizes you have to squish out of it. Every time someone said \"could it also do…\", it turned out it could.",
 
   "The old rules are all still in here, because they were good rules. Only two shots on screen at once. Ducks that flush in an arc. Jellyfish that each hunt you differently instead of moving as one clump.",
 
   "Everything is drawn and synthesised from scratch. No borrowed art, no sound files. The ships are shapes, the explosions are noise and a filter, and the whole arcade is smaller than a single photo.",
 
-  "Three machines now, and room on the floor for more. Built for one player in particular — and then, somehow, for all of us.",
+  "Four machines now, and room on the floor for more. Built for one player in particular — and then, somehow, for all of us.",
 ];
 
 export function buildAboutScreen(

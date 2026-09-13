@@ -1,5 +1,5 @@
 /**
- * Service worker for Hyperdrive Arcade.
+ * Service worker for Dad's Arcade.
  *
  * Goal: the game must launch and play with no network at all. Scores recorded
  * offline queue up in localStorage and sync when the connection returns, which
@@ -8,7 +8,7 @@
  * Bump CACHE_VERSION on any release that changes the shell.
  */
 
-const CACHE_VERSION = "hyperdrive-v1";
+const CACHE_VERSION = "dads-arcade-v1";
 
 /** Enough to boot offline; hashed build assets are cached on first visit. */
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icon-512.png"];

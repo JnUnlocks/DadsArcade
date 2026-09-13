@@ -1,7 +1,7 @@
 {
-  "name": "Hyperdrive Arcade",
-  "short_name": "Hyperdrive",
-  "description": "A pocket arcade. Fly the resistance starfighter.",
+  "name": "Dad's Arcade",
+  "short_name": "Dad's Arcade",
+  "description": "A pocket arcade, built for Dad. Four machines, no install, plays offline.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

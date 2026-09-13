@@ -1,4 +1,4 @@
--- Hyperdrive Arcade leaderboard.
+-- Dad's Arcade leaderboard.
 --
 -- `board_id` exists from day one even though v1 only ever writes 'global'.
 -- Adding private share-code boards later is then a feature, not a migration.

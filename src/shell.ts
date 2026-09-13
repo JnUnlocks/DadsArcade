@@ -218,7 +218,7 @@ export class Shell implements GameHost {
 
     const screen = el("div", "screen");
     screen.append(
-      el("h1", "", "HYPERDRIVE"),
+      el("h1", "", "DAD'S ARCADE"),
       el("p", "", "Pick your machine."),
     );
 

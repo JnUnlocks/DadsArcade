@@ -1,5 +1,5 @@
 /**
- * Hyperdrive Arcade worker: leaderboard API + static site, one deployment.
+ * Dad's Arcade worker: leaderboard API + static site, one deployment.
  *
  * A note on cheating, since it would be easy to oversell what this does.
  * This is a browser game with no server-side simulation, so anyone willing to
