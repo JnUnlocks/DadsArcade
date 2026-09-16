@@ -82,16 +82,35 @@ export function occupantPositions(lane: Lane, t: number): number[] {
   return positions;
 }
 
-/** True when `col` overlaps any occupant of this lane at time `t`. */
+/**
+ * Where the frog's body actually is, in cells.
+ *
+ * `col` is a cell index and a cell spans [col, col+1], so the frog standing in
+ * it is centred at col + 0.5 -- which is exactly where render.ts draws it.
+ *
+ * Both hit tests originally used `col` itself as the centre, putting every
+ * collision half a cell to the left of the visible frog. A car with clear
+ * daylight around it killed you; a car covering half your body drove through
+ * you; a log you were 78% aboard drowned you; a log you were 3% aboard carried
+ * you. It made every death in the game look arbitrary, and it is the sort of
+ * thing that is invisible in a unit test unless the sample point happens to
+ * straddle the error.
+ */
+export function frogCentre(col: number): number {
+  return col + 0.5;
+}
+
+/** True when a frog standing at `col` overlaps any occupant at time `t`. */
 export function overlapsOccupant(
   lane: Lane,
   t: number,
   col: number,
   frogWidth = 0.7,
 ): boolean {
+  const centre = frogCentre(col);
   const half = frogWidth / 2;
   for (const x of occupantPositions(lane, t)) {
-    if (col + half > x && col - half < x + lane.width) return true;
+    if (centre + half > x && centre - half < x + lane.width) return true;
   }
   return false;
 }
@@ -108,13 +127,22 @@ export function platformUnder(
   t: number,
   col: number,
 ): number | null {
+  const centre = frogCentre(col);
   for (const x of occupantPositions(lane, t)) {
-    // A slightly forgiving edge: landing a hair off the end of a log should
-    // read as "just made it", not as a drowning.
-    if (col + 0.25 > x && col + 0.25 < x + lane.width + 0.25) return x;
+    // Forgiving by the same amount at both ends: landing a hair off either
+    // end of a log should read as "just made it", not as a drowning. The
+    // original slack was applied only to the right-hand edge, so the frog
+    // could float half a cell past a log's end while drowning a quarter of a
+    // cell short of its start.
+    if (centre > x - PLATFORM_GRACE && centre < x + lane.width + PLATFORM_GRACE) {
+      return x;
+    }
   }
   return null;
 }
+
+/** How far past a platform's end still counts as standing on it, in cells. */
+const PLATFORM_GRACE = 0.25;
 
 export type Dir = "up" | "down" | "left" | "right";
 

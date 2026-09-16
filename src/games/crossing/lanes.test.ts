@@ -161,27 +161,63 @@ describe("lane traffic", () => {
     // Asserted through occupancy rather than by comparing array entries:
     // positions wrap, so positions[0] is not a stable identity across time
     // and comparing it comes out backwards whenever it happens to wrap.
+    // The frog in cell c is centred at c + 0.5, so these sample points are
+    // chosen against the drawn sprite, not against the bare index.
     const rightward = lane({ dir: 1, phase: 0, speed: 1, width: 1, period: 3 });
-    assert.ok(!overlapsOccupant(rightward, 0, 1.5), "gap should start clear");
-    assert.ok(overlapsOccupant(rightward, 1, 1.5), "dir +1 should arrive from the left");
+    // Cars at [0,1], [3,4]. Frog in cell 1 is centred at 1.5: in the gap.
+    assert.ok(!overlapsOccupant(rightward, 0, 1), "gap should start clear");
+    // One second later they are at [1,2], [4,5]: now under the frog.
+    assert.ok(overlapsOccupant(rightward, 1, 1), "dir +1 should arrive from the left");
 
     const leftward = lane({ dir: -1, phase: 3, speed: 1, width: 1, period: 3 });
-    assert.ok(!overlapsOccupant(leftward, 0, 2.5), "gap should start clear");
-    assert.ok(overlapsOccupant(leftward, 1, 2.5), "dir -1 should arrive from the right");
+    // Cars at [0,1], [3,4]. Frog in cell 2 is centred at 2.5: in the gap.
+    assert.ok(!overlapsOccupant(leftward, 0, 2), "gap should start clear");
+    // One second later they are at [-1,0], [2,3]: now under the frog.
+    assert.ok(overlapsOccupant(leftward, 1, 2), "dir -1 should arrive from the right");
   });
 
   it("detects a hit only where a vehicle actually is", () => {
-    const l = lane({ phase: 2, speed: 0, width: 1 });
-    assert.ok(overlapsOccupant(l, 0, 2.4), "standing under a car should be a hit");
+    const l = lane({ phase: 2, speed: 0, width: 1 });   // car spans [2, 3]
+    // The frog standing in cell 2 is centred at 2.5 -- under the car.
+    assert.ok(overlapsOccupant(l, 0, 2), "standing under a car should be a hit");
     assert.ok(!overlapsOccupant(l, 0, 4), "standing in a gap should be safe");
+  });
+
+  it("puts the hitbox where the frog is drawn, not half a cell left", () => {
+    // The bug this pins: collisions were tested at `col` while the sprite is
+    // drawn centred at col + 0.5. A car with clear daylight around it killed
+    // you, and a car covering half your body drove straight through.
+    const behind = lane({ phase: 2, speed: 0, width: 1 }); // car spans [2, 3]
+    assert.ok(
+      !overlapsOccupant(behind, 0, 3),
+      "a car fully behind the frog must not be a hit",
+    );
+
+    const onTop = lane({ phase: 3.4, speed: 0, width: 1 }); // car spans [3.4, 4.4]
+    assert.ok(
+      overlapsOccupant(onTop, 0, 3),
+      "a car covering half the frog must be a hit",
+    );
   });
 
   it("finds a platform only where one actually is", () => {
     const l = lane({ kind: "river", occupant: "log", phase: 1, speed: 0, width: 3, period: 5 });
-    // Logs sit at 1..4 and 6..9, so 5 is the open water between them.
-    assert.notEqual(platformUnder(l, 0, 2), null, "should be riding the log");
-    assert.notEqual(platformUnder(l, 0, 7), null, "7 is on the second log");
-    assert.equal(platformUnder(l, 0, 5), null, "open water should be a drowning");
+    // Logs span [1, 4] and [6, 9]; the frog in cell c is centred at c + 0.5.
+    assert.notEqual(platformUnder(l, 0, 2), null, "centre 2.5 is on the first log");
+    assert.notEqual(platformUnder(l, 0, 7), null, "centre 7.5 is on the second log");
+    assert.equal(platformUnder(l, 0, 4), null, "centre 4.5 is open water");
+  });
+
+  it("is equally forgiving at both ends of a log", () => {
+    // The slack used to be applied only to the right-hand edge, so the frog
+    // floated half a cell past a log's end while drowning a quarter of a cell
+    // short of its start.
+    const l = lane({ kind: "river", occupant: "log", phase: 2, speed: 0, width: 2, period: 6 });
+    // Log spans [2, 4]. Grace is 0.25, so supported centres are [1.75, 4.25].
+    assert.notEqual(platformUnder(l, 0, 1.3), null, "just off the left end still counts");
+    assert.notEqual(platformUnder(l, 0, 3.7), null, "just off the right end still counts");
+    assert.equal(platformUnder(l, 0, 1.0), null, "well short of the log is water");
+    assert.equal(platformUnder(l, 0, 4.0), null, "well past the log is water");
   });
 
   it("carries a rider at the lane's speed", () => {

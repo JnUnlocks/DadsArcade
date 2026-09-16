@@ -97,7 +97,22 @@ const TIME_BONUS = 120;
 /** Drag distance, in virtual units, that counts as a swipe. */
 const SWIPE_THRESHOLD = 16;
 
-type Phase = "hopping" | "idle" | "stunned" | "celebrating" | "ready";
+/**
+ * Total drag during one touch that still counts as a tap rather than a swipe.
+ *
+ * Taps fire on RELEASE, not on the first frame of the touch. Firing on
+ * `justPressed` meant the tap branch ran one sim step after the finger landed,
+ * when a deliberate swipe has barely started moving -- so every sideways swipe
+ * was pre-empted by a hop forwards, and the rest of the drag was thrown away
+ * because input is gated on the idle phase. On touch the frog could only go
+ * forwards. Waiting for release also closes the dead band between this and
+ * SWIPE_THRESHOLD, where a slightly wobbly tap on a slow device did nothing at
+ * all, and stops every keyboard key hopping the frog (Input sets justPressed
+ * for any key, not just the movement ones).
+ */
+const TAP_MAX_DRAG = 10;
+
+type Phase = "hopping" | "idle" | "stunned" | "celebrating" | "ready" | "over";
 
 interface Frog {
   /** Continuous, because riding a log moves you between columns. */
@@ -141,6 +156,9 @@ export class HighwayHop implements GameInstance {
   private crossingElapsed = 0;
   private swipeX = 0;
   private swipeY = 0;
+  /** Touch tracking, so a tap is a release rather than a press. */
+  private wasPointerDown = false;
+  private touchDrag = 0;
   /** Last frame's keyboard axes, so a held key doesn't repeat-fire. */
   private prevAxisX = 0;
   private prevAxisY = 0;
@@ -166,6 +184,8 @@ export class HighwayHop implements GameInstance {
     this.time += dt;
     this.particles.update(dt);
     if (this.bannerTimer > 0) this.bannerTimer -= dt;
+
+    if (this.phase === "over") return;
 
     if (this.phase === "ready") {
       // Traffic still moves, so the player can read the lanes before the
@@ -202,8 +222,13 @@ export class HighwayHop implements GameInstance {
     }
 
     this.ride(dt);
-    this.readInput(input);
+    // Hazards BEFORE input. The other way round, a hop begun on the very frame
+    // a previous hop landed flipped the phase back to "hopping" and made
+    // checkHazards() early-return, so the square just landed on was never
+    // tested -- roughly one hop in eight silently skipped its collision check,
+    // and the frog could pass clean through a truck.
     this.checkHazards();
+    this.readInput(input);
   }
 
   render(ctx: CanvasRenderingContext2D, _alpha: number): void {
@@ -303,7 +328,18 @@ export class HighwayHop implements GameInstance {
   // ----- Input -----
 
   private readInput(input: InputSnapshot): void {
-    if (this.phase !== "idle") return;
+    // Pointer bookkeeping runs in every phase, or a touch that starts during a
+    // hop would look like it began on release.
+    const released = this.wasPointerDown && !input.pointerDown;
+    this.wasPointerDown = input.pointerDown;
+    if (input.pointerDown) {
+      this.touchDrag += Math.abs(input.dragX) + Math.abs(input.dragY);
+    }
+
+    if (this.phase !== "idle") {
+      if (released) this.touchDrag = 0;
+      return;
+    }
 
     // Accumulate drag with decay, the same way the reef reads swipes: a single
     // frame's movement is far too small to classify.
@@ -324,6 +360,9 @@ export class HighwayHop implements GameInstance {
             : "up";
       this.swipeX = 0;
       this.swipeY = 0;
+      // Mark the touch as spent, so lifting the finger after a swipe doesn't
+      // also fire a tap.
+      this.touchDrag = Number.POSITIVE_INFINITY;
       this.tryHop(dir);
       return;
     }
@@ -343,10 +382,12 @@ export class HighwayHop implements GameInstance {
     if (pressedY) return this.tryHop(axisY < 0 ? "up" : "down");
     if (pressedX) return this.tryHop(axisX < 0 ? "left" : "right");
 
-    // A tap with no meaningful drag hops forward. Crossing is almost all
-    // forward motion and swiping up forty times is a worse control scheme.
-    if (input.justPressed && Math.abs(this.swipeX) + Math.abs(this.swipeY) < 4) {
-      this.tryHop("up");
+    // A tap -- a touch released without becoming a swipe -- hops forward.
+    // Crossing is almost all forward motion and swiping up forty times is a
+    // worse control scheme.
+    if (released) {
+      if (this.touchDrag < TAP_MAX_DRAG) this.tryHop("up");
+      this.touchDrag = 0;
     }
   }
 
@@ -371,7 +412,24 @@ export class HighwayHop implements GameInstance {
      * is what makes burrow entry and road lanes feel exact.
      */
     const raw = this.frog.col + vec.col;
-    const targetCol = rowKind(targetRow) === "river" ? raw : Math.round(raw);
+
+    /*
+     * Landing in a burrow snaps to the burrow itself, not to the nearest whole
+     * column.
+     *
+     * Rounding first made tryEnterBurrow's 0.6-cell tolerance dead code -- by
+     * the time it ran the column was always an integer, so the real decision
+     * boundary was a knife edge at X.5 on the row below, with nothing on
+     * screen marking it. Drifting on a log through 3.51 to 3.49 flipped the
+     * outcome inside about twenty milliseconds.
+     */
+    const burrow = targetRow === HOME_ROW ? this.openBurrowAt(raw) : -1;
+    const targetCol =
+      burrow !== -1
+        ? HOME_COLS[burrow]!
+        : rowKind(targetRow) === "river"
+          ? raw
+          : Math.round(raw);
 
     this.frog.facing = dir;
 
@@ -392,7 +450,7 @@ export class HighwayHop implements GameInstance {
      * river -- you line up while riding a moving log, which is exactly where
      * the tension belonged in the first place.
      */
-    if (targetRow === HOME_ROW && this.openBurrowAt(targetCol) === -1) {
+    if (targetRow === HOME_ROW && burrow === -1) {
       this.host.sfx("uiMove");
       return;
     }
@@ -520,6 +578,11 @@ export class HighwayHop implements GameInstance {
 
   private respawn(): void {
     if (this.lives <= 0) {
+      // A terminal phase, so this can't re-fire. The shell pauses the loop on
+      // game over today, which is the only reason it didn't already: without
+      // it the game sits in "stunned" with the timer running down past zero
+      // every frame forever.
+      this.phase = "over";
       this.host.gameOver({ progress: this.level, progressLabel: "Level" });
       return;
     }
