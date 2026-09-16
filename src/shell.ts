@@ -222,20 +222,16 @@ export class Shell implements GameHost {
       el("p", "", "Pick your machine."),
     );
 
+    // A grid of cabinets rather than a column of full-width buttons. Each
+    // game already draws its own marquee art through GameModule.drawIcon --
+    // which, until now, nothing in the app ever called. Five machines stacked
+    // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
+    // floor finally looks like an arcade instead of a list.
+    const cabinets = el("div", "cabinets");
     for (const game of this.games) {
-      const button = el("button", "btn btn--primary", game.title);
-      button.style.borderColor = game.accent;
-      button.style.background = game.accent;
-      button.addEventListener("click", () => {
-        this.audio.unlock(); // must happen inside a real gesture
-        this.audio.play("uiSelect");
-        this.startGame(game);
-      });
-      screen.append(button);
-
-      const blurb = el("p", "", game.blurb);
-      screen.append(blurb);
+      cabinets.append(this.buildCabinet(game));
     }
+    screen.append(cabinets);
 
     const board = el("button", "btn btn--ghost", "HIGH SCORES");
     board.addEventListener("click", () => {
@@ -260,6 +256,40 @@ export class Shell implements GameHost {
 
     screen.append(board, settings, about);
     this.ui.append(screen);
+  }
+
+  /** One cabinet tile: marquee art, name, and the game's accent colour. */
+  private buildCabinet(game: GameModule): HTMLElement {
+    const button = el("button", "cabinet");
+    button.style.setProperty("--cabinet-accent", game.accent);
+    // The blurb is the accessible description; sighted players get the art.
+    button.setAttribute("aria-label", `${game.title}. ${game.blurb}`);
+
+    const art = document.createElement("canvas");
+    art.className = "cabinet-art";
+    art.setAttribute("aria-hidden", "true");
+
+    // Drawn at device resolution so the vector art stays crisp; drawIcon
+    // works in a 0..size box, so the context is scaled rather than the art.
+    const size = 64;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    art.width = size * dpr;
+    art.height = size * dpr;
+    const ctx = art.getContext("2d");
+    if (ctx) {
+      ctx.scale(dpr, dpr);
+      game.drawIcon(ctx, size);
+    }
+
+    const name = el("span", "cabinet-name", game.title);
+
+    button.append(art, name);
+    button.addEventListener("click", () => {
+      this.audio.unlock(); // must happen inside a real gesture
+      this.audio.play("uiSelect");
+      this.startGame(game);
+    });
+    return button;
   }
 
   showAbout(): void {

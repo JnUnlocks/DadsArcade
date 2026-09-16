@@ -1021,3 +1021,78 @@ body {
     border-color: var(--accent-warm);
   }
 }
+
+/* ---------- Arcade floor (the cabinet grid) ---------- */
+
+/* Two columns of tiles instead of a stack of full-width buttons. With five
+   machines the old list ran off the bottom of a phone; tiles fit, and they
+   finally show the marquee art every GameModule has always drawn. */
+.cabinets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+}
+
+.cabinet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  padding: calc(12px * var(--ui-scale)) 8px calc(10px * var(--ui-scale));
+  border-radius: 16px;
+  border: 2px solid var(--cabinet-accent, var(--edge));
+  /* The accent tints the tile rather than flooding it, so five saturated
+     cabinets side by side stay readable instead of shouting over each other. */
+  background: color-mix(in srgb, var(--cabinet-accent, #46e0ff) 14%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+
+.cabinet:active {
+  transform: scale(0.96);
+}
+
+.cabinet:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.cabinet-art {
+  width: calc(56px * var(--ui-scale));
+  height: calc(56px * var(--ui-scale));
+  /* The art is drawn from crisp vector paths; never let the browser blur it
+     when the tile is scaled by the large-text setting. */
+  image-rendering: pixelated;
+}
+
+.cabinet-name {
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  text-align: center;
+  /* Long names ("NATHAN'S MALLARD CHALLENGE") wrap rather than forcing the
+     grid column wider than its sibling. */
+  overflow-wrap: anywhere;
+}
+
+/* A single cabinet on a very narrow phone would look stranded in one column,
+   so the grid only collapses when it truly cannot fit two. */
+@media (max-width: 290px) {
+  .cabinets {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabinet {
+    transition: none;
+  }
+  .cabinet:active {
+    transform: none;
+  }
+}

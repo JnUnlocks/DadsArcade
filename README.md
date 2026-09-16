@@ -1,6 +1,6 @@
 # Dad's Arcade
 
-A mobile-first PWA arcade, built for Dad. Four games, a shared online
+A mobile-first PWA arcade, built for Dad. Five games, a shared online
 leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -20,12 +20,13 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Starfighter** | Galaga | Bezier entry flights, dive attacks, only two shots on screen at once, and a cruiser that steals your fighter — shoot it down and you fly two abreast |
 | **Nathan's Mallard Challenge** | Duck Hunt | The dog's whole routine: walks the field, sniffs, flushes the birds, and rears up laughing when you miss |
 | **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
+| **Highway Hop** | Frogger | Stepped movement you commit to, a river half where the rule inverts — empty water kills and the logs that save you also carry you off the edge — and five burrows to fill rather than one crossing |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
 sound is synthesised from oscillators and noise. There isn't a single image or
-audio asset in the project, which is why the whole arcade is a ~37 KB download.
+audio asset in the project, which is why the whole arcade is a ~44 KB download.
 
 ---
 
@@ -269,6 +270,9 @@ gets all of that for free.
 1. Write `src/games/<name>/index.ts` exporting a `GameModule`.
 2. Add it to the array in [`src/games/index.ts`](src/games/index.ts).
 
+Its cabinet appears on the arcade floor automatically, drawing the marquee art
+from the module's own `drawIcon`.
+
 That's the whole integration. Its scores are keyed on the module's `id`, so it
 gets its own leaderboard automatically. Don't change an `id` once it's live —
 that's the leaderboard key.
@@ -297,6 +301,10 @@ src/ui/       hud, leaderboard, settings
 src/games/    one folder per game
 worker/       leaderboard API + D1 schema
 ```
+
+The arcade menu is a grid of cabinet tiles, each rendering its game's
+`drawIcon` marquee into a small canvas. Five machines as a column of
+full-width buttons no longer fitted a phone.
 
 Slime Shop is the one game split across several files, because its rules are
 worth testing away from the DOM:

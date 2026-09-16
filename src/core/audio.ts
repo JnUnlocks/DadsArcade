@@ -38,7 +38,12 @@ export type SoundName =
   | "slimeSquelch"
   | "prizePop"
   | "prizeRare"
-  | "prizeLegendary";
+  | "prizeLegendary"
+  // Highway Hop
+  | "frogHop"
+  | "frogSplat"
+  | "frogHome"
+  | "levelClear";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -230,6 +235,23 @@ export class AudioEngine {
       case "prizeRare":
         this.burst(t, 0.06, 3200, 1000, 0.2);
         this.arpeggio(t + 0.02, [784, 1047, 1319], 0.07, "sine", 0.2);
+        break;
+      // ----- Highway Hop -----
+      case "frogHop":
+        // Short upward blip. It fires on every single hop, so it has to be
+        // brief and quiet enough to hear forty times a minute without grating.
+        this.blip(t, "sine", 320, 620, 0.06, 0.12);
+        break;
+      case "frogSplat":
+        // Dull and downward: a bump, not a crunch. Nothing dies here.
+        this.blip(t, "square", 300, 90, 0.16, 0.2);
+        this.burst(t, 0.12, 800, 160, 0.16);
+        break;
+      case "frogHome":
+        this.arpeggio(t, [659, 880, 1175], 0.07, "sine", 0.2);
+        break;
+      case "levelClear":
+        this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.22);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
