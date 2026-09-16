@@ -23,6 +23,14 @@ export interface Settings {
   crt: boolean;
   muted: boolean;
   volume: number;
+  /**
+   * Music has its own switch, separate from the effects mute.
+   *
+   * A looping tune is the first thing an adult in the room wants off and the
+   * last thing a child does; tying it to `muted` would mean silencing the
+   * whole arcade to stop the melody.
+   */
+  music: boolean;
   reducedMotion: boolean;
   highContrast: boolean;
   largeText: boolean;
@@ -53,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   crt: true,
   muted: false,
   volume: 0.7,
+  music: true,
   reducedMotion: false,
   highContrast: false,
   largeText: false,

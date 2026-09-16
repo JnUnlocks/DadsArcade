@@ -7,6 +7,7 @@
 
 import { flushQueue, submitScore } from "./core/api";
 import { AudioEngine, type SoundName } from "./core/audio";
+import type { Track } from "./core/music";
 import type { GameHost, GameInstance, GameModule, RunSummary } from "./core/game";
 import { Input } from "./core/input";
 import { GameLoop } from "./core/loop";
@@ -68,6 +69,7 @@ export class Shell implements GameHost {
 
     this.audio.muted = this._settings.muted;
     this.audio.volume = this._settings.volume;
+    this.audio.musicMuted = !this._settings.music;
 
     this.loop = new GameLoop(this.step, this.draw);
     this.applyAccessibilitySettings();
@@ -86,6 +88,18 @@ export class Shell implements GameHost {
 
   sfx(name: SoundName): void {
     this.audio.play(name);
+  }
+
+  playMusic(track: Track): void {
+    this.audio.playMusic(track);
+  }
+
+  stopMusic(): void {
+    this.audio.stopMusic();
+  }
+
+  setMusicTempo(scale: number): void {
+    this.audio.setMusicTempo(scale);
   }
 
   addScore(points: number): void {
@@ -109,6 +123,7 @@ export class Shell implements GameHost {
     this.loop.pause();
     this.input.reset();
     this.wakeLock.release();
+    this.audio.stopMusic();
     // An unranked run is practice: it shouldn't touch the personal best any
     // more than it should reach the server.
     const ranked = summary.ranked !== false;
@@ -211,6 +226,7 @@ export class Shell implements GameHost {
   showMenu(): void {
     this.screen = "menu";
     this.instance?.destroy?.();
+    this.audio.stopMusic();
     this.module = null;
     this.instance = null;
     this.wakeLock.release();
@@ -359,6 +375,7 @@ export class Shell implements GameHost {
     }
 
     this.instance?.destroy?.();
+    this.audio.stopMusic();
     this.module = module;
     this._score = 0;
     this.elapsedMs = 0;
@@ -581,6 +598,7 @@ export class Shell implements GameHost {
     this.input.sensitivity = this._settings.sensitivity;
     this.audio.muted = this._settings.muted;
     this.audio.volume = this._settings.volume;
+    this.audio.musicMuted = !this._settings.music;
     this.applyAccessibilitySettings();
   }
 

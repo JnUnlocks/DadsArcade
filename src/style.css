@@ -1113,3 +1113,39 @@ body {
   letter-spacing: 0;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Hard-drop button (Brickfall) ---------- */
+
+/* The hard-drop gesture is a fast downward swipe, which is the least
+   discoverable control in the game and the easiest to fire by accident. A
+   real button removes the guesswork, the way Mallard's FIRE does. */
+.drop-btn {
+  position: absolute;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  transform: translateX(-50%);
+  min-width: calc(150px * var(--ui-scale));
+  min-height: calc(50px * var(--ui-scale));
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 2px solid #8e7bff;
+  background: rgba(142, 123, 255, 0.18);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.drop-btn:active {
+  background: rgba(142, 123, 255, 0.36);
+  transform: translateX(-50%) scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-btn:active {
+    transform: translateX(-50%);
+  }
+}

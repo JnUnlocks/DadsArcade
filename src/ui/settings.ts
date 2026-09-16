@@ -45,6 +45,12 @@ export function buildSettingsScreen(
     ),
     slider("Volume", settings.volume, 0, 1, 0.05, (v) => onChange({ volume: v })),
     toggle(
+      "Music",
+      "The tune in Brickfall. Separate from the sound effects.",
+      settings.music,
+      (v) => onChange({ music: v }),
+    ),
+    toggle(
       "CRT effect",
       "Scanlines and a soft vignette, like the cabinet glass.",
       settings.crt,

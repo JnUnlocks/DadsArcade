@@ -10,6 +10,7 @@
 
 import type { InputSnapshot } from "./input";
 import type { SoundName } from "./audio";
+import type { Track } from "./music";
 import type { Settings } from "./storage";
 import type { View } from "./view";
 
@@ -23,6 +24,16 @@ export interface GameHost {
 
   /** Play a sound effect (a no-op if audio is muted or unavailable). */
   sfx(name: SoundName): void;
+
+  /**
+   * Start a looping track, and stop it. Safe to call before the first user
+   * gesture has unlocked audio -- the shell starts it once there's somewhere
+   * to play it. A game that starts music owns stopping it in destroy().
+   */
+  playMusic(track: Track): void;
+  stopMusic(): void;
+  /** Nudge the tempo without re-pitching, e.g. as the level climbs. */
+  setMusicTempo(scale: number): void;
 
   /** Award points. The shell tracks the running total and personal bests. */
   addScore(points: number): void;

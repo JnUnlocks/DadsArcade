@@ -1,6 +1,6 @@
 # Dad's Arcade
 
-A mobile-first PWA arcade, built for Dad. Five games, a shared online
+A mobile-first PWA arcade, built for Dad. Six games, a shared online
 leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -21,12 +21,13 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Nathan's Mallard Challenge** | Duck Hunt | The dog's whole routine: walks the field, sniffs, flushes the birds, and rears up laughing when you miss |
 | **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
 | **Highway Hop** | Frogger | Stepped movement you commit to, a river half where the rule inverts — empty water kills and the logs that save you also carry you off the edge — and five burrows to fill rather than one crossing |
+| **Brickfall** | Falling-block puzzles | A shuffled bag so you never wait twenty pieces for a straight one, a lock delay so a piece that lands beside a gap can still be slid into it, and twenty-five levels that are each measurably faster than the last |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
 sound is synthesised from oscillators and noise. There isn't a single image or
-audio asset in the project, which is why the whole arcade is a ~44 KB download.
+audio asset in the project, which is why the whole arcade is a ~48 KB download — music included.
 
 ---
 
@@ -53,7 +54,7 @@ To try it on your actual phone while developing, `npm run dev` prints a
 ```bash
 npm run typecheck    # app + worker
 npm test             # pause/resume, reef maze, slime colour + daily seeding,
-                     # crossing solvability + hop rules
+                     # crossing solvability + hop rules, brickfall board + music
 npm run build        # typecheck, then production bundle into dist/
 ```
 
@@ -145,6 +146,8 @@ Emulators can't tell you how the controls feel. Worth doing once:
       readable — it should be obvious you aim for a ring, not the bank.
 - [ ] Every cabinet tile on the menu shows its control hint. That line is the
       only place the controls are explained.
+- [ ] Brickfall: the music starts, and **Settings → Music** silences it without
+      silencing the sound effects. Leaving the game stops it.
 
 ---
 
@@ -263,6 +266,40 @@ correct the clock is.
 
 Any future game gets the same treatment by setting `hasDailyChallenge` and
 returning a `boardId` from its `RunSummary`.
+
+---
+
+## Brickfall, and where the music comes from
+
+**The tune is "Korobeiniki", a Russian folk melody from 1861, and it is in the
+public domain.** What is *not* public domain is any particular arrangement of
+it, so `src/core/music.ts` contains our own: the melody transcribed into
+note/beat pairs and voiced on a square lead over a triangle bass, synthesised
+at runtime like every other sound in this project. No audio file was added.
+
+Music needed a new piece of the audio engine. Effects are one-shots fired at
+"now"; a melody scheduled that way audibly wanders, because `setTimeout` drifts
+by tens of milliseconds. `MusicPlayer` instead keeps a cursor in AudioContext
+time and schedules every note inside a short lookahead window, topping it up on
+a coarse timer — so the timer can be late without any note being late. The
+tempo lifts as the level climbs.
+
+Music has its own switch in Settings, separate from the effects mute. A looping
+tune is the first thing an adult in the room wants off and the last thing a
+child does.
+
+### A word on this genre specifically
+
+Everywhere else in this arcade, "game mechanics aren't copyrightable" is the
+whole story. This is the one genre where it isn't. In **Tetris Holding v. Xio
+Interactive (2012)** the court agreed the rules were free to use and then found
+against the clone anyway, because it had copied protectable *expression* — the
+distinctive piece colours and the overall look.
+
+So Brickfall takes the rules and none of the look: its own name, its own
+palette drawn from this arcade's existing accents, its own art, its own music.
+The seven shapes themselves are simply the complete set of four-cell
+polyominoes, which is a mathematical fact rather than anyone's creative choice.
 
 ---
 

@@ -7,6 +7,8 @@
  * downloaded samples would: these chips *were* square waves and noise.
  */
 
+import { MusicPlayer, type Track } from "./music";
+
 export type SoundName =
   | "shoot"
   | "enemyHit"
@@ -43,7 +45,14 @@ export type SoundName =
   | "frogHop"
   | "frogSplat"
   | "frogHome"
-  | "levelClear";
+  | "levelClear"
+  // Brickfall
+  | "pieceMove"
+  | "pieceRotate"
+  | "pieceLand"
+  | "lineClear"
+  | "fourLines"
+  | "levelUp";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -52,12 +61,24 @@ export class AudioEngine {
   private _muted = false;
   private _volume = 0.7;
 
+  /**
+   * Music runs through its own scheduler rather than the one-shot path.
+   *
+   * Effects fire at "now"; a melody has to be scheduled ahead of the clock or
+   * it audibly drifts. See core/music.ts.
+   */
+  private readonly music = new MusicPlayer();
+  private pendingTrack: Track | null = null;
+  private _musicMuted = false;
+
   get muted(): boolean {
     return this._muted;
   }
 
   set muted(value: boolean) {
     this._muted = value;
+    if (value) this.music.stop();
+    else if (this.pendingTrack && !this._musicMuted) this.music.play(this.pendingTrack);
     if (this.master && this.ctx) {
       this.master.gain.setTargetAtTime(
         value ? 0 : this._volume,
@@ -95,15 +116,64 @@ export class AudioEngine {
       this.noise = this.buildNoiseBuffer(this.ctx);
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
+
+    // A game may have asked for music before the first gesture unlocked
+    // audio; start it now that there is somewhere to play it.
+    this.music.attach(this.ctx, this.master!);
+    if (this.pendingTrack && !this._muted && !this._musicMuted) {
+      this.music.play(this.pendingTrack);
+    }
+  }
+
+  // ----- Music -----
+
+  /** Start (or restart) a looping track. Safe to call before unlock. */
+  playMusic(track: Track): void {
+    this.pendingTrack = track;
+    if (this._muted || this._musicMuted) return;
+    if (this.music.attached) this.music.play(track);
+  }
+
+  stopMusic(): void {
+    this.pendingTrack = null;
+    this.music.stop();
+  }
+
+  /** Nudge the tempo, e.g. as the level climbs. */
+  setMusicTempo(scale: number): void {
+    this.music.setTempoScale(scale);
+  }
+
+  get musicMuted(): boolean {
+    return this._musicMuted;
+  }
+
+  /**
+   * Music has its own switch, separate from the master mute.
+   *
+   * A looping tune is the first thing an adult in the room wants to turn off
+   * and the last thing a child does, so tying it to the effects mute would
+   * mean silencing the whole arcade to stop the melody.
+   */
+  set musicMuted(value: boolean) {
+    this._musicMuted = value;
+    if (value) this.music.stop();
+    else if (this.pendingTrack && !this._muted) this.music.play(this.pendingTrack);
   }
 
   /** Silence everything immediately -- used when the game is paused. */
   suspend(): void {
+    // The scheduler keeps queueing into a suspended context otherwise, and
+    // everything it queued arrives at once on resume.
+    this.music.stop();
     if (this.ctx?.state === "running") void this.ctx.suspend();
   }
 
   resume(): void {
     if (this.ctx?.state === "suspended") void this.ctx.resume();
+    if (this.pendingTrack && !this._muted && !this._musicMuted) {
+      this.music.play(this.pendingTrack);
+    }
   }
 
   play(name: SoundName): void {
@@ -252,6 +322,31 @@ export class AudioEngine {
         break;
       case "levelClear":
         this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.22);
+        break;
+
+      // ----- Brickfall -----
+      case "pieceMove":
+        // Fires on every sideways nudge, so it has to be almost subliminal.
+        this.blip(t, "square", 320, 320, 0.025, 0.07);
+        break;
+      case "pieceRotate":
+        this.blip(t, "square", 520, 660, 0.05, 0.1);
+        break;
+      case "pieceLand":
+        this.blip(t, "square", 200, 120, 0.07, 0.14);
+        break;
+      case "lineClear":
+        this.arpeggio(t, [784, 1047], 0.05, "square", 0.18);
+        this.burst(t, 0.16, 2600, 700, 0.14);
+        break;
+      case "fourLines":
+        // Four rows at once is the thing the whole game is built around, so
+        // it gets a fanfare rather than a louder version of the single.
+        this.arpeggio(t, [523, 659, 784, 1047, 1319, 1568], 0.06, "square", 0.2);
+        this.burst(t, 0.3, 3000, 500, 0.18);
+        break;
+      case "levelUp":
+        this.arpeggio(t, [659, 880, 1047], 0.07, "sine", 0.2);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
