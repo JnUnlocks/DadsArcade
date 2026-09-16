@@ -283,7 +283,21 @@ export class Shell implements GameHost {
 
     const name = el("span", "cabinet-name", game.title);
 
-    button.append(art, name);
+    /*
+     * The blurb has to be ON the tile, not just in the aria-label.
+     *
+     * The previous menu printed it under each button and the first draft of
+     * this grid moved it to the label only, reasoning that sighted players get
+     * the art instead. They don't: a 56px marquee cannot say "Tap to hop" or
+     * "tap with a second finger". That quietly removed the control
+     * instructions for every game at once, and the only fallback --
+     * buildHowToScreen -- is Starfighter-specific AND gated on `seenHowTo`,
+     * which is already true on every device this family owns. Nobody would
+     * ever have been told how to play the new cabinet.
+     */
+    const hint = el("span", "cabinet-hint", game.blurb);
+
+    button.append(art, name, hint);
     button.addEventListener("click", () => {
       this.audio.unlock(); // must happen inside a real gesture
       this.audio.play("uiSelect");

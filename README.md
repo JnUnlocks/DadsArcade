@@ -52,7 +52,8 @@ To try it on your actual phone while developing, `npm run dev` prints a
 
 ```bash
 npm run typecheck    # app + worker
-npm test             # pause/resume, reef maze validation, slime colour + daily seeding
+npm test             # pause/resume, reef maze, slime colour + daily seeding,
+                     # crossing solvability + hop rules
 npm run build        # typecheck, then production bundle into dist/
 ```
 
@@ -140,6 +141,10 @@ Emulators can't tell you how the controls feel. Worth doing once:
       orders, and that both land on the **TODAY** board.
 - [ ] Squish a slime until every prize is out, then open the **Prize Jar** and
       confirm they're still there after a reload.
+- [ ] Highway Hop: tap-to-hop feels right under a thumb, and the burrow row is
+      readable — it should be obvious you aim for a ring, not the bank.
+- [ ] Every cabinet tile on the menu shows its control hint. That line is the
+      only place the controls are explained.
 
 ---
 
@@ -320,8 +325,22 @@ src/games/slimeshop/
   index.ts       the GameModule: modes, scoring, digging, the DOM panels
 ```
 
-`color.ts`, `orders.ts` and `prizes.ts` have no DOM dependencies and carry the
-test suite.
+Highway Hop is split the same way, and for the same reason:
+
+```
+src/games/crossing/
+  types.ts       the board, and traffic as a pure function of the clock
+  lanes.ts       seeded level generation, with the crossability clamps
+  render.ts      frog, cars, trucks, logs, turtles, road, river
+  index.ts       the GameModule: hopping, riding, scoring
+```
+
+The rule of thumb across both: anything whose *rules* can be got wrong lives in
+a DOM-free module with a test beside it. `color.ts`, `orders.ts`, `prizes.ts`,
+`lanes.ts` and the reef's `maze.ts` all qualify. Note that every module a test
+can reach needs real `.ts` extensions on its relative imports, and must avoid
+TypeScript parameter properties (`constructor(private x: T)`) — Node's
+strip-only mode supports neither.
 Note that both use explicit `.ts` extensions on their relative imports — Node's
 type stripping requires it for anything reachable from a test.
 

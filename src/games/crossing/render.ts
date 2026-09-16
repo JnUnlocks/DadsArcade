@@ -10,7 +10,7 @@
  * eye, which is the only way the mid-board rule inversion is fair.
  */
 
-import type { Lane, Occupant } from "./types";
+import type { Lane } from "./types.ts";
 
 export const PALETTE = {
   road: "#20242e",
@@ -403,6 +403,3 @@ export function drawFrogLifeIcon(
   drawFrog(ctx, 0, 0, 11, "up", 0, false);
 }
 
-export function occupantLabel(occupant: Occupant): string {
-  return occupant;
-}

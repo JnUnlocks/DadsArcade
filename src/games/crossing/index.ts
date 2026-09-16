@@ -29,11 +29,11 @@ import type {
   GameInstance,
   GameModule,
   HudState,
-} from "../../core/game";
-import type { InputSnapshot } from "../../core/input";
-import { Particles } from "../../core/particles";
-import { Rng } from "../../core/rng";
-import { buildLanes } from "./lanes";
+} from "../../core/game.ts";
+import type { InputSnapshot } from "../../core/input.ts";
+import { Particles } from "../../core/particles.ts";
+import { Rng } from "../../core/rng.ts";
+import { buildLanes } from "./lanes.ts";
 import {
   drawBurrow,
   drawCrossingIcon,
@@ -42,7 +42,7 @@ import {
   drawOccupant,
   drawRowBackground,
   PALETTE,
-} from "./render";
+} from "./render.ts";
 import {
   COLS,
   DIR_VECTORS,
@@ -56,15 +56,34 @@ import {
   START_ROW,
   type Dir,
   type Lane,
-} from "./types";
+} from "./types.ts";
 
-const START_LIVES = 3;
+/*
+ * Five, not the arcade-standard three.
+ *
+ * A level here is five crossings of ten hazard lanes -- about fifty risky
+ * landings -- where a reef level is one maze. On three lives that needs a
+ * ~96% per-landing success rate to clear level 1, which an adult who grew up
+ * on this genre can manage and a seven-year-old meeting a new control scheme
+ * cannot. Three lives meant Riley would never once hear the level-clear
+ * jingle. Clearing a level hands one back, capped, so a good run compounds.
+ */
+const START_LIVES = 5;
+const MAX_LIVES = 5;
 
 /** Seconds a single hop takes. Short enough to feel responsive, long enough to read. */
 const HOP_SECONDS = 0.13;
 
 /** How long the frog sits stunned before being put back on the kerb. */
 const STUN_SECONDS = 0.9;
+
+/**
+ * A beat at the start of a level before the board is live.
+ *
+ * Dropping straight into moving traffic with input already armed is how you
+ * lose a life to the loading screen. The reef opens the same way.
+ */
+const READY_SECONDS = 1.1;
 
 /** Points for reaching a row further up than you've ever been this life. */
 const ROW_POINTS = 10;
@@ -78,7 +97,7 @@ const TIME_BONUS = 120;
 /** Drag distance, in virtual units, that counts as a swipe. */
 const SWIPE_THRESHOLD = 16;
 
-type Phase = "hopping" | "idle" | "stunned" | "celebrating";
+type Phase = "hopping" | "idle" | "stunned" | "celebrating" | "ready";
 
 interface Frog {
   /** Continuous, because riding a log moves you between columns. */
@@ -98,7 +117,8 @@ export class HighwayHop implements GameInstance {
   private lanes: Lane[] = [];
   private level = 1;
   private lives = START_LIVES;
-  private phase: Phase = "idle";
+  // The very first level gets the same beat every later one does.
+  private phase: Phase = "ready";
 
   private frog: Frog = {
     col: (COLS - 1) / 2,
@@ -117,6 +137,7 @@ export class HighwayHop implements GameInstance {
   private time = 0;
   private stunTimer = 0;
   private celebrateTimer = 0;
+  private readyTimer = READY_SECONDS;
   private crossingElapsed = 0;
   private swipeX = 0;
   private swipeY = 0;
@@ -126,8 +147,17 @@ export class HighwayHop implements GameInstance {
   private banner = "";
   private bannerTimer = 0;
 
-  constructor(private readonly host: GameHost) {
+  private readonly host: GameHost;
+
+  // Assigned explicitly rather than via a parameter property, so this module
+  // stays readable by Node's built-in TypeScript stripping -- which is what
+  // runs the tests, and which rules.test.ts needs in order to drive the game
+  // headlessly. core/loop.ts does the same, for the same reason.
+  constructor(host: GameHost) {
+    this.host = host;
     this.lanes = buildLanes(this.rng, this.level);
+    this.banner = "GET READY";
+    this.bannerTimer = READY_SECONDS;
   }
 
   // ----- Loop -----
@@ -136,6 +166,17 @@ export class HighwayHop implements GameInstance {
     this.time += dt;
     this.particles.update(dt);
     if (this.bannerTimer > 0) this.bannerTimer -= dt;
+
+    if (this.phase === "ready") {
+      // Traffic still moves, so the player can read the lanes before the
+      // board goes live -- that reading time is the point of the beat.
+      this.readyTimer -= dt;
+      if (this.readyTimer <= 0) {
+        this.phase = "idle";
+        this.banner = "";
+      }
+      return;
+    }
 
     if (this.phase === "stunned") {
       this.stunTimer -= dt;
@@ -314,13 +355,47 @@ export class HighwayHop implements GameInstance {
 
     const vec = DIR_VECTORS[dir];
     const targetRow = this.frog.row + vec.row;
-    const targetCol = Math.round(this.frog.col) + vec.col;
+
+    /*
+     * Keep the fractional column when landing in the river; snap to the grid
+     * everywhere else.
+     *
+     * Rounding unconditionally meant "up" wasn't up. Riding a log at column
+     * 3.6 and hopping straight up put the frog down at 4.0 -- a drift of
+     * nearly half a cell, in a direction the player never asked for and
+     * couldn't see coming, onto a target that is itself moving. It made the
+     * river read as arbitrary, and it was: the river was killing twice as
+     * often as the road, and this was why.
+     *
+     * Snapping on the way out keeps the land half tidily grid-aligned, which
+     * is what makes burrow entry and road lanes feel exact.
+     */
+    const raw = this.frog.col + vec.col;
+    const targetCol = rowKind(targetRow) === "river" ? raw : Math.round(raw);
 
     this.frog.facing = dir;
 
     // The kerb is the floor and the burrow row is the ceiling.
     if (targetRow > START_ROW || targetRow < HOME_ROW) return;
     if (targetCol < 0 || targetCol > COLS - 1) return;
+
+    /*
+     * You cannot hop into the bank between burrows, or into one already
+     * filled -- the hop is simply refused.
+     *
+     * The original kills you for this, and it is the cruellest death it has:
+     * you survive five lanes of traffic and five lanes of river, and then lose
+     * the life at the moment of greatest investment for being one column off.
+     * Measured against a solver it was the single biggest killer in the game.
+     *
+     * Refusing the hop instead doesn't make the top row free, because row 1 is
+     * river -- you line up while riding a moving log, which is exactly where
+     * the tension belonged in the first place.
+     */
+    if (targetRow === HOME_ROW && this.openBurrowAt(targetCol) === -1) {
+      this.host.sfx("uiMove");
+      return;
+    }
 
     this.frog.fromCol = this.frog.col;
     this.frog.fromRow = this.frog.row;
@@ -356,17 +431,17 @@ export class HighwayHop implements GameInstance {
     if (this.frog.row === HOME_ROW) this.tryEnterBurrow();
   }
 
-  private tryEnterBurrow(): void {
-    const index = HOME_COLS.findIndex(
-      (c) => Math.abs(c - this.frog.col) < 0.6,
-    );
+  /** Index of an open burrow at this column, or -1. */
+  private openBurrowAt(col: number): number {
+    const index = HOME_COLS.findIndex((c) => Math.abs(c - col) < 0.6);
+    return index === -1 || this.filled.has(index) ? -1 : index;
+  }
 
-    // Missing a burrow is the one way the top row hurts: you're in the bank,
-    // not in a hole.
-    if (index === -1 || this.filled.has(index)) {
-      this.strike("MISSED THE BURROW");
-      return;
-    }
+  private tryEnterBurrow(): void {
+    // tryHop refuses any move onto the burrow row that isn't an open burrow,
+    // so by here there is always one.
+    const index = this.openBurrowAt(this.frog.col);
+    if (index === -1) return;
 
     this.filled.add(index);
     const bonus = Math.round(
@@ -386,6 +461,7 @@ export class HighwayHop implements GameInstance {
 
     if (this.filled.size === HOME_COLS.length) {
       this.host.addScore(LEVEL_POINTS);
+      this.lives = Math.min(MAX_LIVES, this.lives + 1);
       this.host.sfx("levelClear");
       this.say(`LEVEL ${this.level} CLEAR`);
       this.phase = "celebrating";
@@ -406,7 +482,7 @@ export class HighwayHop implements GameInstance {
 
     if (lane.kind === "road") {
       if (overlapsOccupant(lane, this.time, this.frog.col)) {
-        this.strike("SQUASHED!");
+        this.strike("OOPS!");
       }
       return;
     }
@@ -477,7 +553,9 @@ export class HighwayHop implements GameInstance {
     this.lanes = buildLanes(this.rng, level);
     this.filled.clear();
     this.resetFrog();
-    this.say(`LEVEL ${level}`);
+    this.phase = "ready";
+    this.readyTimer = READY_SECONDS;
+    this.say(`LEVEL ${level}  ·  GET READY`);
   }
 
   private say(text: string): void {

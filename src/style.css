@@ -1096,3 +1096,20 @@ body {
     transform: none;
   }
 }
+
+/* The control hint on each cabinet tile.
+
+   This is not decoration. The previous menu printed each game's blurb under
+   its button; the grid must keep showing it, because a 56px marquee cannot
+   tell anyone to tap, swipe, or use a second finger -- and the one-time
+   how-to screen is Starfighter-specific and already dismissed on every
+   device in this family. */
+.cabinet-hint {
+  font-size: calc(7.5px * var(--ui-scale));
+  line-height: 1.35;
+  color: var(--dim);
+  text-align: center;
+  font-weight: 400;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
