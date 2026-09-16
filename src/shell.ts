@@ -14,9 +14,11 @@ import { GameLoop } from "./core/loop";
 import {
   createDeviceId,
   loadPlayer,
+  loadSeenVersion,
   loadSettings,
   recordBest,
   savePlayer,
+  saveSeenVersion,
   saveSettings,
   type Player,
   type QueuedScore,
@@ -26,6 +28,8 @@ import { View } from "./core/view";
 import { WakeLock } from "./core/wakelock";
 import { drawCrtOverlay, drawHud } from "./ui/hud";
 import { buildAboutScreen } from "./ui/about";
+import { buildReleaseNotesScreen } from "./ui/releases";
+import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 
@@ -270,7 +274,26 @@ export class Shell implements GameHost {
       this.showAbout();
     });
 
-    screen.append(board, settings, about);
+    // On the same line as THE STORY rather than below it: the menu already
+    // fills a phone screen, and a seventh row would push it into scrolling.
+    // The version number lives on the notes screen and in Settings; here the
+    // label has to share a line with THE STORY on a 360px-wide phone.
+    const whatsNew = el("button", "btn btn--quiet", "WHAT'S NEW");
+    if (unseenReleases(loadSeenVersion()).length > 0) {
+      // The badge is the only reason anyone opens release notes, and it only
+      // shows until they have.
+      whatsNew.append(el("span", "badge-new", "NEW"));
+    }
+    whatsNew.addEventListener("click", () => {
+      this.audio.unlock();
+      this.audio.play("uiMove");
+      this.showReleaseNotes(() => this.showMenu());
+    });
+
+    const footer = el("div", "menu-footer");
+    footer.append(about, whatsNew);
+
+    screen.append(board, settings, footer);
     this.ui.append(screen);
   }
 
@@ -322,6 +345,15 @@ export class Shell implements GameHost {
     return button;
   }
 
+  /** Release notes. Marks the latest as seen once they've been shown. */
+  showReleaseNotes(onBack: () => void): void {
+    this.clearUi();
+    // Read before saving, so this visit still badges what was new to them.
+    const lastSeen = loadSeenVersion();
+    this.ui.append(buildReleaseNotesScreen(lastSeen, onBack));
+    saveSeenVersion(LATEST_RELEASE.version);
+  }
+
   showAbout(): void {
     this.clearUi();
     this.ui.append(
@@ -355,6 +387,7 @@ export class Shell implements GameHost {
         (patch) => this.updateSettings(patch),
         () => this.showMenu(),
         openFeedback,
+        () => this.showReleaseNotes(() => this.showSettings()),
       ),
     );
   }

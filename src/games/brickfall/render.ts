@@ -180,6 +180,7 @@ export function drawPanel(
   level: number,
   maxLevel: number,
   lines: number,
+  toGo: number | null,
   largeText: boolean,
 ): void {
   const { panelX, y0, cell } = layout;
@@ -215,6 +216,16 @@ export function drawPanel(
 
   label("LINES", statsY + 50);
   value(`${lines}`, statsY + 61);
+
+  // The countdown is the point of this panel. A running total alone never
+  // said that lines are what level you up, or how many are left.
+  label(toGo === null ? "TOP LEVEL" : "LEVEL UP IN", statsY + 84);
+  if (toGo === null) {
+    value("MAX", statsY + 95, "#ffc14d");
+  } else {
+    value(`${toGo}`, statsY + 95, "#46e0ff");
+    label(toGo === 1 ? "LINE" : "LINES", statsY + 114);
+  }
 
   ctx.restore();
 }

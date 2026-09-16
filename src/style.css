@@ -1149,3 +1149,108 @@ body {
     transform: translateX(-50%);
   }
 }
+
+/* ---------- Release notes ---------- */
+
+.menu-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+}
+
+/* Two quiet links on one line. The default quiet spacing is wide enough that
+   they wrapped onto two lines on a phone and pushed the menu into scrolling. */
+.menu-footer .btn--quiet {
+  padding: 0 10px;
+  letter-spacing: 0.08em;
+}
+
+/* The NEW badge on WHAT'S NEW. Shown until the notes are opened, then gone. */
+.badge-new {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-warm);
+  color: #120b1f;
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}
+
+.screen--releases {
+  justify-content: flex-start;
+}
+
+.release-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(12px * var(--ui-scale));
+  width: 100%;
+  max-width: 440px;
+}
+
+.release {
+  padding: calc(12px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1px solid var(--edge);
+  background: rgba(8, 14, 30, 0.7);
+  text-align: left;
+}
+
+.release-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.release-version {
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.release-tag {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-warm);
+  color: #120b1f;
+  font-size: calc(8px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.release-tag--current {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.release-date {
+  margin-left: auto;
+  font-size: calc(9px * var(--ui-scale));
+  color: var(--dim);
+}
+
+.release-title {
+  margin: calc(6px * var(--ui-scale)) 0 calc(4px * var(--ui-scale));
+  font-size: calc(13px * var(--ui-scale));
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.release-notes {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.5;
+}
+
+.release-notes li + li {
+  margin-top: 4px;
+}

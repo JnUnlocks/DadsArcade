@@ -19,9 +19,13 @@ import {
   emptyGrid,
   fallInterval,
   fits,
+  EARLY_LEVELS,
+  EARLY_LINES_PER_LEVEL,
   LINES_PER_LEVEL,
   lineScore,
   levelForLines,
+  linesToReach,
+  linesUntilNextLevel,
   MAX_LEVEL,
   occupiedCells,
   ROWS,
@@ -241,10 +245,50 @@ describe("the twenty-five level climb", () => {
 
   it("stops at 25 however many lines are cleared", () => {
     assert.equal(levelForLines(0), 1);
-    assert.equal(levelForLines(LINES_PER_LEVEL), 2);
-    assert.equal(levelForLines(LINES_PER_LEVEL * 24), MAX_LEVEL);
-    assert.equal(levelForLines(LINES_PER_LEVEL * 500), MAX_LEVEL);
+    assert.equal(levelForLines(linesToReach(MAX_LEVEL)), MAX_LEVEL);
+    assert.equal(levelForLines(100_000), MAX_LEVEL);
     assert.equal(fallInterval(999), fallInterval(MAX_LEVEL));
+  });
+
+  it("levels up quickly at first, then settles", () => {
+    // The first playtest ran 3:39 on level 1. The early levels are shorter so
+    // a new player hears a level-up while they're still learning the controls.
+    assert.equal(levelForLines(EARLY_LINES_PER_LEVEL - 1), 1);
+    assert.equal(levelForLines(EARLY_LINES_PER_LEVEL), 2, "first level-up at 4 lines");
+    assert.equal(linesToReach(EARLY_LEVELS + 1), EARLY_LEVELS * EARLY_LINES_PER_LEVEL);
+    assert.equal(
+      linesToReach(EARLY_LEVELS + 2) - linesToReach(EARLY_LEVELS + 1),
+      LINES_PER_LEVEL,
+      "after the early levels, each takes the full eight",
+    );
+  });
+
+  it("makes the whole climb a real undertaking", () => {
+    // 3 early levels at 4, then 21 more at 8.
+    assert.equal(linesToReach(MAX_LEVEL), 180);
+  });
+
+  it("never lets the level go backwards as lines accumulate", () => {
+    let previous = 1;
+    for (let lines = 0; lines <= 250; lines += 1) {
+      const level = levelForLines(lines);
+      assert.ok(level >= previous, `level dropped at ${lines} lines`);
+      assert.ok(level - previous <= 1, `skipped a level at ${lines} lines`);
+      previous = level;
+    }
+  });
+
+  it("counts down exactly to each level-up", () => {
+    for (let lines = 0; lines < linesToReach(MAX_LEVEL); lines += 1) {
+      const remaining = linesUntilNextLevel(lines);
+      assert.ok(remaining !== null && remaining > 0, `bad countdown at ${lines}`);
+      assert.equal(
+        levelForLines(lines + remaining),
+        levelForLines(lines) + 1,
+        `clearing ${remaining} more from ${lines} should be exactly one level-up`,
+      );
+    }
+    assert.equal(linesUntilNextLevel(linesToReach(MAX_LEVEL)), null, "nothing to count at the top");
   });
 
   it("pays more for four rows at once than for four singles", () => {

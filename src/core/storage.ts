@@ -10,6 +10,7 @@ const KEY_PLAYER = "hyperdrive.player";
 const KEY_SETTINGS = "hyperdrive.settings";
 const KEY_BESTS = "hyperdrive.bests";
 const KEY_QUEUE = "hyperdrive.queue";
+const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
 
 export interface Player {
   /** Three-character arcade initials, the way the machine asked for them. */
@@ -175,4 +176,26 @@ export function saveQueue(queue: QueuedScore[]): void {
   // blob, and only the best runs are worth uploading anyway.
   const trimmed = [...queue].sort((a, b) => b.score - a.score).slice(0, 50);
   write(KEY_QUEUE, trimmed);
+}
+
+/**
+ * The newest release whose notes this player has opened.
+ *
+ * Drives the "NEW" badge on the menu. Kept as its own tiny key rather than
+ * inside Settings, because it isn't a preference and shouldn't reset with one.
+ */
+export function loadSeenVersion(): string | null {
+  try {
+    return localStorage.getItem(KEY_SEEN_VERSION);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSeenVersion(version: string): void {
+  try {
+    localStorage.setItem(KEY_SEEN_VERSION, version);
+  } catch {
+    // Storage disabled -- worst case the badge shows again next time.
+  }
 }

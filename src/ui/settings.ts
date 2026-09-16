@@ -14,6 +14,7 @@ export function buildSettingsScreen(
   onChange: (patch: Partial<Settings>) => void,
   onBack: () => void,
   openFeedback = false,
+  onReleaseNotes?: () => void,
 ): HTMLElement {
   const screen = document.createElement("div");
   screen.className = "screen screen--settings";
@@ -94,6 +95,14 @@ export function buildSettingsScreen(
   back.textContent = "BACK";
   back.addEventListener("click", onBack);
   screen.append(back);
+
+  if (onReleaseNotes) {
+    const notes = document.createElement("button");
+    notes.className = "btn btn--quiet";
+    notes.textContent = `RELEASE NOTES · v${__APP_VERSION__}`;
+    notes.addEventListener("click", onReleaseNotes);
+    screen.append(notes);
+  }
 
   const credit = document.createElement("p");
   credit.className = "credit";

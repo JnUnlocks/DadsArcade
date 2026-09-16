@@ -98,8 +98,30 @@ export function dropDistance(grid: Grid, piece: Piece): number {
 
 export const MAX_LEVEL = 25;
 
-/** Lines needed to advance one level. */
+/**
+ * Lines needed to finish a given level.
+ *
+ * Front-loaded on purpose. A flat eight per level meant a first game could run
+ * three and a half minutes without a single level-up -- the very first playtest
+ * did exactly that -- and the level-up is the moment that tells a new player
+ * the game has somewhere to go. The first three levels take four lines each,
+ * so the first jingle arrives within a minute or two; after that it settles to
+ * eight, which keeps the full climb to 25 a real undertaking.
+ */
+export const EARLY_LEVELS = 3;
+export const EARLY_LINES_PER_LEVEL = 4;
 export const LINES_PER_LEVEL = 8;
+
+export function linesForLevel(level: number): number {
+  return level <= EARLY_LEVELS ? EARLY_LINES_PER_LEVEL : LINES_PER_LEVEL;
+}
+
+/** Total lines cleared at the moment you arrive at `level`. */
+export function linesToReach(level: number): number {
+  let total = 0;
+  for (let l = 1; l < Math.min(level, MAX_LEVEL); l += 1) total += linesForLevel(l);
+  return total;
+}
 
 /**
  * Seconds a piece takes to fall one row at a given level.
@@ -140,7 +162,22 @@ export function fallInterval(level: number): number {
 
 /** Level implied by a line count, capped. */
 export function levelForLines(lines: number): number {
-  return Math.min(MAX_LEVEL, 1 + Math.floor(lines / LINES_PER_LEVEL));
+  let level = 1;
+  while (level < MAX_LEVEL && lines >= linesToReach(level + 1)) level += 1;
+  return level;
+}
+
+/**
+ * Lines still to clear before the next level, or null at the top.
+ *
+ * This is what the panel shows. A bare running total of lines told nobody that
+ * lines were what levelled you up, let alone how many -- the first question
+ * after the first playtest was "what does it take to advance?".
+ */
+export function linesUntilNextLevel(lines: number): number | null {
+  const level = levelForLines(lines);
+  if (level >= MAX_LEVEL) return null;
+  return linesToReach(level + 1) - lines;
 }
 
 /**

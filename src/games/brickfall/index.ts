@@ -47,6 +47,7 @@ import {
   fallInterval,
   fits,
   levelForLines,
+  linesUntilNextLevel,
   lineScore,
   MAX_LEVEL,
   ROWS,
@@ -140,6 +141,9 @@ export class Brickfall implements GameInstance {
     this.next = this.draw();
     this.piece = this.spawn();
     this.host.playMusic(KOROBEINIKI);
+    // Say the goal once, up front, in plain words.
+    this.say(`CLEAR ${linesUntilNextLevel(0)} LINES TO LEVEL UP`);
+    this.bannerTimer = 3;
   }
 
   // ----- Loop -----
@@ -186,6 +190,7 @@ export class Brickfall implements GameInstance {
       this.level,
       MAX_LEVEL,
       this.lines,
+      linesUntilNextLevel(this.lines),
       settings.largeText,
     );
 

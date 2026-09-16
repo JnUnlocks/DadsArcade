@@ -303,6 +303,38 @@ polyominoes, which is a mathematical fact rather than anyone's creative choice.
 
 ---
 
+## Versions and release notes
+
+Every release is recorded in [`src/releases.ts`](src/releases.ts), which feeds
+the in-app **What's new** screen (menu footer, and *Settings → Release notes*).
+The menu shows a **NEW** badge until a player has opened the latest notes.
+
+To ship a release:
+
+1. Add an entry at the **top** of `RELEASES` — version, date, a title, and
+   notes written for the family (what someone will *notice*, not which file
+   changed).
+2. Set the same version in `package.json`.
+3. `npm test` — `releases.test.ts` fails if the two disagree or the history is
+   out of order.
+
+That test exists because the version sat at `0.1.0` from August through eight
+releases. It's stamped into every feedback note so a report can be tied to a
+build, and for six weeks every report said the same thing. Versions 0.2.0–0.8.0
+were assigned afterwards from the git history, using the real dates.
+
+Bump `CACHE_VERSION` in `public/sw.js` too whenever the shell changes, or an
+installed phone keeps serving the old one.
+
+### Brickfall's levels
+
+The first three levels take **4** cleared lines each, every level after that
+takes **8**, and reaching level 25 takes **180** lines in all. The side panel
+counts down to the next level. The early levels are short on purpose: the
+first playtest ran 3:39 without a single level-up.
+
+---
+
 ## Adding another game
 
 The shell owns the loop, pause, audio, scoring, HUD and leaderboard. A game
