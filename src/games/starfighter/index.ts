@@ -699,6 +699,7 @@ function removeAt<T>(items: T[], index: number): void {
 export const starfighterModule: GameModule = {
   id: "starfighter",
   title: "STARFIGHTER",
+  progressShort: "WV",
   blurb: "Drag to fly. The guns handle themselves.",
   accent: "#46e0ff",
 

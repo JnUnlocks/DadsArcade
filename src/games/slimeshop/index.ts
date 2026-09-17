@@ -1230,6 +1230,8 @@ function clamp01(value: number): number {
 export const slimeShopModule: GameModule = {
   id: "riley-slime-shop",
   title: "RILEY'S SLIME SHOP",
+  shortTitle: "SLIME SHOP",
+  progressShort: "ORD",
   blurb: "Mix the colour, match the order. Or just squish it.",
   accent: "#ff5fae",
   hasDailyChallenge: true,

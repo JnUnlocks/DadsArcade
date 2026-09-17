@@ -510,6 +510,7 @@ export class Brickfall implements GameInstance {
 export const brickfallModule: GameModule = {
   id: "brickfall",
   title: "BRICKFALL",
+  progressShort: "LV",
   blurb: "Drag to slide, tap to turn. Fill a row to clear it. 25 levels.",
   accent: "#8e7bff",
 

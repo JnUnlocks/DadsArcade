@@ -6,25 +6,43 @@
  */
 
 import { fetchLeaderboard, type LeaderboardRow } from "../core/api";
+import type { GameModule } from "../core/game";
 import { dailyKey } from "../core/rng";
 import type { Player } from "../core/storage";
+import {
+  gamesInView,
+  progressText,
+  shortTitleOf,
+  sliceAfterFilterChange,
+  todayAvailable,
+  type GameFilter,
+  type Slice,
+} from "./boardFilter";
+
+/** Rows shown per game in the all-games view, and on a single game's board. */
+const PER_GAME_IN_OVERVIEW = 3;
+const SINGLE_GAME_ROWS = 20;
 
 /**
- * Which slice of the board we're looking at.
+ * The high-score screen.
  *
- * "today" is not a date filter like "week" is -- it's a different board
- * entirely. Everyone playing the daily challenge got the same seeded run, so
- * those scores are the only ones in the arcade that are strictly comparable,
- * and mixing them into the all-time list would throw away the one property
- * that makes them worth ranking.
+ * It used to show exactly one game's board, and the menu's HIGH SCORES button
+ * always opened the first game in the list -- so from the menu you could only
+ * ever see Starfighter, and nothing on the screen said which game you were
+ * looking at. Now there's a filter across the top: ALL GAMES, or any one game,
+ * each in its cabinet colour.
+ *
+ * ALL GAMES is deliberately sections, not one ranked list. Scores from
+ * different games aren't on the same scale -- a middling Brickfall run can
+ * outscore a brilliant one elsewhere -- so ranking them against each other
+ * would be a table of numbers that means nothing. Each game gets its own top
+ * three under its own heading instead.
  */
-type Slice = "all" | "week" | "today";
-
 export function buildLeaderboardScreen(
-  gameId: string,
+  games: readonly GameModule[],
+  initialFilter: GameFilter,
   player: Player | null,
   onBack: () => void,
-  hasDailyChallenge = false,
 ): HTMLElement {
   const screen = document.createElement("div");
   screen.className = "screen screen--board";
@@ -33,15 +51,47 @@ export function buildLeaderboardScreen(
   title.textContent = "HIGH SCORES";
   screen.append(title);
 
+  let filter: GameFilter =
+    initialFilter !== null && games.some((g) => g.id === initialFilter)
+      ? initialFilter
+      : null;
+  let slice: Slice = "all";
+
+  // ----- Game filter -----
+  const filters = document.createElement("div");
+  filters.className = "board-filters";
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", "Show scores for");
+
+  const filterButtons = new Map<GameFilter, HTMLButtonElement>();
+  const addFilter = (key: GameFilter, label: string, accent: string) => {
+    const chip = document.createElement("button");
+    chip.className = "board-filter";
+    chip.textContent = label;
+    chip.style.setProperty("--chip-accent", accent);
+    chip.addEventListener("click", () => select(key));
+    filterButtons.set(key, chip);
+    filters.append(chip);
+  };
+  addFilter(null, "ALL GAMES", "#46e0ff");
+  for (const game of games) addFilter(game.id, shortTitleOf(game), game.accent);
+  screen.append(filters);
+
+  // ----- Period tabs -----
   const tabs = document.createElement("div");
   tabs.className = "tabs";
-  const allTab = tabButton("ALL TIME", true);
-  const weekTab = tabButton("THIS WEEK", false);
-  // Only offered by games that actually file runs under a per-day board --
-  // otherwise it would be a tab that is permanently empty.
-  const todayTab = hasDailyChallenge ? tabButton("TODAY", false) : null;
-  tabs.append(allTab, weekTab);
-  if (todayTab) tabs.append(todayTab);
+  const tabBySlice: Record<Slice, HTMLButtonElement> = {
+    all: tabButton("ALL TIME"),
+    week: tabButton("THIS WEEK"),
+    today: tabButton("TODAY"),
+  };
+  for (const [name, tab] of Object.entries(tabBySlice) as Array<[Slice, HTMLButtonElement]>) {
+    tab.addEventListener("click", () => {
+      slice = name;
+      render();
+    });
+    tabs.append(tab);
+  }
   screen.append(tabs);
 
   const body = document.createElement("div");
@@ -54,62 +104,142 @@ export function buildLeaderboardScreen(
   back.addEventListener("click", onBack);
   screen.append(back);
 
-  let slice: Slice = "all";
+  function select(next: GameFilter): void {
+    filter = next;
+    slice = sliceAfterFilterChange(games, filter, slice);
+    render();
+  }
 
-  const load = async () => {
-    body.replaceChildren(message("LOADING…"));
+  /**
+   * Every load bumps this, and a response only draws if it's still the latest.
+   * Tapping through the filters faster than the network answers would
+   * otherwise let a slow reply for the previous game land on top of the
+   * current one -- the wrong game's scores under the right game's heading.
+   */
+  let requestId = 0;
+
+  function render(): void {
+    for (const [key, chip] of filterButtons) {
+      const on = key === filter;
+      chip.classList.toggle("is-active", on);
+      chip.setAttribute("aria-pressed", String(on));
+    }
+    // Keep the chosen chip in view; the row scrolls sideways on a phone.
+    filterButtons.get(filter)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+    // Only offer TODAY where a selected game actually has a daily board.
+    tabBySlice.today.hidden = !todayAvailable(games, filter);
+    for (const [name, tab] of Object.entries(tabBySlice) as Array<[Slice, HTMLButtonElement]>) {
+      tab.classList.toggle("is-active", name === slice);
+    }
+
+    void load();
+  }
+
+  async function load(): Promise<void> {
+    const mine = ++requestId;
     const period = slice === "week" ? "week" : "all";
     const board = slice === "today" ? `daily-${dailyKey()}` : "";
-    try {
-      const rows = await fetchLeaderboard(
-        gameId,
-        period,
-        20,
-        player?.deviceId,
-        board,
-      );
-      if (rows.length === 0) {
-        body.replaceChildren(
-          message(
-            slice === "today"
-              ? "Nobody has played today’s special yet. Go set the mark."
-              : "No scores yet. Be the first one on the board.",
-          ),
-        );
-        return;
-      }
-      body.replaceChildren(...rows.map((row, i) => buildRow(row, i)));
-    } catch {
+    const visible = gamesInView(games, filter, slice);
+
+    body.replaceChildren(message("LOADING…"));
+
+    const results = await Promise.allSettled(
+      visible.map((game) =>
+        fetchLeaderboard(
+          game.id,
+          period,
+          filter === null ? PER_GAME_IN_OVERVIEW : SINGLE_GAME_ROWS,
+          player?.deviceId,
+          board,
+        ),
+      ),
+    );
+    if (mine !== requestId) return; // superseded by a newer selection
+
+    if (results.length > 0 && results.every((r) => r.status === "rejected")) {
       body.replaceChildren(
         message("Can't reach the scoreboard. Your scores are saved and will upload later."),
       );
+      return;
     }
-  };
 
-  const tabsBySlice: Array<[Slice, HTMLButtonElement | null]> = [
-    ["all", allTab],
-    ["week", weekTab],
-    ["today", todayTab],
-  ];
+    if (filter !== null) {
+      const game = visible[0];
+      const result = results[0];
+      const rows = result?.status === "fulfilled" ? result.value : [];
+      const parts: HTMLElement[] = [];
+      if (game) parts.push(sectionHeader(game, null));
+      if (rows.length > 0) parts.push(...rows.map((row, i) => buildRow(row, i, game)));
+      else parts.push(message(emptyText(slice)));
+      body.replaceChildren(...parts);
+      return;
+    }
 
-  for (const [name, tab] of tabsBySlice) {
-    if (!tab) continue;
-    tab.addEventListener("click", () => {
-      slice = name;
-      for (const [, other] of tabsBySlice) {
-        other?.classList.toggle("is-active", other === tab);
+    const sections: HTMLElement[] = [];
+    visible.forEach((game, i) => {
+      const result = results[i]!;
+      const section = document.createElement("section");
+      section.className = "board-section";
+      section.append(sectionHeader(game, () => select(game.id)));
+
+      if (result.status === "rejected") {
+        section.append(message("Couldn't load this one."));
+      } else if (result.value.length === 0) {
+        section.append(message(slice === "today" ? "Nobody yet today." : "No scores yet."));
+      } else {
+        section.append(...result.value.map((row, n) => buildRow(row, n, game)));
       }
-      void load();
+      sections.push(section);
     });
+    body.replaceChildren(...sections);
   }
 
-  void load();
+  render();
   return screen;
 }
 
-function buildRow(row: LeaderboardRow, index: number): HTMLElement {
+/**
+ * The game's name in its cabinet colour, above its scores. In the all-games
+ * view it also carries a SEE ALL link to that game's full board.
+ */
+function sectionHeader(game: GameModule, onSeeAll: (() => void) | null): HTMLElement {
+  const head = document.createElement("div");
+  head.className = "board-section-head";
+  head.style.setProperty("--section-accent", game.accent);
+
+  const name = document.createElement("span");
+  name.className = "board-section-name";
+  name.textContent = game.title;
+  head.append(name);
+
+  if (onSeeAll) {
+    const more = document.createElement("button");
+    more.className = "board-see-all";
+    more.textContent = "SEE ALL ›";
+    more.setAttribute("aria-label", `See all ${game.title} scores`);
+    more.addEventListener("click", onSeeAll);
+    head.append(more);
+  }
+  return head;
+}
+
+function emptyText(slice: Slice): string {
+  return slice === "today"
+    ? "Nobody has played today’s special yet. Go set the mark."
+    : "No scores yet. Be the first one on the board.";
+}
+
+function buildRow(
+  row: LeaderboardRow,
+  index: number,
+  game: GameModule | undefined,
+): HTMLElement {
   const line = document.createElement("div");
   line.className = "board-row";
+  // A stripe in the game's colour, so a row still says which game it's from
+  // when it's the only thing in view.
+  if (game) line.style.setProperty("--row-accent", game.accent);
   // Highlight the player's own entry. The server decides this by device, not
   // by initials -- two people can both pick "JGB" and only one of them is you.
   if (row.is_you) {
@@ -130,15 +260,15 @@ function buildRow(row: LeaderboardRow, index: number): HTMLElement {
 
   const wave = document.createElement("span");
   wave.className = "board-wave";
-  wave.textContent = `W${row.wave}`;
+  wave.textContent = progressText(game, row.wave);
 
   line.append(rank, initials, score, wave);
   return line;
 }
 
-function tabButton(label: string, active: boolean): HTMLButtonElement {
+function tabButton(label: string): HTMLButtonElement {
   const button = document.createElement("button");
-  button.className = active ? "tab is-active" : "tab";
+  button.className = "tab";
   button.textContent = label;
   return button;
 }

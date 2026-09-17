@@ -677,6 +677,8 @@ function freshPlayer(): Player {
 export const reefModule: GameModule = {
   id: "riley-reef",
   title: "MISS RILEY'S REEF",
+  shortTitle: "REEF",
+  progressShort: "LV",
   blurb: "Swipe to swim. Eat the bubbles, dodge the jellyfish.",
   accent: "#54e0ff",
 

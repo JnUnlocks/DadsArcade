@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.10.0",
+    date: "2026-09-16",
+    title: "High scores for every game",
+    notes: [
+      "HIGH SCORES on the menu now shows every game. It used to show only Starfighter.",
+      "Filter by game along the top of the screen, or see every game's top three at once.",
+      "Every score shows which game it's from, in that game's colour, with SEE ALL to open its full board.",
+      "Scores show each game's own progress: LV for level, RD for round, ORD for orders, instead of W for everything.",
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2026-09-16",
     title: "Brickfall levels up sooner",

@@ -591,6 +591,8 @@ function removeAt<T>(items: T[], index: number): void {
 export const mallardModule: GameModule = {
   id: "mallard-challenge",
   title: "NATHAN'S MALLARD CHALLENGE",
+  shortTitle: "MALLARD",
+  progressShort: "RD",
   blurb: "Drag to aim. Tap FIRE, or tap with a second finger.",
   accent: "#e0a53c",
 

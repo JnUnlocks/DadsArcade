@@ -634,6 +634,7 @@ function easeOutQuad(t: number): number {
 export const crossingModule: GameModule = {
   id: "highway-hop",
   title: "HIGHWAY HOP",
+  progressShort: "LV",
   blurb: "Tap to hop. Cross the road, ride the logs, fill all five burrows.",
   accent: "#7ddc4f",
 

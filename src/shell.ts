@@ -257,7 +257,9 @@ export class Shell implements GameHost {
     board.addEventListener("click", () => {
       this.audio.unlock();
       this.audio.play("uiSelect");
-      this.showLeaderboard(this.games[0]?.id ?? "starfighter");
+      // All games. This used to open games[0], so the menu could only ever
+      // show Starfighter's board.
+      this.showLeaderboard(null);
     });
 
     const settings = el("button", "btn btn--ghost", "SETTINGS");
@@ -364,18 +366,14 @@ export class Shell implements GameHost {
     );
   }
 
-  showLeaderboard(gameId: string): void {
+  /** `null` opens the all-games view; a game id opens that game's board. */
+  showLeaderboard(gameId: string | null): void {
     this.clearUi();
-    const module = this.games.find((game) => game.id === gameId);
     this.ui.append(
-      buildLeaderboardScreen(
-        gameId,
-        this.player,
-        () => this.showMenu(),
-        module?.hasDailyChallenge ?? false,
-      ),
+      buildLeaderboardScreen(this.games, gameId, this.player, () => this.showMenu()),
     );
   }
+
 
   /** `openFeedback` jumps straight to the note box, scrolled into view. */
   showSettings(openFeedback = false): void {

@@ -118,6 +118,17 @@ export interface GameModule {
   /** Stable id -- used as the leaderboard key, so never change it once live. */
   readonly id: string;
   readonly title: string;
+  /**
+   * A short name for tight spaces -- the game filter on the high-score screen.
+   * Defaults to `title`, which is too long for a chip on a phone for most games.
+   */
+  readonly shortTitle?: string;
+  /**
+   * Abbreviation for this game's progress number on a score row, e.g. "LV" for
+   * Level or "RD" for Round. Defaults to "W". Every row used to say "W6"
+   * whatever the game, which is Starfighter's wave and meaningless elsewhere.
+   */
+  readonly progressShort?: string;
   readonly blurb: string;
   /** Accent colour for this game's cabinet in the arcade menu. */
   readonly accent: string;
