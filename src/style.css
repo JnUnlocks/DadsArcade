@@ -1150,6 +1150,41 @@ body {
   }
 }
 
+/* JB's Tower Trouble. Bottom-right, where a right thumb rests; the left thumb
+   drags anywhere on the canvas to walk and climb. */
+.jump-btn {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  min-width: calc(112px * var(--ui-scale));
+  min-height: calc(50px * var(--ui-scale));
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 2px solid #ff6a3d;
+  background: rgba(255, 106, 61, 0.2);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(14px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 5;
+}
+
+.jump-btn:active {
+  background: rgba(255, 106, 61, 0.4);
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jump-btn:active {
+    transform: none;
+  }
+}
+
 /* ---------- Release notes ---------- */
 
 .menu-footer {

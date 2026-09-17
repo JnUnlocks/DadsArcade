@@ -12,6 +12,7 @@ import { brickfallModule } from "./brickfall";
 import { crossingModule } from "./crossing";
 import { slimeShopModule } from "./slimeshop";
 import { starfighterModule } from "./starfighter";
+import { towerModule } from "./tower";
 
 export const GAMES: GameModule[] = [
   starfighterModule,
@@ -20,4 +21,5 @@ export const GAMES: GameModule[] = [
   slimeShopModule,
   crossingModule,
   brickfallModule,
+  towerModule,
 ];

@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.11.0",
+    date: "2026-09-17",
+    title: "JB's Tower Trouble",
+    notes: [
+      "A new cabinet: JB's Tower Trouble. The Scrap King robot has the good boy stuck on the roof. Climb the tower and rescue him.",
+      "Drag anywhere to walk and climb. Tap JUMP to hop over tyres, cable spools, paint cans and toolboxes.",
+      "Grab a wrench to smash junk for a few seconds. You can't climb while you're holding it.",
+      "Three hearts, plus one for every rescue. Getting hit puts you back on the girder you reached, not at the bottom.",
+    ],
+  },
+  {
     version: "0.10.0",
     date: "2026-09-16",
     title: "High scores for every game",

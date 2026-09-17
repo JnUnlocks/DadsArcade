@@ -22,12 +22,13 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Miss Riley's Reef** | Ms. Pac-Man | Tile-snapped movement with buffered turns, scatter/chase waves, and four pursuers that each hunt differently |
 | **Highway Hop** | Frogger | Stepped movement you commit to, a river half where the rule inverts — empty water kills and the logs that save you also carry you off the edge — and five burrows to fill rather than one crossing |
 | **Brickfall** | Falling-block puzzles | A shuffled bag so you never wait twenty pieces for a straight one, a lock delay so a piece that lands beside a gap can still be slid into it, and twenty-five levels that are each measurably faster than the last |
+| **JB's Tower Trouble** | Donkey Kong | Junk that rolls downhill, drops off the open end of each girder and sometimes takes a ladder down instead; jumps you commit to at take-off; and a wrench that smashes junk but stops you climbing while you hold it |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
 sound is synthesised from oscillators and noise. There isn't a single image or
-audio asset in the project, which is why the whole arcade is a ~48 KB download — music included.
+audio asset in the project, which is why the whole arcade is a ~60 KB download — music included.
 
 ---
 
@@ -146,6 +147,8 @@ Emulators can't tell you how the controls feel. Worth doing once:
       readable — it should be obvious you aim for a ring, not the bank.
 - [ ] Every cabinet tile on the menu shows its control hint. That line is the
       only place the controls are explained.
+- [ ] Tower Trouble: dragging with one thumb walks and climbs while the other
+      thumb reaches JUMP, and junk coming down a ladder is visible in time.
 - [ ] Brickfall: the music starts, and **Settings → Music** silences it without
       silencing the sound effects. Leaving the game stops it.
 
@@ -300,6 +303,36 @@ So Brickfall takes the rules and none of the look: its own name, its own
 palette drawn from this arcade's existing accents, its own art, its own music.
 The seven shapes themselves are simply the complete set of four-cell
 polyominoes, which is a mathematical fact rather than anyone's creative choice.
+
+---
+
+## JB's Tower Trouble
+
+A climbing game built from an AI mock-up: JB in his cap and flannel, a crowned
+scrap robot throwing junk, and the family dog waiting on the roof. The art was
+redrawn as runtime vector paths like everything else here, so the mock-up
+itself isn't in the project.
+
+It keeps the genre's rules: junk rolls downhill and zig-zags down the tower,
+sometimes taking a ladder instead, jumps are committed at take-off, and the
+power-up that smashes junk also stops you climbing. None of the look is
+borrowed: no ape, no plumber, no hammer, no damsel.
+
+It is kinder than the original in three places, all deliberate:
+
+- **A hit doesn't send you back to the bottom.** JB restarts on the girder he'd
+  reached, at the foot of the ladder he came up, with the junk cleared and two
+  seconds of safety. Losing a whole climb to one tyre is the part of the genre
+  most likely to make a child put the phone down.
+- **You can't walk off a girder**, and the bonus timer only drains points. The
+  only thing that ends a run is running out of hearts.
+- **Every rescue gives a heart back**, up to five.
+
+The tower's geometry is pure data in `src/games/tower/level.ts`, and
+`level.test.ts` checks the things that fail silently: every girder's open end
+has a girder below it to catch the junk, every ladder sits fully on both
+girders, the roof can be reached, junk always makes it to the bin, and a jump
+clears the fastest junk the game ever throws.
 
 ---
 

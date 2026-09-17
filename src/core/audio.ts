@@ -52,7 +52,15 @@ export type SoundName =
   | "pieceLand"
   | "lineClear"
   | "fourLines"
-  | "levelUp";
+  | "levelUp"
+  // JB's Tower Trouble
+  | "towerJump"
+  | "jumpScore"
+  | "junkThrow"
+  | "junkSmash"
+  | "wrenchGet"
+  | "towerBonk"
+  | "rescue";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -347,6 +355,34 @@ export class AudioEngine {
         break;
       case "levelUp":
         this.arpeggio(t, [659, 880, 1047], 0.07, "sine", 0.2);
+        break;
+
+      // ----- JB's Tower Trouble -----
+      case "towerJump":
+        this.blip(t, "square", 330, 620, 0.12, 0.16);
+        break;
+      case "jumpScore":
+        this.blip(t, "square", 880, 1320, 0.07, 0.14);
+        break;
+      case "junkThrow":
+        // A heavy whoosh: the robot heaving something off the top girder.
+        this.burst(t, 0.2, 700, 180, 0.16);
+        this.blip(t, "triangle", 180, 90, 0.18, 0.16);
+        break;
+      case "junkSmash":
+        this.burst(t, 0.18, 3200, 900, 0.22);
+        this.blip(t, "square", 520, 140, 0.14, 0.16);
+        break;
+      case "wrenchGet":
+        this.arpeggio(t, [523, 784, 1047, 1568], 0.05, "square", 0.18);
+        break;
+      case "towerBonk":
+        this.blip(t, "sawtooth", 420, 90, 0.34, 0.24);
+        this.burst(t, 0.12, 1200, 300, 0.18);
+        break;
+      case "rescue":
+        this.arpeggio(t, [392, 523, 659, 784, 1047], 0.09, "square", 0.2);
+        this.blip(t + 0.5, "sine", 1047, 1047, 0.35, 0.14, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
