@@ -391,9 +391,12 @@ export class Shell implements GameHost {
   }
 
   startGame(module: GameModule): void {
-    // First time anyone has played on this device: explain the controls once,
-    // then start. Never shown again.
-    if (!this._settings.seenHowTo) {
+    // First time anyone plays Starfighter on this device: explain the controls
+    // once, then start. The screen is Starfighter's own instructions, so it
+    // only goes in front of Starfighter -- a new phone whose first pick was
+    // the tower was being told how to fly a spaceship. Every other game's
+    // controls are on its cabinet.
+    if (module.id === "starfighter" && !this._settings.seenHowTo) {
       this.clearUi();
       this.ui.append(
         buildHowToScreen(() => {

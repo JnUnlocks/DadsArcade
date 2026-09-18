@@ -34,6 +34,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.11.1",
+    date: "2026-09-17",
+    title: "A D-pad for Tower Trouble",
+    notes: [
+      "Tower Trouble has a D-pad in the bottom-left corner, like a handheld. Hold a direction to walk or climb, and slide your thumb to change direction without lifting it.",
+      "JUMP moved to a big round button under your right thumb.",
+      "The first-time \"How to play\" screen only appears before Starfighter now. It was showing Starfighter's instructions in front of whichever game a new phone opened first.",
+    ],
+  },
+  {
     version: "0.11.0",
     date: "2026-09-17",
     title: "JB's Tower Trouble",

@@ -26,6 +26,7 @@ import type { GameHost, GameInstance, GameModule, HudState } from "../../core/ga
 import type { InputSnapshot } from "../../core/input.ts";
 import { Particles } from "../../core/particles.ts";
 import { Rng } from "../../core/rng.ts";
+import { DPad } from "./dpad.ts";
 import {
   difficulty,
   girderY,
@@ -81,7 +82,13 @@ const THROW_POSE_SECONDS = 0.3;
 /** The bonus drains 100 points every this many seconds. */
 const BONUS_TICK_SECONDS = 2;
 
-/** Joystick: drag this far from where the finger landed to move. */
+/**
+ * Screen space kept clear under the tower for the D-pad and JUMP, in CSS px
+ * above the safe area. Matches .tower-controls in style.css.
+ */
+const CONTROLS_HEIGHT = 168;
+
+/** Drag-anywhere fallback: drag this far from where the finger landed to move. */
 const STICK_DEAD_X = 8;
 const STICK_DEAD_Y = 12;
 const STICK_MAX = 30;
@@ -125,7 +132,8 @@ export class TowerTrouble implements GameInstance {
   private hintCooldown = 0;
   private popups: Array<{ text: string; x: number; y: number; age: number }> = [];
 
-  // Touch joystick and jump.
+  // Touch: the D-pad, JUMP, and the older drag-anywhere stick as a fallback.
+  private readonly dpad = new DPad();
   private stickX = 0;
   private stickY = 0;
   private touchDrag = 0;
@@ -224,8 +232,17 @@ export class TowerTrouble implements GameInstance {
     return { lives: this.lives, progress: this.stage, progressLabel: "Stage" };
   }
 
-  /** The JUMP button. Touch-drag anywhere else to move. */
+  /**
+   * A handheld layout: D-pad bottom-left for the left thumb, JUMP bottom-right
+   * for the right. Dragging on the tower itself still walks too, but it moves
+   * the "centre" wherever the thumb lands, which playtesting found odd for
+   * walking a girder -- a fixed pad under a resting thumb is what the genre
+   * wants.
+   */
   extraControls(): HTMLElement {
+    const bar = document.createElement("div");
+    bar.className = "tower-controls";
+
     const button = document.createElement("button");
     button.className = "jump-btn";
     button.textContent = "JUMP";
@@ -236,7 +253,10 @@ export class TowerTrouble implements GameInstance {
       event.preventDefault();
       this.jumpQueued = true;
     });
-    return button;
+    button.addEventListener("contextmenu", (event) => event.preventDefault());
+
+    bar.append(this.dpad.element, button);
+    return bar;
   }
 
   onPause(): void {
@@ -451,6 +471,7 @@ export class TowerTrouble implements GameInstance {
     this.touchDrag = 0;
     this.wasPointerDown = false;
     this.jumpQueued = false;
+    this.dpad.reset();
   }
 
   /**
@@ -498,6 +519,10 @@ export class TowerTrouble implements GameInstance {
       else y = 0;
     }
 
+    if (this.dpad.x !== 0 || this.dpad.y !== 0) {
+      x = this.dpad.x;
+      y = this.dpad.y;
+    }
     if (input.axisX !== 0) x = Math.sign(input.axisX);
     if (input.axisY !== 0) y = Math.sign(input.axisY);
 
@@ -509,7 +534,7 @@ export class TowerTrouble implements GameInstance {
   private layout(): { scale: number; ox: number; oy: number } {
     const { view } = this.host;
     const top = view.insetTop + 54;
-    const bottom = view.insetBottom + 66; // room for the JUMP button
+    const bottom = view.insetBottom + CONTROLS_HEIGHT;
     const avail = view.h - top - bottom;
     const scale = Math.min(view.w / WORLD_W, avail / WORLD_H);
     return {
@@ -566,7 +591,7 @@ export class TowerTrouble implements GameInstance {
     if (hint) {
       ctx.fillStyle = "#cfe0ff";
       ctx.font = "700 8px ui-monospace, Menlo, Consolas, monospace";
-      ctx.fillText("DRAG TO WALK + CLIMB  ·  JUMP TO HOP", WORLD_W / 2, y + 33);
+      ctx.fillText("D-PAD TO WALK + CLIMB  ·  JUMP TO HOP", WORLD_W / 2, y + 33);
     }
     ctx.restore();
   }
@@ -610,7 +635,7 @@ export const towerModule: GameModule = {
   title: "JB'S TOWER TROUBLE",
   shortTitle: "TOWER",
   progressShort: "ST",
-  blurb: "Drag to walk and climb, JUMP over junk. Rescue the good boy.",
+  blurb: "D-pad to walk and climb, JUMP over junk. Rescue the good boy.",
   accent: "#ff6a3d",
 
   drawIcon(ctx, size) {

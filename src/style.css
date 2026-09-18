@@ -1150,37 +1150,127 @@ body {
   }
 }
 
-/* JB's Tower Trouble. Bottom-right, where a right thumb rests; the left thumb
-   drags anywhere on the canvas to walk and climb. */
-.jump-btn {
+/* JB's Tower Trouble: a handheld layout. D-pad under the left thumb, JUMP
+   under the right, both above the HUD's hearts in the bottom-left corner.
+   The game keeps CONTROLS_HEIGHT (168px) clear under the tower for this. */
+.tower-controls {
   position: absolute;
-  right: calc(env(safe-area-inset-right, 0px) + 16px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-  min-width: calc(112px * var(--ui-scale));
-  min-height: calc(50px * var(--ui-scale));
-  padding: 0 20px;
-  border-radius: 999px;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
+  height: 128px;
+  padding: 0 calc(env(safe-area-inset-right, 0px) + 18px) 0
+    calc(env(safe-area-inset-left, 0px) + 14px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.tower-controls > * {
+  pointer-events: auto;
+}
+
+.dpad {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 106, 61, 0.55);
+  background: radial-gradient(circle, rgba(255, 106, 61, 0.1), rgba(10, 14, 28, 0.72) 70%);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.dpad__hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  background: rgba(255, 106, 61, 0.18);
+  pointer-events: none;
+}
+
+/* Each arrow is a CSS triangle pointing outward from the hub. */
+.dpad__arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 13px solid transparent;
+  pointer-events: none;
+  transition: transform 80ms ease;
+}
+
+.dpad__arrow--up {
+  left: 50%;
+  top: 10px;
+  margin-left: -13px;
+  border-top: none;
+  border-bottom: 18px solid rgba(255, 216, 77, 0.6);
+}
+
+.dpad__arrow--down {
+  left: 50%;
+  bottom: 10px;
+  margin-left: -13px;
+  border-bottom: none;
+  border-top: 18px solid rgba(255, 216, 77, 0.6);
+}
+
+.dpad__arrow--left {
+  top: 50%;
+  left: 10px;
+  margin-top: -13px;
+  border-left: none;
+  border-right: 18px solid rgba(255, 216, 77, 0.6);
+}
+
+.dpad__arrow--right {
+  top: 50%;
+  right: 10px;
+  margin-top: -13px;
+  border-right: none;
+  border-left: 18px solid rgba(255, 216, 77, 0.6);
+}
+
+.dpad__arrow--up.is-active { border-bottom-color: #ffd84d; transform: scale(1.25); }
+.dpad__arrow--down.is-active { border-top-color: #ffd84d; transform: scale(1.25); }
+.dpad__arrow--left.is-active { border-right-color: #ffd84d; transform: scale(1.25); }
+.dpad__arrow--right.is-active { border-left-color: #ffd84d; transform: scale(1.25); }
+
+.jump-btn {
+  width: 92px;
+  height: 92px;
+  flex: none;
+  border-radius: 50%;
   border: 2px solid #ff6a3d;
-  background: rgba(255, 106, 61, 0.2);
+  background: rgba(255, 106, 61, 0.22);
   color: var(--ink);
   font-family: var(--font);
-  font-size: calc(14px * var(--ui-scale));
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   cursor: pointer;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  z-index: 5;
+  -webkit-touch-callout: none;
 }
 
 .jump-btn:active {
-  background: rgba(255, 106, 61, 0.4);
-  transform: scale(0.96);
+  background: rgba(255, 106, 61, 0.45);
+  transform: scale(0.95);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .jump-btn:active {
+  .jump-btn:active,
+  .dpad__arrow.is-active {
     transform: none;
   }
 }

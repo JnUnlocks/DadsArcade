@@ -147,8 +147,9 @@ Emulators can't tell you how the controls feel. Worth doing once:
       readable — it should be obvious you aim for a ring, not the bank.
 - [ ] Every cabinet tile on the menu shows its control hint. That line is the
       only place the controls are explained.
-- [ ] Tower Trouble: dragging with one thumb walks and climbs while the other
-      thumb reaches JUMP, and junk coming down a ladder is visible in time.
+- [ ] Tower Trouble: the D-pad walks and climbs under the left thumb, rolling
+      from RIGHT to UP without lifting, while the right thumb reaches JUMP; and
+      junk coming down a ladder is visible in time.
 - [ ] Brickfall: the music starts, and **Settings → Music** silences it without
       silencing the sound effects. Leaving the game stops it.
 
@@ -317,6 +318,14 @@ It keeps the genre's rules: junk rolls downhill and zig-zags down the tower,
 sometimes taking a ladder instead, jumps are committed at take-off, and the
 power-up that smashes junk also stops you climbing. None of the look is
 borrowed: no ape, no plumber, no hammer, no damsel.
+
+It plays on an on-screen D-pad (bottom-left) and a JUMP button (bottom-right).
+The first version walked by dragging anywhere, like Starfighter steers, and the
+first playtest found it odd: a drag re-centres wherever the thumb lands, which
+is right for aiming a ship and wrong for walking a girder to a ladder. The pad
+is one element read from the thumb's position, so a thumb can roll from RIGHT
+to UP at the foot of a ladder without lifting. Dragging on the tower still
+works as a fallback, and the arrow keys and Space work on a keyboard.
 
 It is kinder than the original in three places, all deliberate:
 
