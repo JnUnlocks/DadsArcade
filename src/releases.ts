@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.11.2",
+    date: "2026-09-17",
+    title: "A bigger tower",
+    notes: [
+      "Tower Trouble fills the screen again. The D-pad update left a thick black band under the tower and shrank the game to fit it.",
+    ],
+  },
+  {
     version: "0.11.1",
     date: "2026-09-17",
     title: "A D-pad for Tower Trouble",

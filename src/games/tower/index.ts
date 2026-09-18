@@ -83,10 +83,19 @@ const THROW_POSE_SECONDS = 0.3;
 const BONUS_TICK_SECONDS = 2;
 
 /**
- * Screen space kept clear under the tower for the D-pad and JUMP, in CSS px
- * above the safe area. Matches .tower-controls in style.css.
+ * Where the D-pad and JUMP start, in CSS px above the safe area: the top of
+ * .tower-controls in style.css (36px up + 128px tall), plus a small gap.
  */
-const CONTROLS_HEIGHT = 168;
+const CONTROLS_TOP = 168;
+
+/**
+ * The lowest part of the tower that matters: the underside of the floor
+ * girder. Everything below it -- the skyline, the jeep, the scrap bin -- is
+ * backdrop, and is allowed to run on behind the controls. Reserving room for
+ * it as well left a thick black band under the tower and shrank the whole
+ * game to fit, which is what the first D-pad build did.
+ */
+const PLAY_BOTTOM = 596;
 
 /** Drag-anywhere fallback: drag this far from where the finger landed to move. */
 const STICK_DEAD_X = 8;
@@ -534,13 +543,16 @@ export class TowerTrouble implements GameInstance {
   private layout(): { scale: number; ox: number; oy: number } {
     const { view } = this.host;
     const top = view.insetTop + 54;
-    const bottom = view.insetBottom + CONTROLS_HEIGHT;
-    const avail = view.h - top - bottom;
-    const scale = Math.min(view.w / WORLD_W, avail / WORLD_H);
+    const controlsTop = view.h - view.insetBottom - CONTROLS_TOP;
+    const avail = controlsTop - top;
+    const scale = Math.min(view.w / WORLD_W, avail / PLAY_BOTTOM);
+    // The floor always sits right on top of the controls. On the rare screen
+    // taller than the tower needs, the spare room goes above it, under the
+    // score, rather than between the game and the thumbs.
     return {
       scale,
       ox: (view.w - WORLD_W * scale) / 2,
-      oy: top + (avail - WORLD_H * scale) / 2,
+      oy: controlsTop - PLAY_BOTTOM * scale,
     };
   }
 
