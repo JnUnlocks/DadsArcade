@@ -475,6 +475,12 @@ export class Shell implements GameHost {
     this.screen = "resuming";
     this.clearUi();
     this.ui.append(this.buildPauseButton());
+    // clearUi() just tore out every child of #ui, including whatever DOM a
+    // game mounted through extraControls() -- its D-pad, its whole panel,
+    // whatever. Without re-mounting it here, resuming from pause would leave
+    // that control surface gone for the rest of the run.
+    const extra = this.instance?.extraControls?.();
+    if (extra) this.ui.append(extra);
 
     const overlay = el("div", "countdown");
     const label = el("span", "", "3");

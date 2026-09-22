@@ -1,6 +1,6 @@
 # Dad's Arcade
 
-A mobile-first PWA arcade, built for Dad. Six games, a shared online
+A mobile-first PWA arcade, built for Dad. Seven games, a shared online
 leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -24,6 +24,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Brickfall** | Falling-block puzzles | A shuffled bag so you never wait twenty pieces for a straight one, a lock delay so a piece that lands beside a gap can still be slid into it, and twenty-five levels that are each measurably faster than the last |
 | **JB's Tower Trouble** | Donkey Kong | Junk that rolls downhill, drops off the open end of each girder and sometimes takes a ladder down instead; jumps you commit to at take-off; and a wrench that smashes junk but stops you climbing while you hold it |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
+| **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
@@ -152,6 +153,9 @@ Emulators can't tell you how the controls feel. Worth doing once:
       junk coming down a ladder is visible in time.
 - [ ] Brickfall: the music starts, and **Settings → Music** silences it without
       silencing the sound effects. Leaving the game stops it.
+- [ ] Black Disc: pause mid-round and resume — the phrase, timer and score are
+      exactly where you left them. There's no numeral for time left anywhere
+      on screen, only the bar.
 
 ---
 
@@ -270,6 +274,34 @@ correct the clock is.
 
 Any future game gets the same treatment by setting `hasDailyChallenge` and
 returning a `boardId` from its `RunSummary`.
+
+---
+
+## Black Disc, and skipping the leaderboard on purpose
+
+Every other cabinet is one player against a machine, so a personal best means
+something. Black Disc is Team 1 vs Team 2 and a clock neither of them can
+see — there's no solo run to rank, and no player identity involved at all. So
+it never calls `gameOver()`: there's no leaderboard entry for a party game,
+only the match itself, which just keeps going — NEXT ROUND, CHANGE SETTINGS,
+NEW GAME — until someone quits to the arcade.
+
+It's also the one cabinet with no playfield to simulate. `render()` is
+genuinely empty; the whole game is a DOM panel
+([`extraControls()`](src/games/blackdisc/index.ts)) that covers the screen,
+because the game itself is a phone changing hands around a table. That
+exposed a real bug: `Shell.requestResume()` cleared `#ui` for the 3-2-1
+countdown and never put a game's `extraControls()` back afterward, so any
+paused-then-resumed run of this game — or Tower Trouble's D-pad, or Slime
+Shop's counter — would come back with its controls gone. Fixed once, in the
+shell, for every game that uses `extraControls()`.
+
+The one thing borrowed from the real disc: the round timer is never shown as
+a number. `PASS IT ON — NO PEEKING AT THE CLOCK` and a draining bar stand in
+for a countdown, and the tick that plays underneath starts slow and quiet-ish
+and eases toward fast and loud over the *whole* round — not just the last few
+seconds — so the buzzer stays a surprise to whoever's holding the disc, the
+way it is on the real thing.
 
 ---
 

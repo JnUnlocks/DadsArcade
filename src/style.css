@@ -1468,3 +1468,481 @@ body {
   font-size: calc(11px * var(--ui-scale));
   margin: 4px 0 0 13px;
 }
+
+/* ---------- Black Disc ---------- */
+
+/* Entirely DOM: there's no playfield to simulate, just a phone getting
+   passed around a table. The root covers the whole screen -- opaque, so the
+   canvas HUD underneath (score, round) never peeks through -- and everything
+   else lives in here: teams, categories, the phrase card. */
+.disc-root {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  padding: calc(env(safe-area-inset-top, 0px) + 78px) 12px
+    calc(env(safe-area-inset-bottom, 0px) + 14px);
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 26%, rgba(219, 255, 115, 0.14), transparent 70%),
+    var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  text-align: center;
+}
+
+/* ----- Scoreboard: always visible, teams name themselves right here ----- */
+
+.disc-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: none;
+}
+
+.disc-team {
+  border: 1px solid rgba(142, 163, 200, 0.3);
+  border-top: 3px solid rgba(142, 163, 200, 0.5);
+  border-radius: 14px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.disc-team--a {
+  border-top-color: #dbff73;
+}
+
+.disc-team--b {
+  border-top-color: #ff5fae;
+}
+
+.disc-team-name {
+  width: 100%;
+  text-align: center;
+  font-family: var(--font);
+  font-weight: 750;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: 0.04em;
+}
+
+.disc-team--a .disc-team-name {
+  color: #dbff73;
+}
+
+.disc-team--b .disc-team-name {
+  color: #ff5fae;
+}
+
+.disc-team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.disc-team-score {
+  font-size: calc(30px * var(--ui-scale));
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.disc-team-btn {
+  min-width: calc(32px * var(--ui-scale));
+  min-height: calc(32px * var(--ui-scale));
+  border-radius: 50%;
+  border: 1px solid rgba(142, 163, 200, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(16px * var(--ui-scale));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.disc-team-btn:active {
+  transform: scale(0.92);
+}
+
+.disc-team-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ----- Shared panel/button chrome ----- */
+
+.disc-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.disc-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(10px * var(--ui-scale));
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 2px;
+}
+
+/* `display: flex` above otherwise beats the browser's default [hidden] rule
+   -- both are equal specificity, and an author rule always wins over the
+   user-agent one, [hidden] or not. */
+.disc-panel[hidden] {
+  display: none;
+}
+
+.disc-eyebrow {
+  font-size: calc(11px * var(--ui-scale));
+  letter-spacing: 0.16em;
+  font-weight: 800;
+  color: var(--dim);
+}
+
+.disc-btn {
+  appearance: none;
+  border: 2px solid rgba(142, 163, 200, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-height: calc(48px * var(--ui-scale));
+  min-width: calc(160px * var(--ui-scale));
+  padding: 0 18px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.disc-btn:active {
+  transform: scale(0.97);
+}
+
+.disc-btn--primary {
+  border-color: #dbff73;
+  background: rgba(219, 255, 115, 0.2);
+  color: #1a2405;
+}
+
+.disc-btn--danger {
+  border-color: rgba(255, 77, 109, 0.5);
+  color: var(--danger);
+  background: rgba(255, 77, 109, 0.1);
+}
+
+.disc-btn--ghost {
+  background: transparent;
+  border-color: rgba(142, 163, 200, 0.3);
+  color: var(--dim);
+  min-width: 0;
+}
+
+.disc-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.disc-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+  justify-content: center;
+}
+
+.disc-row .disc-btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ----- Setup ----- */
+
+.disc-title {
+  font-size: calc(24px * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.disc-title em {
+  font-style: normal;
+  color: #dbff73;
+}
+
+.disc-tagline {
+  font-size: calc(11.5px * var(--ui-scale));
+  color: var(--dim);
+  max-width: 30ch;
+}
+
+.disc-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.disc-category {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(142, 163, 200, 0.3);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+.disc-category.is-selected {
+  border-color: #dbff73;
+  background: rgba(219, 255, 115, 0.14);
+}
+
+.disc-cat-emoji {
+  font-size: calc(20px * var(--ui-scale));
+  width: 26px;
+  text-align: center;
+  flex: none;
+}
+
+.disc-cat-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.disc-cat-label {
+  display: block;
+  font-size: calc(12.5px * var(--ui-scale));
+  font-weight: 700;
+}
+
+.disc-cat-hint {
+  display: block;
+  font-size: calc(10px * var(--ui-scale));
+  color: var(--dim);
+  margin-top: 1px;
+}
+
+.disc-cat-check {
+  flex: none;
+  color: #dbff73;
+  font-weight: 900;
+  opacity: 0;
+}
+
+.disc-category.is-selected .disc-cat-check {
+  opacity: 1;
+}
+
+.disc-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.disc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.disc-field-label {
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  color: #dbff73;
+}
+
+.disc-select {
+  width: 100%;
+  border: 1px solid rgba(142, 163, 200, 0.32);
+  border-radius: 10px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(12.5px * var(--ui-scale));
+}
+
+.disc-hint {
+  font-size: calc(11px * var(--ui-scale));
+  color: var(--dim);
+  max-width: 32ch;
+  line-height: 1.5;
+}
+
+/* ----- Play ----- */
+
+.disc-round-tag {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  font-weight: 700;
+}
+
+.disc-turn {
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 800;
+  color: #dbff73;
+}
+
+.disc-turn.is-team-b {
+  color: #ff5fae;
+}
+
+.disc-meter {
+  width: 100%;
+  max-width: 340px;
+  height: 9px;
+  border-radius: 8px;
+  background: #39394d;
+  overflow: hidden;
+}
+
+.disc-meter-fill {
+  height: 100%;
+  width: 100%;
+  background: #dbff73;
+  transition: width 0.12s linear;
+}
+
+.disc-meter.is-urgent .disc-meter-fill {
+  background: #ff5fae;
+}
+
+.disc-meter-caption {
+  font-size: calc(9.5px * var(--ui-scale));
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.disc-card {
+  width: 100%;
+  max-width: 340px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f4f1e9;
+  color: #19192b;
+  border-radius: 20px;
+  padding: 18px 14px;
+  gap: 6px;
+}
+
+.disc-phrase {
+  font-size: clamp(26px, 7vw, 38px);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.disc-phrase-tag {
+  font-size: calc(11px * var(--ui-scale));
+  color: #575765;
+  font-weight: 700;
+}
+
+.disc-play-hint {
+  font-size: calc(10.5px * var(--ui-scale));
+  color: var(--dim);
+  max-width: 32ch;
+}
+
+/* ----- Result ----- */
+
+.disc-result-title {
+  font-size: calc(22px * var(--ui-scale));
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.disc-result-text {
+  font-size: calc(12.5px * var(--ui-scale));
+  color: var(--dim);
+  max-width: 32ch;
+  line-height: 1.6;
+}
+
+/* ----- Rules ----- */
+
+.disc-rules {
+  flex: none;
+  border-top: 1px solid rgba(142, 163, 200, 0.22);
+  padding-top: 10px;
+  font-size: calc(11px * var(--ui-scale));
+  color: var(--dim);
+  text-align: left;
+}
+
+.disc-rules summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: calc(11.5px * var(--ui-scale));
+}
+
+.disc-rules summary::-webkit-details-marker {
+  display: none;
+}
+
+.disc-rules ol {
+  padding-left: 18px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.disc-rules p {
+  line-height: 1.55;
+  margin-top: 8px;
+}
+
+/* ----- Victory confetti ----- */
+
+.disc-celebration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 6;
+}
+
+.disc-celebration i {
+  position: absolute;
+  left: var(--x);
+  top: -25px;
+  width: 10px;
+  height: 18px;
+  animation: disc-confetti 3.5s var(--delay) ease-in forwards;
+}
+
+@keyframes disc-confetti {
+  to {
+    transform: translateY(110vh) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disc-celebration {
+    display: none;
+  }
+}

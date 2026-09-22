@@ -60,7 +60,18 @@ export type SoundName =
   | "junkSmash"
   | "wrenchGet"
   | "towerBonk"
-  | "rescue";
+  | "rescue"
+  // Black Disc
+  | "discRoundStart"
+  | "discPass"
+  | "discTick1"
+  | "discTick2"
+  | "discTick3"
+  | "discTick4"
+  | "discTick5"
+  | "discBuzz"
+  | "discRuleBreak"
+  | "discWin";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -383,6 +394,45 @@ export class AudioEngine {
       case "rescue":
         this.arpeggio(t, [392, 523, 659, 784, 1047], 0.09, "square", 0.2);
         this.blip(t + 0.5, "sine", 1047, 1047, 0.35, 0.14, 6);
+        break;
+      // ----- Black Disc -----
+      case "discRoundStart":
+        this.arpeggio(t, [440, 554, 659], 0.09, "square", 0.2);
+        break;
+      case "discPass":
+        this.blip(t, "square", 700, 1000, 0.06, 0.16);
+        break;
+      // Five steps standing in for one continuously accelerating, brightening
+      // tick -- louder and a little higher each time, so the round feels like
+      // it's closing in even though the exact time left is never shown.
+      case "discTick1":
+        this.blip(t, "square", 560, 560, 0.045, 0.17);
+        break;
+      case "discTick2":
+        this.blip(t, "square", 660, 660, 0.045, 0.2);
+        break;
+      case "discTick3":
+        this.blip(t, "square", 780, 780, 0.04, 0.23);
+        break;
+      case "discTick4":
+        this.blip(t, "square", 900, 900, 0.04, 0.26);
+        break;
+      case "discTick5":
+        this.blip(t, "square", 1080, 1080, 0.035, 0.29);
+        break;
+      case "discBuzz":
+        // A flat, ugly buzz on purpose -- the one sound in the game that
+        // should feel like a mistake rather than a reward.
+        this.burst(t, 0.4, 1400, 90, 0.3);
+        this.blip(t, "sawtooth", 220, 60, 0.4, 0.26);
+        break;
+      case "discRuleBreak":
+        this.blip(t, "square", 520, 260, 0.14, 0.22);
+        this.blip(t + 0.13, "square", 400, 180, 0.16, 0.22);
+        break;
+      case "discWin":
+        this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.22);
+        this.blip(t + 0.42, "sine", 1568, 1568, 0.4, 0.16, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

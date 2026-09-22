@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.0",
+    date: "2026-09-21",
+    title: "Black Disc",
+    notes: [
+      "A new cabinet: Black Disc. Pass the phone, describe the word, and don't get caught holding it when it buzzes.",
+      "Team 1 vs Team 2, first to seven wins.",
+      "No on-screen timer on purpose — just a loading bar and a tick that starts slow and speeds up (and gets louder) the closer it gets to buzzing, so nobody can count down the seconds.",
+      "RULE BREAK ends a round on the spot if someone says the word; SKIP moves on to a new one without losing the disc.",
+      "Fixed a bug that could clear a game's own controls (Tower Trouble's D-pad, Slime Shop's counter) after resuming from pause.",
+    ],
+  },
+  {
     version: "0.11.2",
     date: "2026-09-17",
     title: "A bigger tower",
