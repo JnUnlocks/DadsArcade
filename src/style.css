@@ -1830,6 +1830,11 @@ body {
   color: var(--dim);
 }
 
+.disc-meter-caption.is-flash {
+  color: #ff5fae;
+  font-weight: 700;
+}
+
 .disc-card {
   width: 100%;
   max-width: 340px;

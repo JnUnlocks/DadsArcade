@@ -64,6 +64,7 @@ export type SoundName =
   // Black Disc
   | "discRoundStart"
   | "discPass"
+  | "discSkipCost"
   | "discTick1"
   | "discTick2"
   | "discTick3"
@@ -401,6 +402,11 @@ export class AudioEngine {
         break;
       case "discPass":
         this.blip(t, "square", 700, 1000, 0.06, 0.16);
+        break;
+      case "discSkipCost":
+        // A small downward wince -- distinct from the free skip's silence,
+        // so losing time to a skip is felt as well as seen on the bar.
+        this.blip(t, "square", 500, 260, 0.09, 0.18);
         break;
       // Five steps standing in for one continuously accelerating, brightening
       // tick -- louder and a little higher each time, so the round feels like

@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.1",
+    date: "2026-09-21",
+    title: "Skipping a word now costs you",
+    notes: [
+      "Black Disc: your first SKIP each round is free, but every one after that knocks a few seconds off the clock — so skipping past a hard word is still an option, just not a free one.",
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-09-21",
     title: "Black Disc",

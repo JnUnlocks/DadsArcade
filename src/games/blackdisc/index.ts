@@ -48,6 +48,20 @@ const TICK_CURVE = 1.7;
 const URGENT_FRACTION = 0.16;
 
 /**
+ * Seconds knocked off the clock for every SKIP after the first free one.
+ *
+ * The first skip in a round is free -- a hard word shouldn't cost you the
+ * round -- but unlimited free skips would let a team just cycle past
+ * everything until an easy one turns up. Charging the clock instead of
+ * capping the count keeps the only rule the game already has ("the clock is
+ * the whole tension") rather than adding a second resource to track.
+ */
+const SKIP_PENALTY_SECONDS = 4;
+
+/** How long a flashed caption (e.g. the skip-cost warning) stays up. */
+const CAPTION_FLASH_SECONDS = 1.4;
+
+/**
  * Which flavour of tick to play, by how far through the round we are. Five
  * discrete sounds standing in for a continuous ramp -- the shared audio
  * engine plays named one-shots, not parameterised tones, so cadence does the
@@ -116,6 +130,11 @@ export class BlackDisc implements GameInstance {
   private tickTimer = 0;
   private time = 0;
 
+  /** Skips used this round. The first is free; the rest cost time. */
+  private skipsUsed = 0;
+  /** Counts down while a flashed caption (e.g. the skip warning) is showing. */
+  private captionFlashTimer = 0;
+
   /** Shuffled draw piles, refilled and reshuffled once a category runs dry. */
   private readonly bag: Record<string, string[]> = {};
 
@@ -153,6 +172,10 @@ export class BlackDisc implements GameInstance {
     this.time += dt;
     if (this.phase !== "play") return;
 
+    if (this.captionFlashTimer > 0) {
+      this.captionFlashTimer = Math.max(0, this.captionFlashTimer - dt);
+    }
+
     this.remaining = Math.max(0, this.remaining - dt);
     this.updateMeter();
 
@@ -182,6 +205,9 @@ export class BlackDisc implements GameInstance {
     this.total = this.durationSeconds;
     this.remaining = this.total;
     this.tickTimer = TICK_START_MS / 1000;
+    this.skipsUsed = 0;
+    this.captionFlashTimer = 0;
+    this.skipButton.textContent = "SKIP";
     this.pickPhrase();
     this.updateTurnLabel();
     this.roundLabelEl.textContent = `ROUND ${this.round}`;
@@ -293,9 +319,20 @@ export class BlackDisc implements GameInstance {
     this.meterFillEl.style.width = `${Math.max(0, Math.min(100, frac * 100))}%`;
     const urgent = frac <= URGENT_FRACTION;
     this.meterWrapEl.classList.toggle("is-urgent", urgent);
+    // A flashed message (e.g. "that skip cost you time") stands until its own
+    // timer runs out, rather than being overwritten the very next frame.
+    if (this.captionFlashTimer > 0) return;
+    this.meterCaptionEl.classList.remove("is-flash");
     this.meterCaptionEl.textContent = urgent
       ? "FEELS CLOSE — BETTER HURRY"
       : "PASS IT ON — NO PEEKING AT THE CLOCK";
+  }
+
+  /** Briefly replace the meter caption, e.g. to call out a skip's cost. */
+  private flashCaption(text: string): void {
+    this.meterCaptionEl.textContent = text;
+    this.meterCaptionEl.classList.add("is-flash");
+    this.captionFlashTimer = CAPTION_FLASH_SECONDS;
   }
 
   // ----- Small helpers -----
@@ -573,8 +610,25 @@ export class BlackDisc implements GameInstance {
     this.skipButton.textContent = "SKIP";
     this.skipButton.addEventListener("click", () => {
       if (this.phase !== "play") return;
+      this.skipsUsed += 1;
+
+      if (this.skipsUsed === 1) {
+        // The first skip in a round is free -- a hard word shouldn't cost
+        // you the round.
+        this.host.sfx("uiMove");
+        this.skipButton.textContent = `SKIP (−${SKIP_PENALTY_SECONDS}s)`;
+      } else {
+        this.remaining = Math.max(0, this.remaining - SKIP_PENALTY_SECONDS);
+        this.updateMeter();
+        this.host.sfx("discSkipCost");
+        if (this.remaining <= 0) {
+          this.finish("buzz");
+          return;
+        }
+        this.flashCaption("THAT SKIP COST YOU TIME");
+      }
+
       this.pickPhrase();
-      this.host.sfx("uiMove");
     });
 
     this.cancelButton = document.createElement("button");
@@ -679,8 +733,9 @@ export class BlackDisc implements GameInstance {
     const note = document.createElement("p");
     note.textContent =
       "Said the word, or broke another rule? Tap RULE BREAK to end the round on the spot. " +
-      "SKIP keeps the disc with your team. There's no on-screen timer on purpose — just " +
-      "listen for the tick and watch the bar.";
+      `SKIP keeps the disc with your team -- the first one's free, then each one after ` +
+      `costs ${SKIP_PENALTY_SECONDS} seconds off the clock. There's no on-screen timer on ` +
+      "purpose — just listen for the tick and watch the bar.";
     details.append(note);
 
     return details;
