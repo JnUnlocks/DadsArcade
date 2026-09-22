@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.3",
+    date: "2026-09-22",
+    title: "More Black Disc phrases",
+    notes: [
+      "Bible Stories and Holidays & Celebrations each grew from 56 phrases to 108, so replaying either category on the same game night means a lot fewer repeats.",
+    ],
+  },
+  {
     version: "0.12.2",
     date: "2026-09-22",
     title: "Two more categories for Black Disc",
