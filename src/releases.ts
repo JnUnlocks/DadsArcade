@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.2",
+    date: "2026-09-22",
+    title: "Two more categories for Black Disc",
+    notes: [
+      "Black Disc: two new categories to pick from -- Bible Stories and Holidays & Celebrations, alongside Everyday Life, Animals & Nature, Movies & Characters, and Arcade Nights.",
+    ],
+  },
+  {
     version: "0.12.1",
     date: "2026-09-21",
     title: "Skipping a word now costs you",
