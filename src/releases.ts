@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.5",
+    date: "2026-09-24",
+    title: "A bigger squish screen",
+    notes: [
+      "Riley's Slime Shop: the slime is noticeably bigger once you're squishing it for prizes, and the last customer's order card no longer lingers on screen while you dig.",
+    ],
+  },
+  {
     version: "0.12.4",
     date: "2026-09-23",
     title: "A TODAY badge for the daily challenge",

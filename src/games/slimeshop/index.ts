@@ -655,7 +655,11 @@ export class SlimeShop implements GameInstance {
 
     const top = headerY + headerH;
     const band = Math.max(80, counterY - top - 18);
-    const blobRadius = Math.max(30, Math.min(92, band / 2 - 12));
+    // Bigger specifically on the squish screen: there's no ticket or customer
+    // competing for the same space (enterPlay() drops `order`), and "make the
+    // slime go full screen" was the actual, direct ask.
+    const maxRadius = this.phase === "playing" ? 130 : 92;
+    const blobRadius = Math.max(30, Math.min(maxRadius, band / 2 - 12));
     const blobY = top + band / 2;
 
     return { counterY, headerY, blobY, blobRadius };
@@ -780,6 +784,10 @@ export class SlimeShop implements GameInstance {
    */
   private enterPlay(quality: number): void {
     this.phase = "playing";
+    // The customer and ticket belong to the order that was just served, not
+    // to squishing -- left set, they kept drawing stale for the whole dig,
+    // eating the top of the screen the blob could otherwise have.
+    this.order = null;
     this.digEnergy = 0;
     this.popped = [];
     this.lastFound = null;
