@@ -44,6 +44,7 @@ import type {
 import type { InputSnapshot } from "../../core/input";
 import { Particles } from "../../core/particles";
 import { dailyKey, dailySeed, Rng } from "../../core/rng";
+import { loadDailySeen, markDailySeen } from "../../core/storage";
 import {
   colourMatch,
   colourName,
@@ -697,6 +698,7 @@ export class SlimeShop implements GameInstance {
         "Same 6 orders for everyone today.",
         "daily",
         () => this.begin("daily"),
+        loadDailySeen()[slimeShopModule.id] !== dailyKey(),
       ),
     );
 
@@ -710,7 +712,12 @@ export class SlimeShop implements GameInstance {
     // One reading of the clock, used for both the seed and the board id, so
     // they cannot disagree however long the run takes.
     const now = new Date();
-    this.boardId = mode === "daily" ? `daily-${dailyKey(now)}` : undefined;
+    const todayKey = dailyKey(now);
+    this.boardId = mode === "daily" ? `daily-${todayKey}` : undefined;
+    // Clears the cabinet's "TODAY" badge -- for actually entering the daily
+    // challenge, not just opening the shop, so picking Shop Day instead
+    // leaves the nudge in place.
+    if (mode === "daily") markDailySeen(slimeShopModule.id, todayKey);
 
     this.rng =
       mode === "daily"
@@ -1205,11 +1212,18 @@ function modeButton(
   hint: string,
   mode: Mode,
   onPick: () => void,
+  freshBadge = false,
 ): HTMLElement {
   const button = document.createElement("button");
   button.className = `slime-mode slime-mode--${mode}`;
   const name = div("slime-mode-name");
   name.textContent = title;
+  if (freshBadge) {
+    const badge = document.createElement("span");
+    badge.className = "badge-new";
+    badge.textContent = "TODAY";
+    name.append(badge);
+  }
   const sub = div("slime-mode-hint");
   sub.textContent = hint;
   button.append(name, sub);

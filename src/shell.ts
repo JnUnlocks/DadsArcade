@@ -11,8 +11,10 @@ import type { Track } from "./core/music";
 import type { GameHost, GameInstance, GameModule, RunSummary } from "./core/game";
 import { Input } from "./core/input";
 import { GameLoop } from "./core/loop";
+import { dailyKey } from "./core/rng";
 import {
   createDeviceId,
+  loadDailySeen,
   loadPlayer,
   loadSeenVersion,
   loadSettings,
@@ -303,8 +305,19 @@ export class Shell implements GameHost {
   private buildCabinet(game: GameModule): HTMLElement {
     const button = el("button", "cabinet");
     button.style.setProperty("--cabinet-accent", game.accent);
+
+    // Today's challenge exists whether or not anyone ever opens this cabinet
+    // to find it -- the badge is what tells them it's there.
+    const hasFreshDaily =
+      game.hasDailyChallenge === true &&
+      loadDailySeen()[game.id] !== dailyKey();
+
     // The blurb is the accessible description; sighted players get the art.
-    button.setAttribute("aria-label", `${game.title}. ${game.blurb}`);
+    button.setAttribute(
+      "aria-label",
+      `${game.title}. ${game.blurb}` +
+        (hasFreshDaily ? " Today's challenge is up." : ""),
+    );
 
     const art = document.createElement("canvas");
     art.className = "cabinet-art";
@@ -339,6 +352,9 @@ export class Shell implements GameHost {
     const hint = el("span", "cabinet-hint", game.blurb);
 
     button.append(art, name, hint);
+    if (hasFreshDaily) {
+      button.append(el("span", "cabinet-badge", "TODAY"));
+    }
     button.addEventListener("click", () => {
       this.audio.unlock(); // must happen inside a real gesture
       this.audio.play("uiSelect");

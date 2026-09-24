@@ -11,6 +11,7 @@ const KEY_SETTINGS = "hyperdrive.settings";
 const KEY_BESTS = "hyperdrive.bests";
 const KEY_QUEUE = "hyperdrive.queue";
 const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
+const KEY_DAILY_SEEN = "hyperdrive.dailySeen";
 
 export interface Player {
   /** Three-character arcade initials, the way the machine asked for them. */
@@ -198,4 +199,23 @@ export function saveSeenVersion(version: string): void {
   } catch {
     // Storage disabled -- worst case the badge shows again next time.
   }
+}
+
+/**
+ * The last calendar day (local `dailyKey()`) a player actually entered a
+ * game's daily challenge, keyed by game id.
+ *
+ * Drives the "TODAY" badge on that game's cabinet. It's set when the daily
+ * mode is *entered*, not when the game's cabinet is merely opened -- so
+ * picking Shop Day over Today's Special doesn't quietly clear a badge whose
+ * whole point is to point at the mode they didn't pick.
+ */
+export function loadDailySeen(): Record<string, string> {
+  return read<Record<string, string>>(KEY_DAILY_SEEN, {});
+}
+
+export function markDailySeen(gameId: string, dateKey: string): void {
+  const seen = loadDailySeen();
+  seen[gameId] = dateKey;
+  write(KEY_DAILY_SEEN, seen);
 }

@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.4",
+    date: "2026-09-23",
+    title: "A TODAY badge for the daily challenge",
+    notes: [
+      "Riley's Slime Shop now flags its cabinet with a TODAY badge whenever the day's special hasn't been played yet, so it's not just hiding behind Shop Day in the mode picker.",
+    ],
+  },
+  {
     version: "0.12.3",
     date: "2026-09-22",
     title: "More Black Disc phrases",

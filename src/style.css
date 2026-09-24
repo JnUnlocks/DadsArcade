@@ -1036,6 +1036,7 @@ body {
 }
 
 .cabinet {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1289,6 +1290,23 @@ body {
 .menu-footer .btn--quiet {
   padding: 0 10px;
   letter-spacing: 0.08em;
+}
+
+/* A cabinet with a fresh, unplayed daily challenge. Absolutely positioned so
+   it sits as a corner flag rather than a fourth centered line in an already
+   tight tile, and so it doesn't change that cabinet's height relative to the
+   seven others sharing its grid row. */
+.cabinet-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-warm);
+  color: #120b1f;
+  font-size: calc(8px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 /* The NEW badge on WHAT'S NEW. Shown until the notes are opened, then gone. */
