@@ -49,6 +49,10 @@ self.addEventListener("fetch", (event) => {
   // no table, and the app already handles a failed request by queueing.
   if (url.pathname.startsWith("/api/")) return;
 
+  // The admin dashboard is worker-rendered, not a built asset, and should
+  // never be servable offline from a stale cache -- always hit the network.
+  if (url.pathname === "/admin") return;
+
   // Navigations: try the network so updates land, fall back to the cached
   // shell so the game still opens on a plane.
   if (request.mode === "navigate") {

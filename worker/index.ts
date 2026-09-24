@@ -16,10 +16,12 @@
  * genuine personal best is a much worse outcome here than admitting a fake one.
  */
 
+import { ADMIN_PAGE_HTML } from "./admin-page";
+
 export interface Env {
   DB: D1Database;
   ASSETS: Fetcher;
-  /** Optional: set via `wrangler secret put ADMIN_TOKEN` to enable deletes. */
+  /** Optional: set via `wrangler secret put ADMIN_TOKEN` to enable deletes and `/admin`. */
   ADMIN_TOKEN?: string;
 }
 
@@ -57,6 +59,13 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // Not part of the built SPA and not asset-served: the Worker answers this
+    // one directly. `run_worker_first` in wrangler.jsonc must list it, or the
+    // asset router's SPA fallback would serve index.html here instead.
+    if (url.pathname === "/admin") {
+      return request.method === "GET" ? adminPage() : json({ error: "method_not_allowed" }, 405);
+    }
+
     if (!url.pathname.startsWith("/api/")) {
       return env.ASSETS.fetch(request);
     }
@@ -69,6 +78,16 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
+
+function adminPage(): Response {
+  return new Response(ADMIN_PAGE_HTML, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow",
+    },
+  });
+}
 
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const { pathname } = url;
@@ -87,6 +106,13 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   }
   if (pathname.startsWith("/api/scores/") && request.method === "DELETE") {
     return deleteScore(request, env, pathname);
+  }
+  if (pathname.startsWith("/api/admin/")) {
+    if (!isAuthorizedAdmin(request, env)) return json({ error: "forbidden" }, 403);
+    if (pathname === "/api/admin/overview" && request.method === "GET") {
+      return getAdminOverview(env);
+    }
+    return json({ error: "not_found" }, 404);
   }
   return json({ error: "not_found" }, 404);
 }
@@ -263,23 +289,111 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+/** Without a configured token, admin access is disabled entirely rather than open. */
+function isAuthorizedAdmin(request: Request, env: Env): boolean {
+  const token = env.ADMIN_TOKEN;
+  const provided = request.headers.get("X-Admin-Token");
+  return Boolean(token && provided && timingSafeEqual(provided, token));
+}
+
 async function deleteScore(
   request: Request,
   env: Env,
   pathname: string,
 ): Promise<Response> {
-  const token = env.ADMIN_TOKEN;
-  const provided = request.headers.get("X-Admin-Token");
-  // Without a configured token, deletion is disabled entirely rather than open.
-  if (!token || !provided || !timingSafeEqual(provided, token)) {
-    return json({ error: "forbidden" }, 403);
-  }
+  if (!isAuthorizedAdmin(request, env)) return json({ error: "forbidden" }, 403);
 
   const id = Number(pathname.slice("/api/scores/".length));
   if (!Number.isInteger(id) || id <= 0) return json({ error: "bad_id" }, 400);
 
   await env.DB.prepare(`DELETE FROM scores WHERE id = ?1`).bind(id).run();
   return json({ ok: true });
+}
+
+interface GameStatsRow {
+  gameId: string;
+  totalScores: number;
+  weekScores: number;
+  uniqueDevices: number;
+}
+
+interface RecentScoreRow {
+  gameId: string;
+  initials: string;
+  score: number;
+  boardId: string;
+  createdAt: number;
+}
+
+interface FeedbackRow {
+  initials: string | null;
+  message: string;
+  context: string | null;
+  createdAt: number;
+}
+
+interface DailyBoardRow {
+  boardId: string;
+  scores: number;
+  uniqueDevices: number;
+  games: number;
+  lastPlayed: number;
+}
+
+/**
+ * Everything the admin dashboard needs in one round trip: per-game totals
+ * (all-time and last 7 days, for "most popular game"), unique devices per
+ * game as a rough player count, the newest scores and feedback across every
+ * game, and any `daily-YYYY-MM-DD` board activity.
+ */
+async function getAdminOverview(env: Env): Promise<Response> {
+  const weekSince = Date.now() - WEEK_MS;
+
+  const games = await env.DB.prepare(
+    `SELECT game_id AS gameId,
+            COUNT(*) AS totalScores,
+            SUM(CASE WHEN created_at >= ?1 THEN 1 ELSE 0 END) AS weekScores,
+            COUNT(DISTINCT device_id) AS uniqueDevices
+       FROM scores
+      GROUP BY game_id
+      ORDER BY totalScores DESC`,
+  )
+    .bind(weekSince)
+    .all<GameStatsRow>();
+
+  const recentScores = await env.DB.prepare(
+    `SELECT game_id AS gameId, initials, score, board_id AS boardId, created_at AS createdAt
+       FROM scores
+      ORDER BY created_at DESC
+      LIMIT 50`,
+  ).all<RecentScoreRow>();
+
+  const feedback = await env.DB.prepare(
+    `SELECT initials, message, context, created_at AS createdAt
+       FROM feedback
+      ORDER BY created_at DESC
+      LIMIT 30`,
+  ).all<FeedbackRow>();
+
+  const dailyBoards = await env.DB.prepare(
+    `SELECT board_id AS boardId,
+            COUNT(*) AS scores,
+            COUNT(DISTINCT device_id) AS uniqueDevices,
+            COUNT(DISTINCT game_id) AS games,
+            MAX(created_at) AS lastPlayed
+       FROM scores
+      WHERE board_id LIKE 'daily-%'
+      GROUP BY board_id
+      ORDER BY boardId DESC
+      LIMIT 60`,
+  ).all<DailyBoardRow>();
+
+  return json({
+    games: games.results ?? [],
+    recentScores: recentScores.results ?? [],
+    feedback: feedback.results ?? [],
+    dailyBoards: dailyBoards.results ?? [],
+  });
 }
 
 // ----- Validation -----

@@ -13,7 +13,9 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     // Let the Worker handle /api/* before the static asset router sees it.
-    "run_worker_first": ["/api/*"]
+    // /admin is also worker-served (worker/admin-page.ts): it isn't a built
+    // asset, so without this the SPA fallback would answer with index.html.
+    "run_worker_first": ["/api/*", "/admin"]
   },
 
   "d1_databases": [
