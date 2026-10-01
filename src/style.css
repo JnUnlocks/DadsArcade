@@ -1318,6 +1318,29 @@ body {
 
 /* ---------- Release notes ---------- */
 
+/* SETTINGS and SORT share a line: a row of its own for SORT would push the
+   menu into scrolling on a phone. Tighter than a standard button, and sized
+   by their labels rather than split evenly, so "SORT: MOST PLAYED" still
+   fits beside SETTINGS at 320px. With larger text on as well, the two wrap
+   onto separate lines rather than clip. */
+.menu-actions {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.menu-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .menu-footer {
   display: flex;
   flex-wrap: wrap;

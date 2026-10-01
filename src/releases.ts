@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.13.2",
+    date: "2026-09-30",
+    title: "Sort the arcade your way",
+    notes: [
+      "A new SORT button next to SETTINGS. Tap it to switch between the usual arcade order, MOST PLAYED (the games you open most on this phone come first) and A-Z. It remembers your choice.",
+      "Every cabinet now has its own colour. Starfighter, Plasma Sort and the Reef were all the same blue, and the Mallard Challenge was a muddy brown -- they're now blue, magenta, a deeper ocean blue, and gold.",
+    ],
+  },
+  {
     version: "0.13.1",
     date: "2026-09-30",
     title: "Plasma Sort moves to the front row",

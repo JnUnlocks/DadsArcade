@@ -13,8 +13,10 @@ import { Input } from "./core/input";
 import { GameLoop } from "./core/loop";
 import { dailyKey } from "./core/rng";
 import {
+  countPlay,
   createDeviceId,
   loadDailySeen,
+  loadPlayCounts,
   loadPlayer,
   loadSeenVersion,
   loadSettings,
@@ -35,6 +37,7 @@ import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
 import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
+import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
 
 type ScreenName = "menu" | "playing" | "paused" | "resuming" | "gameover";
 
@@ -251,9 +254,11 @@ export class Shell implements GameHost {
     // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
     // floor finally looks like an arcade instead of a list.
     const cabinets = el("div", "cabinets");
-    for (const game of this.games) {
-      cabinets.append(this.buildCabinet(game));
-    }
+    const fillCabinets = () => {
+      const ordered = sortGames(this.games, this._settings.menuSort, loadPlayCounts());
+      cabinets.replaceChildren(...ordered.map((game) => this.buildCabinet(game)));
+    };
+    fillCabinets();
     screen.append(cabinets);
 
     const board = el("button", "btn btn--ghost", "HIGH SCORES");
@@ -271,6 +276,28 @@ export class Shell implements GameHost {
       this.audio.play("uiSelect");
       this.showSettings();
     });
+
+    // One button that steps through the orders, rather than a picker: there
+    // are three of them, and the cabinets rearranging under your thumb is all
+    // the explanation it needs. Only the grid is rebuilt, so the screen
+    // doesn't replay its entrance on every tap.
+    const sort = el("button", "btn btn--ghost");
+    const labelSort = () => {
+      const label = MENU_SORT_LABELS[this._settings.menuSort];
+      sort.textContent = `SORT: ${label}`;
+      sort.setAttribute("aria-label", `Sort games. Currently ${label}.`);
+    };
+    labelSort();
+    sort.addEventListener("click", () => {
+      this.audio.unlock();
+      this.audio.play("uiMove");
+      this.updateSettings({ menuSort: nextMenuSort(this._settings.menuSort) });
+      labelSort();
+      fillCabinets();
+    });
+
+    const actions = el("div", "menu-actions");
+    actions.append(settings, sort);
 
     const about = el("button", "btn btn--quiet", "ⓘ  THE STORY");
     about.addEventListener("click", () => {
@@ -298,7 +325,7 @@ export class Shell implements GameHost {
     const footer = el("div", "menu-footer");
     footer.append(about, whatsNew);
 
-    screen.append(board, settings, footer);
+    screen.append(board, actions, footer);
     this.ui.append(screen);
   }
 
@@ -359,6 +386,9 @@ export class Shell implements GameHost {
     button.addEventListener("click", () => {
       this.audio.unlock(); // must happen inside a real gesture
       this.audio.play("uiSelect");
+      // Counted here, not in startGame: PLAY AGAIN and RESTART go through
+      // that too, and one sitting shouldn't count as a dozen plays.
+      countPlay(game.id);
       this.startGame(game);
     });
     return button;

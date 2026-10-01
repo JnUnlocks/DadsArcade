@@ -594,7 +594,7 @@ export const mallardModule: GameModule = {
   shortTitle: "MALLARD",
   progressShort: "RD",
   blurb: "Drag to aim. Tap FIRE, or tap with a second finger.",
-  accent: "#e0a53c",
+  accent: "#ffc93c",
 
   drawIcon(ctx, size) {
     const scale = size / 32;

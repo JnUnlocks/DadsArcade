@@ -680,7 +680,7 @@ export const reefModule: GameModule = {
   shortTitle: "REEF",
   progressShort: "LV",
   blurb: "Swipe to swim. Eat the bubbles, dodge the jellyfish.",
-  accent: "#54e0ff",
+  accent: "#4f96ff",
 
   drawIcon(ctx, size) {
     const scale = size / 32;

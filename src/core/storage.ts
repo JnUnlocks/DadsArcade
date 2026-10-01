@@ -12,6 +12,7 @@ const KEY_BESTS = "hyperdrive.bests";
 const KEY_QUEUE = "hyperdrive.queue";
 const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
 const KEY_DAILY_SEEN = "hyperdrive.dailySeen";
+const KEY_PLAYS = "hyperdrive.plays";
 /** Anonymous id for play counts, made before the player ever enters initials. */
 const KEY_VISITOR = "hyperdrive.visitor";
 
@@ -21,6 +22,9 @@ export interface Player {
   /** Stable anonymous id so "my scores" works without accounts. */
   deviceId: string;
 }
+
+/** The order the arcade menu shows its cabinets in. */
+export type MenuSort = "arcade" | "played" | "name";
 
 export interface Settings {
   autofire: boolean;
@@ -41,6 +45,7 @@ export interface Settings {
   sensitivity: number;
   /** Set once the first-run instructions have been dismissed. */
   seenHowTo: boolean;
+  menuSort: MenuSort;
 }
 
 /** A score waiting to be uploaded (recorded while offline). */
@@ -71,6 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   largeText: false,
   sensitivity: 1.15,
   seenHowTo: false,
+  menuSort: "arcade",
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -244,4 +250,22 @@ export function markDailySeen(gameId: string, dateKey: string): void {
   const seen = loadDailySeen();
   seen[gameId] = dateKey;
   write(KEY_DAILY_SEEN, seen);
+}
+
+/**
+ * How many times each cabinet has been opened on this device, keyed by game
+ * id. Drives the menu's MOST PLAYED order.
+ *
+ * Local on purpose: it works with no signal, costs the scoreboard nothing, and
+ * "the ones I play" is what puts a person's own favourites at the top. The
+ * server keeps its own cross-device counts for /admin (see reportPlay).
+ */
+export function loadPlayCounts(): Record<string, number> {
+  return read<Record<string, number>>(KEY_PLAYS, {});
+}
+
+export function countPlay(gameId: string): void {
+  const plays = loadPlayCounts();
+  plays[gameId] = (plays[gameId] ?? 0) + 1;
+  write(KEY_PLAYS, plays);
 }

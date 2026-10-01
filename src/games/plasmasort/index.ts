@@ -979,7 +979,7 @@ export const plasmaSortModule: GameModule = {
   title: "PLASMA SORT",
   progressShort: "P",
   blurb: "Tap a tube, tap another to pour. One colour each.",
-  accent: "#35d6ff",
+  accent: "#d96bff",
   hasDailyChallenge: true,
 
   drawIcon(ctx, size) {
