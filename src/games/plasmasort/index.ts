@@ -249,7 +249,10 @@ export class PlasmaSort implements GameInstance {
     if (this.phase === "playing") {
       if (!this.helpOpen) this.seconds += dt;
       const settled = this.flights.length === 0 && this.sealIn.every((s) => s < 0);
-      if (settled && isSolved(this.board)) this.finish();
+      // A last pour can still be in the air when the rules are opened. The
+      // result waits for them to close rather than swapping the panel out
+      // from under the card.
+      if (settled && !this.helpOpen && isSolved(this.board)) this.finish();
       return;
     }
 
@@ -938,6 +941,7 @@ export class PlasmaSort implements GameInstance {
   private openHelp(): void {
     if (this.helpOpen) return;
     this.helpOpen = true;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     const overlay = div("plasma-help");
     overlay.setAttribute("role", "dialog");
@@ -949,9 +953,9 @@ export class PlasmaSort implements GameInstance {
 
     const list = div("howto");
     for (const [icon, text] of [
-      ["①", "Tap a tube to pick up the colour on top. Tap another tube to pour it in."],
-      ["②", "You can only pour onto the same colour, or into an empty tube. A tube holds four."],
-      ["③", "Sort every tube down to a single colour and the puzzle's done."],
+      ["1", "Tap a tube to pick up the colour on top. Tap another tube to pour it in."],
+      ["2", "You can only pour onto the same colour, or into an empty tube. A tube holds four."],
+      ["3", "Sort every tube down to a single colour and the puzzle's done."],
       ["↶", "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose -- only not finish yet."],
       ["★", "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour."],
     ] as const) {
@@ -969,6 +973,7 @@ export class PlasmaSort implements GameInstance {
     const close = () => {
       this.helpOpen = false;
       overlay.remove();
+      opener?.focus();
     };
     const done = actionButton("GOT IT", close);
     done.classList.add("plasma-help-done");
@@ -1001,7 +1006,11 @@ export class PlasmaSort implements GameInstance {
       ),
       actionButton("DONE", () => this.leave()),
     );
-    this.root.replaceChildren(panel);
+    // Holds the room the HOW TO PLAY link took, for the same reason.
+    const spacer = div("plasma-help-link");
+    spacer.style.visibility = "hidden";
+    spacer.setAttribute("aria-hidden", "true");
+    this.root.replaceChildren(panel, spacer);
     this.root.style.visibility = "hidden";
   }
 
