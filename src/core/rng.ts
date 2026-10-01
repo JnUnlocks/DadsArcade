@@ -77,3 +77,25 @@ export function dailyKey(date = new Date()): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * The `dailyKey()` of the day before the one given.
+ *
+ * Worked out from the key rather than from the clock, so a streak can be
+ * checked against the day a puzzle was *started* -- which, for one begun at
+ * 23:58 and finished at 00:03, is not the day it ends on.
+ */
+export function previousDailyKey(dateKey: string): string {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  // Local noon, so a daylight-saving shift can't tip it into the wrong day.
+  return dailyKey(new Date(year ?? 0, (month ?? 1) - 1, (day ?? 1) - 1, 12));
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2026-10-01" -> "Oct 1". Falls back to the key itself if it isn't a date. */
+export function shortDate(dateKey: string): string {
+  const [, month, day] = dateKey.split("-").map(Number);
+  const name = MONTHS[(month ?? 0) - 1];
+  return name && day ? `${name} ${day}` : dateKey;
+}

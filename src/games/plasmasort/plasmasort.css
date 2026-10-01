@@ -123,12 +123,6 @@
   background: color-mix(in srgb, #d96bff 36%, rgba(8, 14, 30, 0.92));
 }
 
-.plasma-share-icon {
-  width: calc(18px * var(--ui-scale));
-  height: calc(18px * var(--ui-scale));
-  flex: none;
-}
-
 /* On the chooser it's a square beside TODAY'S PUZZLE rather than a fourth
    row, so the menu stays the height it was and the title art keeps its room. */
 .plasma-daily-row {
@@ -156,7 +150,7 @@
   cursor: pointer;
 }
 
-.plasma-share--tile .plasma-share-icon {
+.plasma-share--tile .share-icon {
   width: calc(22px * var(--ui-scale));
   height: calc(22px * var(--ui-scale));
 }

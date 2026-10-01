@@ -1372,6 +1372,14 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* The icon inside a SHARE button (ui/shareButton.ts). Each game styles the
+   button itself; the icon's size is the one thing they have in common. */
+.share-icon {
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  flex: none;
+}
+
 /* The NEW badge on WHAT'S NEW. Shown until the notes are opened, then gone. */
 .badge-new {
   display: inline-block;

@@ -18,16 +18,18 @@
  * Pure, so the wording can be tested without a browser.
  */
 
+import { shortDate } from "../../core/rng.ts";
 import type { DailyResult } from "./progress.ts";
 import { starsFor } from "./puzzle.ts";
+
+// Letter Lock dates its results the same way, so the helper lives in core now.
+export { shortDate };
 
 /** One square per tube sorted. Rainbow order reads as "done" at a glance. */
 const SORTED = "🟥🟧🟨🟩🟦🟪";
 const WASTED = "⬛";
 /** Past this many black squares the line wraps on a phone; the number says the rest. */
 const MAX_WASTED = 10;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function dailyShareText(
   result: DailyResult,
@@ -47,13 +49,6 @@ export function dailyShareText(
   if (streak > 1) lines.push(`🔥 ${streak}-day streak`);
   lines.push(link);
   return lines.join("\n");
-}
-
-/** "2026-10-01" -> "Oct 1". Falls back to the key itself if it isn't a date. */
-export function shortDate(dateKey: string): string {
-  const [, month, day] = dateKey.split("-").map(Number);
-  const name = MONTHS[(month ?? 0) - 1];
-  return name && day ? `${name} ${day}` : dateKey;
 }
 
 function clock(seconds: number): string {
