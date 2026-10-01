@@ -1,0 +1,334 @@
+/* ---------- Letter Lock ---------- */
+
+/* The keyboard and the mode buttons are DOM rather than canvas for the same
+   reason Plasma Sort's are: real tap targets, real focus rings, and they grow
+   with the large-text setting. The game measures this panel's height and fits
+   the grid of tiles into what's left above it. */
+
+.lock-root {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 4;
+}
+
+.lock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* ----- Mode chooser ----- */
+
+.lock-panel--modes {
+  padding: 0 6px 4px;
+}
+
+.lock-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: calc(56px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(142, 163, 200, 0.3);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.lock-mode:active {
+  transform: scale(0.98);
+}
+
+.lock-mode--daily {
+  border-color: var(--accent-warm);
+  background: color-mix(in srgb, var(--accent-warm) 13%, rgba(8, 14, 30, 0.92));
+}
+
+.lock-mode--free {
+  border-color: rgba(44, 232, 138, 0.6);
+  background: color-mix(in srgb, #2ce88a 10%, rgba(8, 14, 30, 0.92));
+}
+
+.lock-mode-name {
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.lock-mode-hint {
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.35;
+  color: var(--dim);
+}
+
+/* ----- Keyboard ----- */
+
+.lock-panel--keys {
+  max-width: 500px;
+  gap: calc(6px * var(--ui-scale));
+}
+
+.lock-keys {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Ten keys share the top row, so a key's width is set by the phone and only
+   its height and its letter can grow with the large-text setting. The middle
+   row has nine: capping the width keeps them the same size as the others
+   instead of stretching to fill. */
+.lock-key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: calc((100% - 36px) / 10);
+  height: calc(46px * var(--ui-scale));
+  padding: 0;
+  position: relative;
+  border-radius: 8px;
+  border: 1.5px solid rgba(142, 163, 200, 0.34);
+  background: rgba(20, 30, 56, 0.94);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.lock-key--wide {
+  flex: 1.6 1 0;
+  max-width: none;
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.04em;
+}
+
+.lock-key-icon {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+  vertical-align: middle;
+}
+
+.lock-key:active {
+  transform: scale(0.94);
+  background: rgba(70, 224, 255, 0.24);
+}
+
+/* What the board has said about each letter, in the same three shapes the
+   tiles use -- a solid block, a ring, a flat unlit key -- so the keyboard
+   reads without relying on telling cyan from amber. */
+.lock-key[data-mark="locked"] {
+  border-color: #46e0ff;
+  background: #46e0ff;
+  color: #04121c;
+}
+
+.lock-key[data-mark="close"] {
+  border: 2.5px solid #ffc14d;
+  border-radius: 999px;
+  background: rgba(255, 193, 77, 0.1);
+  color: #ffc14d;
+}
+
+.lock-key[data-mark="out"] {
+  border-color: transparent;
+  background: rgba(24, 34, 56, 0.6);
+  color: rgba(142, 163, 200, 0.5);
+}
+
+/* Settings -> high contrast: harder edges on every key, and an unlit key
+   keeps a readable letter and gains a dashed outline instead of fading. */
+.lock-root--contrast .lock-key {
+  border-color: rgba(232, 240, 255, 0.85);
+  background: #0a0f1e;
+  color: #ffffff;
+}
+
+.lock-root--contrast .lock-key[data-mark="locked"] {
+  border-color: #ffffff;
+  background: #46e0ff;
+  color: #04121c;
+}
+
+.lock-root--contrast .lock-key[data-mark="close"] {
+  border-color: #ffc14d;
+  color: #ffffff;
+}
+
+.lock-root--contrast .lock-key[data-mark="out"] {
+  border: 1.5px dashed rgba(142, 163, 200, 0.6);
+  color: rgba(190, 204, 230, 0.95);
+}
+
+/* ----- Result ----- */
+
+.lock-panel--result {
+  gap: calc(10px * var(--ui-scale));
+  padding: 0 6px 4px;
+}
+
+.lock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) 12px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(142, 163, 200, 0.26);
+  background: rgba(8, 14, 30, 0.9);
+  text-align: center;
+}
+
+.lock-card-head {
+  font-size: calc(20px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+}
+
+/* Warm, not red: running out of tries isn't a failure state here. */
+.lock-card-head--miss {
+  color: var(--accent-warm);
+}
+
+.lock-card-sub {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--dim);
+}
+
+.lock-card-word {
+  font-size: calc(24px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  /* Letter-spacing trails the last letter; pull it back so the word centres. */
+  margin-right: -0.3em;
+  color: var(--accent);
+}
+
+.lock-card-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: calc(24px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.lock-card-unit {
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+}
+
+.lock-card-streak {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-warm);
+}
+
+.lock-actions {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.lock-act {
+  flex: 1 1 0;
+  min-height: calc(48px * var(--ui-scale));
+  border-radius: 14px;
+  border: 1.5px solid rgba(142, 163, 200, 0.34);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.lock-act:active {
+  transform: scale(0.97);
+  background: rgba(70, 224, 255, 0.18);
+}
+
+/* ----- Share ----- */
+
+/* Mint, the cabinet's own colour: SHARE is the one button here that leaves
+   the game, and it should look like the thing to press next. */
+.lock-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: #2ce88a;
+  background: color-mix(in srgb, #2ce88a 20%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+}
+
+.lock-act.lock-share {
+  flex: 1.4 1 0;
+}
+
+.lock-act.lock-share:active {
+  background: color-mix(in srgb, #2ce88a 34%, rgba(8, 14, 30, 0.92));
+}
+
+/* On the chooser it's a square beside TODAY'S WORD rather than a fourth row,
+   so the menu stays the height it was and the title card keeps its room. */
+.lock-daily-row {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.lock-daily-row > .lock-mode {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lock-share--tile {
+  flex: 0 0 calc(72px * var(--ui-scale));
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 14px;
+  border-width: 1.5px;
+  border-style: solid;
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.lock-share--tile .share-icon {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+}
+
+.lock-share--tile:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lock-share--tile:active,
+  .lock-mode:active,
+  .lock-act:active,
+  .lock-key:active {
+    transform: none;
+  }
+}

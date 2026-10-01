@@ -1,6 +1,6 @@
 # Dad's Arcade
 
-A mobile-first PWA arcade, built for Dad. Seven games, a shared online
+A mobile-first PWA arcade, built for Dad. Ten games, a shared online
 leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -25,12 +25,14 @@ leaderboard, a real pause button, and it plays with no signal.
 | **JB's Tower Trouble** | Donkey Kong | Junk that rolls downhill, drops off the open end of each girder and sometimes takes a ladder down instead; jumps you commit to at take-off; and a wrench that smashes junk but stops you climbing while you hold it |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 | **Plasma Sort** | Colour-sort (water-sort) puzzles | One puzzle a day, the same for everyone, with a par found by search — so the day's board ranks who saw the solution, not who got a kind shuffle |
+| **Letter Lock** | Five-letter word-guessing games | Six tries, three answers per letter — right spot, wrong spot, not in the word — and one word a day that's the same for everyone, so a grid of coloured squares in the family chat means something |
 | **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
 sound is synthesised from oscillators and noise. There isn't a single image or
-audio asset in the project, which is why the whole arcade is a ~60 KB download — music included.
+audio asset in the project, which is why the whole arcade is a ~110 KB
+download — music and a dictionary of 8,600 words included.
 
 ---
 
@@ -157,6 +159,12 @@ Emulators can't tell you how the controls feel. Worth doing once:
 - [ ] Black Disc: pause mid-round and resume — the phrase, timer and score are
       exactly where you left them. There's no numeral for time left anywhere
       on screen, only the bar.
+- [ ] Letter Lock: every key is easy to hit with a thumb, with **Settings →
+      Large text** on as well, and the whole grid and keyboard fit without
+      scrolling. Make two guesses in **Today's Word**, quit to the arcade, and
+      go back in — both guesses are still there. Finish it and tap **SHARE**:
+      the phone's share sheet opens, and what it sends has squares but no
+      letters.
 
 ---
 
@@ -335,6 +343,96 @@ https://play.hyperdrive-arcade.workers.dev/?play=plasma-sort
 - **No pause over a finished puzzle.** Opening the share sheet blurs the page,
   which used to trip the automatic pause. A game can now return `false` from
   `pausesWhenHidden()`; Plasma Sort does whenever no puzzle is in progress.
+
+---
+
+## Letter Lock, and a word nobody gets twice
+
+A five-letter word and six tries. After each guess every tile says one of
+three things, and each is a different *shape* as well as a different colour, so
+the grid reads the same to someone who can't tell the colours apart:
+
+| Tile | Means |
+| --- | --- |
+| Solid cyan block | Right letter, right spot |
+| Amber ring | In the word, but somewhere else |
+| Flat, unlit tile | Not in the word |
+
+The on-screen keys take on the same three shapes, each showing the best thing
+learned about its letter so far.
+
+- **TODAY'S WORD** is the same for everyone, on its own board for the day.
+  Only the first attempt counts, and it's saved after every guess
+  ([`progress.ts`](src/games/letterlock/progress.ts)), so quitting or RESTART
+  resumes it rather than handing back six fresh tries. Once it's over, opening
+  it again that day shows the finished board: there's nothing to practise on a
+  word you now know, and PRACTICE is one button down.
+- **The word comes from a shuffle, not a dice roll.** Picking at random from
+  the day's seed repeats a word within weeks — 1,200 words is not many once
+  the birthday problem gets hold of it. Instead the answer list is shuffled
+  once, with this game's own salt, and the day indexes into it
+  ([`rules.ts`](src/games/letterlock/rules.ts)): no word comes back until
+  every word has had its day, which is more than three years. The day is the
+  local date, like every other daily here.
+- **Repeated letters are marked the way a person would.** LLAMA against HELLO
+  lights up both Ls, because HELLO has two; a third would stay dark. A letter
+  in the right spot has first claim. There are tests for the awkward cases.
+- **Scoring** is 1,500 for a first-guess solve, 200 less for each guess after
+  it, plus up to 200 for speed — so a saved guess always beats any amount of
+  hurrying.
+- **Nobody loses.** Running out of tries shows the word, says so kindly, and
+  sends nothing to the board. It costs the streak
+  (`hyperdrive.letterlock.streak`) and nothing else.
+- **A word that isn't a word isn't a guess.** The row shakes, says NOT IN THE
+  LIST, and the try isn't used.
+
+FREE PLAY is a random word on the all-time board, and PRACTICE is a random
+word with no score. Neither will ever pick the day's word.
+
+### Two word lists
+
+[`words.ts`](src/games/letterlock/words.ts) holds both. The **answers** — about
+1,200 — were written by hand for this arcade, and the bar is "a seven-year-old
+could meet this word in a reading book": no swears, nothing rude, no fighting,
+drinking or body parts, and the common words that are spelled differently on
+either side of the Atlantic are left out. The **allowed guesses** are the public-domain ENABLE word list
+filtered to five letters, minus a few dozen swears and slurs, so typing one
+gets NOT IN THE LIST instead of a row of tiles.
+
+The long list is packed: sorted words share their first two letters so often
+that storing each pair once, followed by every three-letter ending, takes the
+list from 17 KB to 11 KB gzipped. The whole game — both lists and the code —
+added about 25 KB to the download.
+
+### Sharing a result
+
+The share button is the reason this game exists, and it's the same one Plasma
+Sort uses ([`ui/shareButton.ts`](src/ui/shareButton.ts)), in the same two
+places: SHARE and DONE under the day's result, and a square beside TODAY'S
+WORD for the rest of the day.
+
+```
+Dad's Arcade · Letter Lock · Oct 2 · 4/6
+⬛🟧⬛⬛⬛
+⬛⬛🟦🟧⬛
+🟦⬛🟦⬛🟦
+🟦🟦🟦🟦🟦
+🔥 3-day streak
+https://play.hyperdrive-arcade.workers.dev/?play=letter-lock
+```
+
+One row per guess, and a miss says `X/6`. It's spoiler-free by construction:
+the function that builds the text ([`share.ts`](src/games/letterlock/share.ts))
+is handed the marks and never the letters, so it has nothing to leak.
+
+### A word on this genre, too
+
+The same care Brickfall takes (below) applies here. Guessing a hidden word
+from per-letter feedback is decades older than any app and free to use. One
+well-known game's name, its green, yellow and grey, and its particular look
+are not, so Letter Lock has its own name, the arcade's own cyan and amber, a
+ring where that game has a second colour of square, and a lock where it has
+nothing at all.
 
 ---
 
@@ -548,6 +646,19 @@ src/games/plasmasort/
   render.ts       tubes, cells, the rack, the title art
   plasmasort.css  the mode chooser and the UNDO / RESET bar
   index.ts        the GameModule: taps, pour animation, modes, the result card
+```
+
+And Letter Lock:
+
+```
+src/games/letterlock/
+  rules.ts        marking a guess, the day's word, scoring
+  words.ts        the answers, and the packed list of allowed guesses
+  progress.ts     today's saved attempt and the daily streak
+  share.ts        the spoiler-free text a result sends
+  render.ts       tiles, the title card, the cabinet art
+  letterlock.css  the mode chooser, the keyboard, the result card
+  index.ts        the GameModule: typing, the reveal, modes, the DOM panels
 ```
 
 The rule of thumb across all of them: anything whose *rules* can be got wrong lives in

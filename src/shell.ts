@@ -163,7 +163,7 @@ export class Shell implements GameHost {
   /**
    * `?play=<game id>` opens that game straight away -- the link on a shared
    * result, so a tap from the family chat lands on today's puzzle rather than
-   * on a menu of nine cabinets. The menu is already drawn underneath, so
+   * on a menu of ten cabinets. The menu is already drawn underneath, so
    * QUIT TO ARCADE behaves as usual, and the query is stripped so a reload
    * (or the home-screen icon later) doesn't keep reopening it.
    */

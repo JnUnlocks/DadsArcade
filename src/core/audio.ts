@@ -81,7 +81,17 @@ export type SoundName =
   | "plasmaUndo"
   | "plasmaSeal"
   | "plasmaSolved"
-  | "plasmaPerfect";
+  | "plasmaPerfect"
+  // Letter Lock
+  | "lockKey"
+  | "lockBack"
+  | "lockDeny"
+  | "lockTurn"
+  | "lockOut"
+  | "lockClose"
+  | "lockLocked"
+  | "lockOpen"
+  | "lockMiss";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -482,6 +492,49 @@ export class AudioEngine {
       case "plasmaPerfect":
         this.arpeggio(t, [523, 659, 784, 1047, 1319, 1568], 0.08, "sine", 0.2);
         this.blip(t + 0.52, "sine", 2093, 2093, 0.45, 0.13, 6);
+        break;
+      // ----- Letter Lock -----
+      // A combination lock: small mechanical clicks while you type, and one
+      // tumbler falling per tile as a guess is read back. The three tumbler
+      // sounds climb in pitch with how good the news is, so the row can be
+      // followed with your eyes shut.
+      case "lockKey":
+        // Heard five times a guess, thirty times a game: barely there.
+        this.blip(t, "triangle", 560, 500, 0.03, 0.09);
+        break;
+      case "lockBack":
+        this.blip(t, "triangle", 380, 300, 0.04, 0.08);
+        break;
+      case "lockDeny":
+        // The same dull double-tap as a refused pour: "not that", not "wrong".
+        this.blip(t, "triangle", 190, 170, 0.06, 0.16);
+        this.blip(t + 0.08, "triangle", 170, 150, 0.07, 0.14);
+        break;
+      case "lockTurn":
+        // The dial being spun: a short dry rattle.
+        this.burst(t, 0.07, 1600, 500, 0.1);
+        this.blip(t, "triangle", 260, 200, 0.06, 0.1);
+        break;
+      case "lockOut":
+        this.blip(t, "triangle", 210, 180, 0.06, 0.12);
+        break;
+      case "lockClose":
+        this.blip(t, "sine", 520, 580, 0.09, 0.12);
+        break;
+      case "lockLocked":
+        this.burst(t, 0.03, 3000, 1200, 0.08);
+        this.blip(t, "sine", 880, 880, 0.12, 0.13);
+        break;
+      case "lockOpen":
+        // The shackle springing: a click, then the run up.
+        this.burst(t, 0.06, 2600, 700, 0.18);
+        this.arpeggio(t + 0.05, [523, 659, 784, 1047, 1319], 0.08, "sine", 0.2);
+        this.blip(t + 0.5, "sine", 1568, 1568, 0.4, 0.12, 6);
+        break;
+      case "lockMiss":
+        // Soft and settling rather than a buzzer. A child hears this one, and
+        // it should sound like "that's all for today", not like being told off.
+        this.arpeggio(t, [523, 440, 392], 0.16, "sine", 0.15);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

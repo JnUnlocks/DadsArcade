@@ -15,10 +15,14 @@ import { starfighterModule } from "./starfighter";
 import { towerModule } from "./tower";
 import { blackDiscModule } from "./blackdisc";
 import { plasmaSortModule } from "./plasmasort";
+import { letterLockModule } from "./letterlock";
 
 export const GAMES: GameModule[] = [
-  starfighterModule,
+  // The two daily puzzles share the top row: they're the reason to open the
+  // arcade today, and the cabinets a shared result links to.
   plasmaSortModule,
+  letterLockModule,
+  starfighterModule,
   mallardModule,
   reefModule,
   towerModule,

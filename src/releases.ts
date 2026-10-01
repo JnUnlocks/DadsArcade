@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.14.0",
+    date: "2026-10-01",
+    title: "Letter Lock: a new word every day",
+    notes: [
+      "A new cabinet, the arcade's tenth: Letter Lock. Guess the five-letter word in six tries. After each guess the tiles tell you how close you are: a solid blue tile is the right letter in the right spot, an orange ring is a letter that's in the word but somewhere else, and a dark tile isn't in the word at all.",
+      "TODAY'S WORD is the same for everyone, with its own scoreboard for the day. Your first go is the one that counts, and it's saved after every guess, so you can put the phone down and come back to it.",
+      "Finish it and tap SHARE to send your grid to the family chat. It shows the colours of each guess but never the letters, so it can't spoil the word for anyone, and the link opens Letter Lock straight to today's word.",
+      "Run out of tries and it simply tells you the word. Nothing goes on the scoreboard, and there's a new word tomorrow. FREE PLAY and PRACTICE give you a fresh word whenever you like.",
+      "Letter Lock and Plasma Sort now share the top row of the arcade, so both of the day's puzzles are the first thing you see.",
+    ],
+  },
+  {
     version: "0.13.3",
     date: "2026-10-01",
     title: "Share today's puzzle with the family",
