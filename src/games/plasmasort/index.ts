@@ -39,6 +39,7 @@ import type {
 } from "../../core/game";
 import type { InputSnapshot } from "../../core/input";
 import { Particles } from "../../core/particles";
+import { playLink, shareText } from "../../core/share";
 import { dailyKey, dailySeed } from "../../core/rng";
 import { loadDailySeen, markDailySeen } from "../../core/storage";
 import {
@@ -49,6 +50,7 @@ import {
   saveDailyAttempt,
   saveStreak,
   type DailyAttempt,
+  type DailyResult,
 } from "./progress";
 import {
   CAPACITY,
@@ -86,6 +88,7 @@ import {
   tubeAt,
   type Layout,
 } from "./render";
+import { dailyShareText } from "./share";
 
 type Mode = "daily" | "free" | "warmup";
 type Phase = "choosing" | "playing" | "solved";
@@ -165,6 +168,11 @@ export class PlasmaSort implements GameInstance {
   private finalScore = 0;
   private resultTime = 0;
   private streak = 0;
+  /**
+   * True on the card for the day's ranked solve: the result is offered for
+   * sharing, so the card waits for SHARE or DONE instead of timing out.
+   */
+  private offerShare = false;
   /** The streak going into today, read once for the title card. */
   private readonly titleStreak = liveStreak(loadStreak(), dailyKey(), yesterdayKey());
 
@@ -243,7 +251,13 @@ export class PlasmaSort implements GameInstance {
     }
 
     this.resultTime += dt;
-    if (this.resultTime >= RESULT_MAX_SECONDS) this.leave();
+    if (this.offerShare) {
+      // Held back until the stars have landed, so a tap meant for the card
+      // can't land on SHARE.
+      if (this.resultTime >= RESULT_MIN_SECONDS) this.root.style.visibility = "";
+    } else if (this.resultTime >= RESULT_MAX_SECONDS) {
+      this.leave();
+    }
   }
 
   hud(): HudState {
@@ -257,6 +271,11 @@ export class PlasmaSort implements GameInstance {
 
   onResume(): void {
     this.paused = false;
+  }
+
+  /** Only a puzzle in progress has a clock worth stopping. */
+  pausesWhenHidden(): boolean {
+    return this.phase === "playing";
   }
 
   destroy(): void {
@@ -536,6 +555,7 @@ export class PlasmaSort implements GameInstance {
     this.selected = null;
     this.resultTime = 0;
     this.toastTimer = 0;
+    this.offerShare = false;
     this.stars = starsFor(this.pours, this.par);
     this.finalScore = scoreSolve(this.pours, this.par, this.seconds);
     // Hidden, not removed: the rack is fitted to the space above this panel,
@@ -557,6 +577,8 @@ export class PlasmaSort implements GameInstance {
       const next = advanceStreak(loadStreak(), this.dateKey, yesterdayKey());
       saveStreak(next);
       this.streak = next.count;
+      this.offerShare = true;
+      this.buildResultControls();
     }
 
     this.host.sfx(this.stars === 3 ? "plasmaPerfect" : "plasmaSolved");
@@ -832,7 +854,8 @@ export class PlasmaSort implements GameInstance {
       });
     }
 
-    if (t >= RESULT_MIN_SECONDS) {
+    // With SHARE and DONE on screen, the buttons are the prompt.
+    if (t >= RESULT_MIN_SECONDS && !this.offerShare) {
       const blink = reduced ? 1 : 0.55 + 0.45 * Math.sin(this.time * 4);
       ctx.globalAlpha = fade * blink;
       drawText(ctx, "TAP TO CONTINUE", cx, view.h - view.insetBottom - 44, 10, INK, {
@@ -855,9 +878,26 @@ export class PlasmaSort implements GameInstance {
         ? `In progress: ${saved.pours} ${saved.pours === 1 ? "pour" : "pours"} so far.`
         : "Same puzzle for everyone. Your first solve counts.";
 
+    // Once today is solved, SHARE sits on the same row as the puzzle it's
+    // about -- the share is available all day, not just on the result card,
+    // because the moment someone solves it is rarely the moment the family
+    // chat is open.
+    const daily = modeButton("TODAY'S PUZZLE", dailyHint, "daily", () => this.begin("daily"), fresh);
+    let dailyRow: HTMLElement = daily;
+    if (saved?.result) {
+      dailyRow = div("plasma-daily-row");
+      const result = saved.result;
+      dailyRow.append(
+        daily,
+        shareButton("plasma-share plasma-share--tile", () =>
+          this.shareMessage(result, today),
+        ),
+      );
+    }
+
     const panel = div("plasma-panel plasma-panel--modes");
     panel.append(
-      modeButton("TODAY'S PUZZLE", dailyHint, "daily", () => this.begin("daily"), fresh),
+      dailyRow,
       modeButton("FREE PLAY", "A fresh six-colour puzzle. Ranked.", "free", () =>
         this.begin("free"),
       ),
@@ -881,6 +921,38 @@ export class PlasmaSort implements GameInstance {
 
     this.root.replaceChildren(panel);
     this.refreshControls();
+  }
+
+  /**
+   * SHARE and DONE under the day's result card. Same height as the UNDO row it
+   * replaces, so the rack behind the card doesn't move. Kept hidden until the
+   * card has settled (update()).
+   */
+  private buildResultControls(): void {
+    const panel = div("plasma-panel plasma-panel--play");
+    const result = {
+      score: this.finalScore,
+      pours: this.pours,
+      par: this.par,
+      seconds: Math.round(this.seconds),
+    };
+    panel.append(
+      shareButton("plasma-act plasma-share", () =>
+        this.shareMessage(result, this.dateKey, this.streak),
+      ),
+      actionButton("DONE", () => this.leave()),
+    );
+    this.root.replaceChildren(panel);
+    this.root.style.visibility = "hidden";
+  }
+
+  private shareMessage(result: DailyResult, dateKey: string, streak?: number): string {
+    return dailyShareText(
+      result,
+      dateKey,
+      streak ?? liveStreak(loadStreak(), dailyKey(), yesterdayKey()),
+      playLink(plasmaSortModule.id),
+    );
   }
 
   private refreshControls(): void {
@@ -959,6 +1031,41 @@ function modeButton(
   button.addEventListener("click", onPick);
   return button;
 }
+
+/**
+ * A SHARE button. The text is built at tap time and handed straight to the
+ * share sheet -- nothing may be awaited first, or the browser stops treating
+ * it as a tap and refuses. The label answers what happened, since on a phone
+ * without a share sheet the result goes to the clipboard instead and the
+ * player needs telling to paste it.
+ */
+function shareButton(className: string, text: () => string): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.className = className;
+  const label = document.createElement("span");
+  label.className = "plasma-share-label";
+  const idle = "SHARE";
+  label.textContent = idle;
+  button.innerHTML = SHARE_ICON;
+  button.append(label);
+  button.setAttribute("aria-label", "Share today's result");
+
+  let reset = 0;
+  button.addEventListener("click", () => {
+    void shareText(text()).then((outcome) => {
+      const said =
+        outcome === "copied" ? "COPIED -- PASTE IT" : outcome === "failed" ? "CAN'T SHARE HERE" : idle;
+      label.textContent = said;
+      window.clearTimeout(reset);
+      if (said !== idle) reset = window.setTimeout(() => (label.textContent = idle), 2600);
+    });
+  });
+  return button;
+}
+
+/** The box-and-arrow both phone platforms use for "share", drawn not loaded. */
+const SHARE_ICON =
+  '<svg class="plasma-share-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2"/></svg>';
 
 function actionButton(label: string, onPick: () => void): HTMLButtonElement {
   const button = document.createElement("button");

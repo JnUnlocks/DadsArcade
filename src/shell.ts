@@ -151,12 +151,41 @@ export class Shell implements GameHost {
   boot(): void {
     this.loop.start();
     this.showMenu();
+    this.openLinkedGame();
     // Anything recorded while offline gets another chance on every launch and
     // whenever the connection comes back.
     if (this.player) void flushQueue(this.player);
     window.addEventListener("online", () => {
       if (this.player) void flushQueue(this.player);
     });
+  }
+
+  /**
+   * `?play=<game id>` opens that game straight away -- the link on a shared
+   * result, so a tap from the family chat lands on today's puzzle rather than
+   * on a menu of nine cabinets. The menu is already drawn underneath, so
+   * QUIT TO ARCADE behaves as usual, and the query is stripped so a reload
+   * (or the home-screen icon later) doesn't keep reopening it.
+   */
+  private openLinkedGame(): void {
+    let id: string | null = null;
+    try {
+      const url = new URL(location.href);
+      id = url.searchParams.get("play");
+      if (id === null) return;
+      url.searchParams.delete("play");
+      history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+    } catch {
+      return;
+    }
+    const game = this.games.find((g) => g.id === id);
+    if (!game) return;
+
+    // Nobody has tapped anything yet, so audio can't have been unlocked;
+    // the first touch inside the game does it instead.
+    window.addEventListener("pointerdown", () => this.audio.unlock(), { once: true });
+    countPlay(game.id);
+    this.startGame(game);
   }
 
   private attachLifecycleHandlers(): void {
@@ -167,10 +196,16 @@ export class Shell implements GameHost {
     // notification pulled down, or switching apps. Without this the game keeps
     // simulating in the background and he comes back to a dead ship.
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) this.pause();
+      if (document.hidden) this.autoPause();
     });
 
-    window.addEventListener("blur", () => this.pause());
+    window.addEventListener("blur", () => this.autoPause());
+  }
+
+  /** The pause the app does for itself, which a game can wave off (pausesWhenHidden). */
+  private autoPause(): void {
+    if (this.instance?.pausesWhenHidden?.() === false) return;
+    this.pause();
   }
 
   // ----- Loop callbacks -----

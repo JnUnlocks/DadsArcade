@@ -304,6 +304,38 @@ FREE PLAY deals a random six-colour puzzle onto the all-time board, WARM-UP is
 four colours and unranked, and a solved daily on consecutive days keeps a
 streak in `hyperdrive.plasmasort.streak`.
 
+### Sharing a result
+
+The TODAY badge and the streak only work on someone who already opened the
+app. A result dropped into the family chat is the one thing that reaches the
+people who haven't, so the day's first solve can be shared:
+
+```
+Dad's Arcade · Plasma Sort · Oct 1
+🟥🟧🟨🟩🟦🟪⬛⬛⬛
+⭐⭐ 17 pours, par 14 · 2:41
+🔥 5-day streak
+https://play.hyperdrive-arcade.workers.dev/?play=plasma-sort
+```
+
+- **Spoiler-free by construction.** Everyone has the same deal, so nothing
+  about colours or order is sent. The six squares are the six sorted tubes —
+  identical for everyone — and each ⬛ is one pour over par (capped at ten).
+  A perfect solve is a clean rainbow; the comparison is the length of the tail.
+- **Where it lives.** SHARE and DONE replace the result card's "tap to
+  continue" for the ranked daily, and the card waits rather than timing out.
+  It's also a square beside TODAY'S PUZZLE for the rest of the day, because
+  the moment you solve it is rarely the moment the chat is open. Practice
+  replays and Free Play don't offer it: they aren't the puzzle anyone else saw.
+- **How it sends.** The phone's own share sheet (`navigator.share`), text only
+  with the link inside it. Without one, it copies to the clipboard and the
+  button says to paste it ([`core/share.ts`](src/core/share.ts)).
+- **The link opens the game.** `?play=<game id>` starts that cabinet on boot
+  and is then stripped from the address bar, so a reload goes back to the menu.
+- **No pause over a finished puzzle.** Opening the share sheet blurs the page,
+  which used to trip the automatic pause. A game can now return `false` from
+  `pausesWhenHidden()`; Plasma Sort does whenever no puzzle is in progress.
+
 ---
 
 ## Black Disc, and skipping the leaderboard on purpose

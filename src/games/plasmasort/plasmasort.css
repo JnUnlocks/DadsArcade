@@ -101,7 +101,72 @@
   background: rgba(8, 14, 30, 0.88);
 }
 
+/* ----- Share ----- */
+
+/* Magenta, the cabinet's own colour: SHARE is the one button here that
+   leaves the game, and it should look like the thing to press next. */
+.plasma-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-color: #d96bff;
+  background: color-mix(in srgb, #d96bff 22%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+}
+
+.plasma-act.plasma-share {
+  flex: 1.4 1 0;
+}
+
+.plasma-act.plasma-share:active {
+  background: color-mix(in srgb, #d96bff 36%, rgba(8, 14, 30, 0.92));
+}
+
+.plasma-share-icon {
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  flex: none;
+}
+
+/* On the chooser it's a square beside TODAY'S PUZZLE rather than a fourth
+   row, so the menu stays the height it was and the title art keeps its room. */
+.plasma-daily-row {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.plasma-daily-row > .plasma-mode {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plasma-share--tile {
+  flex: 0 0 calc(72px * var(--ui-scale));
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 14px;
+  border-width: 1.5px;
+  border-style: solid;
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.plasma-share--tile .plasma-share-icon {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+}
+
+.plasma-share--tile:active {
+  transform: scale(0.97);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .plasma-share--tile:active,
   .plasma-mode:active,
   .plasma-act:active {
     transform: none;

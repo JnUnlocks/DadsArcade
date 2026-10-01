@@ -99,6 +99,16 @@ export interface GameInstance {
   onResume?(): void;
 
   /**
+   * False while there is nothing a background pause would protect -- a menu
+   * or a result card where nothing moves. The shell then skips its automatic
+   * pause when the app loses focus, which matters because opening the phone's
+   * share sheet loses focus too: without this, sending a result to the family
+   * chat came back to a PAUSED screen and a 3-2-1 countdown over a finished
+   * puzzle. The pause button still works regardless. Defaults to true.
+   */
+  pausesWhenHidden?(): boolean;
+
+  /**
    * Release anything the garbage collector won't -- observers, timers,
    * listeners on nodes outside the game's own subtree. Called when the run
    * ends or the player quits to the arcade.

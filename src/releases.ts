@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.13.3",
+    date: "2026-10-01",
+    title: "Share today's puzzle with the family",
+    notes: [
+      "Solve Today's Puzzle in Plasma Sort and a SHARE button appears under your result. It opens your phone's share sheet, so it's one tap into the family group chat.",
+      "What gets sent gives nothing away: a row of six coloured squares for the six tubes you sorted, a black square for every pour over par, your stars, your time and your streak. A perfect solve is a clean rainbow.",
+      "The link at the bottom opens Plasma Sort straight to today's puzzle, so whoever taps it can have a go and send theirs back.",
+      "Missed the moment? Today's result stays shareable all day from the SHARE button next to TODAY'S PUZZLE.",
+    ],
+  },
+  {
     version: "0.13.2",
     date: "2026-09-30",
     title: "Sort the arcade your way",
