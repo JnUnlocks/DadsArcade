@@ -27,5 +27,17 @@
     }
   ],
 
+  // Per-IP cap on every write (scores, plays, feedback). Keyed on the
+  // connecting IP in worker/index.ts. 30 a minute is far above what a family
+  // on one wifi does, and stops one script from spending the day's free D1
+  // allowance. namespace_id is just a label unique to this account.
+  "ratelimits": [
+    {
+      "name": "WRITE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 30, "period": 60 }
+    }
+  ],
+
   "observability": { "enabled": true }
 }

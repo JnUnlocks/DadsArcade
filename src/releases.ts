@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.6",
+    date: "2026-09-30",
+    title: "A sturdier scoreboard",
+    notes: [
+      "The high score boards load faster and stay quick no matter how many games get played, so the arcade can be shared with more friends without slowing down.",
+      "The arcade now counts which games get played, including Black Disc, so we can tell what everyone enjoys most. Nothing personal is sent -- just the game and the day.",
+    ],
+  },
+  {
     version: "0.12.5",
     date: "2026-09-24",
     title: "A bigger squish screen",

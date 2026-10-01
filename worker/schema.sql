@@ -1,8 +1,16 @@
 -- Dad's Arcade leaderboard.
 --
+-- This file is applied on EVERY deploy (scripts/deploy.mjs step 4), so every
+-- statement in it must be safe to run again: CREATE ... IF NOT EXISTS,
+-- DROP INDEX IF EXISTS, INSERT OR IGNORE. Never put a bare DROP TABLE,
+-- DELETE or UPDATE in here.
+--
 -- `board_id` exists from day one even though v1 only ever writes 'global'.
 -- Adding private share-code boards later is then a feature, not a migration.
 
+-- Every submitted run, forever. The history: "my top 10", the weekly board,
+-- recent scores on /admin. Leaderboards do NOT read this table any more (see
+-- best_scores below).
 CREATE TABLE IF NOT EXISTS scores (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   board_id    TEXT    NOT NULL DEFAULT 'global',
@@ -15,17 +23,61 @@ CREATE TABLE IF NOT EXISTS scores (
   created_at  INTEGER NOT NULL
 );
 
--- Serves the main board query: top N for a game, newest-first tiebreak.
-CREATE INDEX IF NOT EXISTS idx_scores_board_game_score
-  ON scores (board_id, game_id, score DESC);
-
 -- Serves "my best runs".
 CREATE INDEX IF NOT EXISTS idx_scores_device
   ON scores (device_id, game_id, score DESC);
 
--- Serves the weekly board and the rate-limit lookback.
+-- Serves /admin's "last 7 days" counts and "recent scores".
 CREATE INDEX IF NOT EXISTS idx_scores_created
   ON scores (created_at);
+
+-- Serves the per-device rate limit: only that device's last minute is read,
+-- instead of every run the device has ever made.
+CREATE INDEX IF NOT EXISTS idx_scores_device_created
+  ON scores (device_id, created_at);
+
+-- Serves the weekly board: only this game's last 7 days are read.
+CREATE INDEX IF NOT EXISTS idx_scores_board_game_created
+  ON scores (board_id, game_id, created_at);
+
+-- Was the all-time board's index. Boards now read best_scores, so this only
+-- cost an extra row write on every run.
+DROP INDEX IF EXISTS idx_scores_board_game_score;
+
+-- One row per device per game per board: that device's best run, plus how
+-- many runs it has submitted there. Written alongside every score.
+--
+-- Why it exists: D1's free plan allows 5M rows READ per day, and reads are
+-- counted per row scanned. The old all-time board and the rank lookup both
+-- scanned every run a game had ever had, so each view got more expensive as
+-- history grew. Reading this table instead costs about one row per player
+-- shown, however many runs exist.
+CREATE TABLE IF NOT EXISTS best_scores (
+  board_id    TEXT    NOT NULL,
+  game_id     TEXT    NOT NULL,
+  device_id   TEXT    NOT NULL,
+  initials    TEXT    NOT NULL,
+  score       INTEGER NOT NULL,
+  wave        INTEGER NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  created_at  INTEGER NOT NULL,
+  runs        INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (board_id, game_id, device_id)
+) WITHOUT ROWID;
+
+-- Serves the all-time board (top N) and the rank lookup (count above me).
+CREATE INDEX IF NOT EXISTS idx_best_board_game_score
+  ON best_scores (board_id, game_id, score DESC, created_at ASC);
+
+-- One-time backfill from history. OR IGNORE makes re-runs a no-op for rows
+-- that already exist, so a later, better score written by the Worker is never
+-- overwritten by this. SQLite's bare-column rule takes the other columns from
+-- the row that produced MAX(score).
+INSERT OR IGNORE INTO best_scores
+  (board_id, game_id, device_id, initials, score, wave, duration_ms, created_at, runs)
+SELECT board_id, game_id, device_id, initials, MAX(score), wave, duration_ms, created_at, COUNT(*)
+  FROM scores
+ GROUP BY board_id, game_id, device_id;
 
 -- Player feedback. Deliberately in the same database as scores so there's one
 -- thing to deploy and one place to read from (`npm run feedback`).
@@ -42,3 +94,26 @@ CREATE TABLE IF NOT EXISTS feedback (
 
 CREATE INDEX IF NOT EXISTS idx_feedback_created
   ON feedback (created_at DESC);
+
+-- Plays, rolled up per UTC day, game and device: one row however many times
+-- that device starts that game that day, so it costs one row write per start
+-- and stays small. This is what counts games with no leaderboard (Black Disc,
+-- practice runs) and runs that were quit before game over.
+CREATE TABLE IF NOT EXISTS play_days (
+  day        TEXT    NOT NULL,  -- YYYY-MM-DD, UTC
+  game_id    TEXT    NOT NULL,
+  device_id  TEXT    NOT NULL,
+  plays      INTEGER NOT NULL DEFAULT 1,
+  installed  INTEGER NOT NULL DEFAULT 0,  -- 1 = launched from the home screen
+  version    TEXT,
+  PRIMARY KEY (day, game_id, device_id)
+) WITHOUT ROWID;
+
+-- Scores the server refused, counted per UTC day and reason. A jump in
+-- implausible_score or invalid_* is the first sign someone is poking the API.
+CREATE TABLE IF NOT EXISTS rejections (
+  day    TEXT    NOT NULL,
+  reason TEXT    NOT NULL,
+  n      INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (day, reason)
+) WITHOUT ROWID;

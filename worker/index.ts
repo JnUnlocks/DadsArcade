@@ -23,6 +23,23 @@ export interface Env {
   ASSETS: Fetcher;
   /** Optional: set via `wrangler secret put ADMIN_TOKEN` to enable deletes and `/admin`. */
   ADMIN_TOKEN?: string;
+  /**
+   * Per-IP limiter for every write endpoint (wrangler.jsonc "ratelimits").
+   * Optional so the Worker still runs if the binding is ever removed.
+   */
+  WRITE_LIMITER?: RateLimit;
+  /**
+   * Optional, for the /admin capacity card's live usage numbers. A Cloudflare
+   * API token with "Account Analytics: Read", and the account id. Without
+   * them the card falls back to row counts from the database itself.
+   */
+  CF_API_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
+}
+
+/** Workers rate-limit binding, typed here so no types package bump is needed. */
+interface RateLimit {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 interface ScoreSubmission {
@@ -54,6 +71,16 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const FEEDBACK_MAX_LENGTH = 2000;
 const FEEDBACK_LIMIT = 5;
 const FEEDBACK_WINDOW_MS = 10 * 60_000;
+
+/** Game ids are the leaderboard keys; this is the shape every game uses. */
+const GAME_ID_RE = /^[a-z0-9-]{1,32}$/;
+
+/** Workers Free plan daily allowances, shown against usage on /admin. */
+export const FREE_PLAN = {
+  workerRequests: 100_000,
+  d1RowsRead: 5_000_000,
+  d1RowsWritten: 100_000,
+} as const;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -92,6 +119,21 @@ function adminPage(): Response {
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const { pathname } = url;
 
+  // Every write goes through the per-IP limiter first. The per-device limits
+  // below trust a device id the phone makes up, so on their own anyone could
+  // dodge them by sending a new id each time. This one is keyed on the
+  // connecting IP, costs no database reads or writes, and a whole family on
+  // one wifi stays far below it.
+  if (request.method === "POST" || request.method === "DELETE") {
+    if (!(await withinIpLimit(request, env))) {
+      console.warn("ip_rate_limited", pathname);
+      return json({ error: "rate_limited" }, 429);
+    }
+  }
+
+  if (pathname === "/api/plays" && request.method === "POST") {
+    return postPlay(request, env);
+  }
   if (pathname === "/api/scores" && request.method === "GET") {
     return getScores(env, url);
   }
@@ -137,23 +179,41 @@ async function getScores(env: Env, url: URL): Promise<Response> {
   const deviceId = url.searchParams.get("device")?.trim() ?? "";
 
   // One row per device: the board should read as a list of players, not the
-  // same person's twenty best runs. SQLite's bare-column rule guarantees the
-  // other columns come from the same row that produced MAX(score).
-  const { results } = await env.DB.prepare(
-    `SELECT initials,
-            MAX(score) AS score,
-            wave,
-            duration_ms,
-            created_at,
-            (device_id = ?5) AS is_you
-       FROM scores
-      WHERE board_id = ?1 AND game_id = ?2 AND created_at >= ?3
-      GROUP BY device_id
-      ORDER BY score DESC, created_at ASC
-      LIMIT ?4`,
-  )
-    .bind(boardId, gameId, since, limit, deviceId)
-    .all();
+  // same person's twenty best runs.
+  //
+  // All-time boards read best_scores, which already holds one row per device,
+  // through an index in board order -- so the cost is about `limit` rows
+  // however much history exists. The weekly board has to look at this week's
+  // runs, and its index keeps that to one game's last 7 days.
+  const { results } =
+    since === 0
+      ? await env.DB.prepare(
+          `SELECT initials, score, wave, duration_ms, created_at,
+                  (device_id = ?4) AS is_you
+             FROM best_scores
+            WHERE board_id = ?1 AND game_id = ?2
+            ORDER BY score DESC, created_at ASC
+            LIMIT ?3`,
+        )
+          .bind(boardId, gameId, limit, deviceId)
+          .all()
+      : await env.DB.prepare(
+          // SQLite's bare-column rule guarantees the other columns come from
+          // the same row that produced MAX(score).
+          `SELECT initials,
+                  MAX(score) AS score,
+                  wave,
+                  duration_ms,
+                  created_at,
+                  (device_id = ?5) AS is_you
+             FROM scores
+            WHERE board_id = ?1 AND game_id = ?2 AND created_at >= ?3
+            GROUP BY device_id
+            ORDER BY score DESC, created_at ASC
+            LIMIT ?4`,
+        )
+          .bind(boardId, gameId, since, limit, deviceId)
+          .all();
 
   return json({ scores: results ?? [] });
 }
@@ -185,7 +245,10 @@ async function postScore(request: Request, env: Env): Promise<Response> {
   }
 
   const submission = validate(body);
-  if ("error" in submission) return json(submission, 400);
+  if ("error" in submission) {
+    await countRejection(env, submission.error);
+    return json(submission, 400);
+  }
 
   const recent = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM scores WHERE device_id = ?1 AND created_at > ?2`,
@@ -194,15 +257,19 @@ async function postScore(request: Request, env: Env): Promise<Response> {
     .first<{ n: number }>();
 
   if ((recent?.n ?? 0) >= RATE_LIMIT_MAX) {
+    await countRejection(env, "rate_limited");
     return json({ error: "rate_limited" }, 429);
   }
 
-  await env.DB.prepare(
-    `INSERT INTO scores
-       (board_id, game_id, initials, device_id, score, wave, duration_ms, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
-  )
-    .bind(
+  const now = Date.now();
+  // The run goes into history, and into best_scores if it beats this device's
+  // best on this board. One batch, so both land or neither does.
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO scores
+         (board_id, game_id, initials, device_id, score, wave, duration_ms, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+    ).bind(
       submission.boardId,
       submission.gameId,
       submission.initials,
@@ -210,21 +277,42 @@ async function postScore(request: Request, env: Env): Promise<Response> {
       submission.score,
       submission.wave,
       submission.durationMs,
-      Date.now(),
-    )
-    .run();
+      now,
+    ),
+    env.DB.prepare(
+      // Every SET expression sees the OLD row, so the CASEs all compare
+      // against the previous best, not a half-updated one.
+      `INSERT INTO best_scores
+         (board_id, game_id, device_id, initials, score, wave, duration_ms, created_at, runs)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1)
+       ON CONFLICT (board_id, game_id, device_id) DO UPDATE SET
+         runs        = best_scores.runs + 1,
+         initials    = excluded.initials,
+         wave        = CASE WHEN excluded.score > best_scores.score THEN excluded.wave        ELSE best_scores.wave        END,
+         duration_ms = CASE WHEN excluded.score > best_scores.score THEN excluded.duration_ms ELSE best_scores.duration_ms END,
+         created_at  = CASE WHEN excluded.score > best_scores.score THEN excluded.created_at  ELSE best_scores.created_at  END,
+         score       = CASE WHEN excluded.score > best_scores.score THEN excluded.score       ELSE best_scores.score       END`,
+    ).bind(
+      submission.boardId,
+      submission.gameId,
+      submission.deviceId,
+      submission.initials,
+      submission.score,
+      submission.wave,
+      submission.durationMs,
+      now,
+    ),
+  ]);
 
   // Tell the client where it landed, so the game-over screen can say
   // "3rd on the board" instead of just "submitted". Ranked within the board it
   // was actually filed under -- being told you came 4th all-time when you were
   // playing today's challenge would be a lie, and a discouraging one.
+  // Reads only the players above this score, via the board index.
   const rank = await env.DB.prepare(
     `SELECT COUNT(*) + 1 AS rank
-       FROM (SELECT MAX(score) AS best
-               FROM scores
-              WHERE board_id = ?1 AND game_id = ?2
-              GROUP BY device_id)
-      WHERE best > ?3`,
+       FROM best_scores
+      WHERE board_id = ?1 AND game_id = ?2 AND score > ?3`,
   )
     .bind(submission.boardId, submission.gameId, submission.score)
     .first<{ rank: number }>();
@@ -306,94 +394,384 @@ async function deleteScore(
   const id = Number(pathname.slice("/api/scores/".length));
   if (!Number.isInteger(id) || id <= 0) return json({ error: "bad_id" }, 400);
 
-  await env.DB.prepare(`DELETE FROM scores WHERE id = ?1`).bind(id).run();
+  const row = await env.DB.prepare(
+    `SELECT board_id, game_id, device_id FROM scores WHERE id = ?1`,
+  )
+    .bind(id)
+    .first<{ board_id: string; game_id: string; device_id: string }>();
+  if (!row) return json({ error: "not_found" }, 404);
+
+  // Remove the run, then rebuild that one device's best on that board from
+  // what's left (or drop it if nothing is left), so a deleted silly score
+  // doesn't live on in best_scores.
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM scores WHERE id = ?1`).bind(id),
+    env.DB.prepare(
+      `DELETE FROM best_scores WHERE board_id = ?1 AND game_id = ?2 AND device_id = ?3`,
+    ).bind(row.board_id, row.game_id, row.device_id),
+    env.DB.prepare(
+      `INSERT INTO best_scores
+         (board_id, game_id, device_id, initials, score, wave, duration_ms, created_at, runs)
+       SELECT board_id, game_id, device_id, initials, MAX(score), wave, duration_ms, created_at, COUNT(*)
+         FROM scores
+        WHERE board_id = ?1 AND game_id = ?2 AND device_id = ?3
+        GROUP BY board_id, game_id, device_id`,
+    ).bind(row.board_id, row.game_id, row.device_id),
+  ]);
   return json({ ok: true });
 }
 
-interface GameStatsRow {
-  gameId: string;
-  totalScores: number;
-  weekScores: number;
-  uniqueDevices: number;
+// ----- Plays, limits and counters -----
+
+/** UTC calendar day, matching when Cloudflare's free allowances reset. */
+export function utcDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
-interface RecentScoreRow {
-  gameId: string;
-  initials: string;
-  score: number;
-  boardId: string;
-  createdAt: number;
+async function withinIpLimit(request: Request, env: Env): Promise<boolean> {
+  if (!env.WRITE_LIMITER) return true;
+  const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  try {
+    const { success } = await env.WRITE_LIMITER.limit({ key: ip });
+    return success;
+  } catch (error) {
+    // A limiter hiccup must never lock the family out of their own board.
+    console.error("rate limiter failed", error);
+    return true;
+  }
 }
 
-interface FeedbackRow {
-  initials: string | null;
-  message: string;
-  context: string | null;
-  createdAt: number;
-}
-
-interface DailyBoardRow {
-  boardId: string;
-  scores: number;
-  uniqueDevices: number;
-  games: number;
-  lastPlayed: number;
+/** Best-effort: a failed counter never turns a 400 into a 500. */
+async function countRejection(env: Env, reason: string): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO rejections (day, reason, n) VALUES (?1, ?2, 1)
+       ON CONFLICT (day, reason) DO UPDATE SET n = n + 1`,
+    )
+      .bind(utcDay(Date.now()), reason.slice(0, 40))
+      .run();
+  } catch (error) {
+    console.error("countRejection failed", error);
+  }
 }
 
 /**
- * Everything the admin dashboard needs in one round trip: per-game totals
- * (all-time and last 7 days, for "most popular game"), unique devices per
- * game as a rough player count, the newest scores and feedback across every
- * game, and any `daily-YYYY-MM-DD` board activity.
+ * A game was started. Rolled up to one row per device, game and UTC day, so a
+ * start costs one row write and the table grows with active devices, not taps.
+ */
+async function postPlay(request: Request, env: Env): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+  if (typeof body !== "object" || body === null) {
+    return json({ error: "invalid_body" }, 400);
+  }
+  const raw = body as Record<string, unknown>;
+
+  const gameId = typeof raw.gameId === "string" ? raw.gameId.trim() : "";
+  if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
+
+  const deviceId = typeof raw.deviceId === "string" ? raw.deviceId.trim() : "";
+  if (deviceId.length < 8 || deviceId.length > 64) {
+    return json({ error: "invalid_device" }, 400);
+  }
+
+  const installed = raw.installed === true ? 1 : 0;
+  const version =
+    typeof raw.version === "string" && /^[0-9A-Za-z.+-]{1,20}$/.test(raw.version)
+      ? raw.version
+      : null;
+
+  await env.DB.prepare(
+    `INSERT INTO play_days (day, game_id, device_id, plays, installed, version)
+     VALUES (?1, ?2, ?3, 1, ?4, ?5)
+     ON CONFLICT (day, game_id, device_id) DO UPDATE SET
+       plays     = play_days.plays + 1,
+       installed = MAX(play_days.installed, excluded.installed),
+       version   = COALESCE(excluded.version, play_days.version)`,
+  )
+    .bind(utcDay(Date.now()), gameId, deviceId, installed, version)
+    .run();
+
+  return json({ ok: true });
+}
+
+// ----- Admin overview -----
+
+interface GameStatsRow {
+  gameId: string;
+  plays7d: number;
+  playsToday: number;
+  activeDevices7d: number;
+  runsAllTime: number;
+  runs7d: number;
+  devicesAllTime: number;
+  playersAllTime: number;
+}
+
+/**
+ * Everything /admin shows, in one round trip. Every query here is shaped to
+ * read little: play_days and best_scores are one row per device, and the only
+ * reads of the scores history are index ranges bounded by time or LIMIT.
  */
 async function getAdminOverview(env: Env): Promise<Response> {
-  const weekSince = Date.now() - WEEK_MS;
+  const now = Date.now();
+  const today = utcDay(now);
+  const day7 = utcDay(now - 6 * 24 * 60 * 60 * 1000); // today + 6 days back
+  const day30 = utcDay(now - 29 * 24 * 60 * 60 * 1000);
+  const weekSince = now - WEEK_MS;
 
-  const games = await env.DB.prepare(
-    `SELECT game_id AS gameId,
-            COUNT(*) AS totalScores,
-            SUM(CASE WHEN created_at >= ?1 THEN 1 ELSE 0 END) AS weekScores,
-            COUNT(DISTINCT device_id) AS uniqueDevices
-       FROM scores
-      GROUP BY game_id
-      ORDER BY totalScores DESC`,
-  )
-    .bind(weekSince)
-    .all<GameStatsRow>();
+  const [
+    playsByGame,
+    runsByGame,
+    runs7dByGame,
+    totals,
+    returning,
+    installSplit,
+    versions,
+    playsByDay,
+    rejections,
+    recentScores,
+    feedback,
+    dailyBoards,
+    tableSizes,
+  ] = await env.DB.batch([
+    env.DB.prepare(
+      `SELECT game_id AS gameId,
+              SUM(plays) AS plays7d,
+              SUM(CASE WHEN day = ?2 THEN plays ELSE 0 END) AS playsToday,
+              COUNT(DISTINCT device_id) AS activeDevices7d
+         FROM play_days
+        WHERE day >= ?1
+        GROUP BY game_id`,
+    ).bind(day7, today),
+    env.DB.prepare(
+      `SELECT game_id AS gameId,
+              SUM(runs) AS runsAllTime,
+              COUNT(*) AS devicesAllTime,
+              COUNT(DISTINCT initials) AS playersAllTime
+         FROM best_scores
+        WHERE board_id = 'global'
+        GROUP BY game_id`,
+    ),
+    env.DB.prepare(
+      `SELECT game_id AS gameId, COUNT(*) AS runs7d
+         FROM scores
+        WHERE created_at >= ?1
+        GROUP BY game_id`,
+    ).bind(weekSince),
+    env.DB.prepare(
+      `SELECT
+         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day = ?1) AS devicesToday,
+         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?2) AS devices7d,
+         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day = ?1) AS playsToday,
+         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day >= ?2) AS plays7d,
+         (SELECT COUNT(DISTINCT initials) FROM best_scores) AS playersAllTime,
+         (SELECT COUNT(DISTINCT device_id) FROM best_scores) AS devicesAllTime,
+         (SELECT COUNT(*) FROM scores WHERE created_at >= ?3) AS runsToday`,
+    ).bind(today, day7, Date.parse(today + "T00:00:00Z")),
+    // Devices seen on 2+ different days in the last 30: the "they came back"
+    // number, which matters more than any one busy day.
+    env.DB.prepare(
+      `SELECT COUNT(*) AS returning30d,
+              (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?1) AS active30d
+         FROM (SELECT device_id
+                 FROM play_days
+                WHERE day >= ?1
+                GROUP BY device_id
+               HAVING COUNT(DISTINCT day) >= 2)`,
+    ).bind(day30),
+    env.DB.prepare(
+      `SELECT installed, COUNT(DISTINCT device_id) AS devices
+         FROM play_days
+        WHERE day >= ?1
+        GROUP BY installed`,
+    ).bind(day7),
+    env.DB.prepare(
+      `SELECT COALESCE(version, 'unknown') AS version, COUNT(DISTINCT device_id) AS devices
+         FROM play_days
+        WHERE day >= ?1
+        GROUP BY version
+        ORDER BY devices DESC`,
+    ).bind(day7),
+    env.DB.prepare(
+      `SELECT day, SUM(plays) AS plays, COUNT(DISTINCT device_id) AS devices
+         FROM play_days
+        WHERE day >= ?1
+        GROUP BY day
+        ORDER BY day`,
+    ).bind(day30),
+    env.DB.prepare(
+      `SELECT reason, SUM(n) AS n
+         FROM rejections
+        WHERE day >= ?1
+        GROUP BY reason
+        ORDER BY n DESC`,
+    ).bind(day7),
+    env.DB.prepare(
+      `SELECT id, game_id AS gameId, initials, score, board_id AS boardId, created_at AS createdAt
+         FROM scores
+        ORDER BY created_at DESC
+        LIMIT 50`,
+    ),
+    env.DB.prepare(
+      `SELECT initials, message, context, created_at AS createdAt
+         FROM feedback
+        ORDER BY created_at DESC
+        LIMIT 30`,
+    ),
+    // A range on the primary key's first column, so only daily rows are read.
+    env.DB.prepare(
+      `SELECT board_id AS boardId,
+              SUM(runs) AS scores,
+              COUNT(*) AS uniqueDevices,
+              COUNT(DISTINCT game_id) AS games,
+              MAX(created_at) AS lastPlayed
+         FROM best_scores
+        WHERE board_id >= 'daily-' AND board_id < 'daily.'
+        GROUP BY board_id
+        ORDER BY boardId DESC
+        LIMIT 60`,
+    ),
+    // What each leaderboard read and each score submit costs grows with these.
+    env.DB.prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM scores) AS scoresRows,
+         (SELECT COUNT(*) FROM best_scores) AS bestRows,
+         (SELECT COUNT(*) FROM play_days) AS playDayRows,
+         (SELECT MAX(n) FROM (SELECT COUNT(*) AS n FROM best_scores
+                               WHERE board_id = 'global' GROUP BY game_id)) AS largestBoard`,
+    ),
+  ]);
 
-  const recentScores = await env.DB.prepare(
-    `SELECT game_id AS gameId, initials, score, board_id AS boardId, created_at AS createdAt
-       FROM scores
-      ORDER BY created_at DESC
-      LIMIT 50`,
-  ).all<RecentScoreRow>();
+  // Merge the per-game pieces. Games with plays but no leaderboard (Black
+  // Disc) and games with scores from before play tracking both show up.
+  const games = new Map<string, GameStatsRow>();
+  const game = (id: string): GameStatsRow => {
+    let row = games.get(id);
+    if (!row) {
+      row = {
+        gameId: id,
+        plays7d: 0,
+        playsToday: 0,
+        activeDevices7d: 0,
+        runsAllTime: 0,
+        runs7d: 0,
+        devicesAllTime: 0,
+        playersAllTime: 0,
+      };
+      games.set(id, row);
+    }
+    return row;
+  };
+  for (const r of rows<GameStatsRow>(playsByGame)) Object.assign(game(r.gameId), {
+    plays7d: r.plays7d, playsToday: r.playsToday, activeDevices7d: r.activeDevices7d,
+  });
+  for (const r of rows<GameStatsRow>(runsByGame)) Object.assign(game(r.gameId), {
+    runsAllTime: r.runsAllTime, devicesAllTime: r.devicesAllTime, playersAllTime: r.playersAllTime,
+  });
+  for (const r of rows<GameStatsRow>(runs7dByGame)) game(r.gameId).runs7d = r.runs7d;
 
-  const feedback = await env.DB.prepare(
-    `SELECT initials, message, context, created_at AS createdAt
-       FROM feedback
-      ORDER BY created_at DESC
-      LIMIT 30`,
-  ).all<FeedbackRow>();
-
-  const dailyBoards = await env.DB.prepare(
-    `SELECT board_id AS boardId,
-            COUNT(*) AS scores,
-            COUNT(DISTINCT device_id) AS uniqueDevices,
-            COUNT(DISTINCT game_id) AS games,
-            MAX(created_at) AS lastPlayed
-       FROM scores
-      WHERE board_id LIKE 'daily-%'
-      GROUP BY board_id
-      ORDER BY boardId DESC
-      LIMIT 60`,
-  ).all<DailyBoardRow>();
+  const usage = await getCloudflareUsage(env, today);
 
   return json({
-    games: games.results ?? [],
-    recentScores: recentScores.results ?? [],
-    feedback: feedback.results ?? [],
-    dailyBoards: dailyBoards.results ?? [],
+    generatedAt: now,
+    today,
+    totals: rows(totals)[0] ?? {},
+    retention: rows(returning)[0] ?? {},
+    installSplit: rows(installSplit),
+    versions: rows(versions),
+    playsByDay: rows(playsByDay),
+    games: [...games.values()].sort((a, b) => b.plays7d - a.plays7d || b.runsAllTime - a.runsAllTime),
+    rejections: rows(rejections),
+    recentScores: rows(recentScores),
+    feedback: rows(feedback),
+    dailyBoards: rows(dailyBoards),
+    capacity: {
+      limits: FREE_PLAN,
+      tables: rows(tableSizes)[0] ?? {},
+      usage,
+    },
   });
+}
+
+function rows<T = Record<string, unknown>>(result: D1Result<unknown> | undefined): T[] {
+  return (result?.results ?? []) as T[];
+}
+
+interface CloudflareUsage {
+  source: "cloudflare" | "not_configured" | "error";
+  day?: string;
+  workerRequests?: number;
+  workerErrors?: number;
+  d1RowsRead?: number;
+  d1RowsWritten?: number;
+  message?: string;
+}
+
+/**
+ * Today's real usage against the free plan, from Cloudflare's GraphQL
+ * analytics. Account-wide on purpose: the free allowances are per account, so
+ * other Workers and databases on the same login spend from the same pot.
+ * Optional: needs CF_API_TOKEN (Account Analytics: Read) and CF_ACCOUNT_ID.
+ */
+async function getCloudflareUsage(env: Env, day: string): Promise<CloudflareUsage> {
+  if (!env.CF_API_TOKEN || !env.CF_ACCOUNT_ID) {
+    return { source: "not_configured" };
+  }
+  const query = `query Usage($account: String!, $day: Date!) {
+    viewer {
+      accounts(filter: { accountTag: $account }) {
+        d1AnalyticsAdaptiveGroups(limit: 1000, filter: { date_geq: $day, date_leq: $day }) {
+          sum { rowsRead rowsWritten }
+        }
+        workersInvocationsAdaptive(limit: 1000, filter: { date_geq: $day, date_leq: $day }) {
+          sum { requests errors }
+        }
+      }
+    }
+  }`;
+  try {
+    const response = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.CF_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables: { account: env.CF_ACCOUNT_ID, day } }),
+    });
+    const data = (await response.json()) as {
+      data?: {
+        viewer?: {
+          accounts?: Array<{
+            d1AnalyticsAdaptiveGroups?: Array<{ sum: { rowsRead: number; rowsWritten: number } }>;
+            workersInvocationsAdaptive?: Array<{ sum: { requests: number; errors: number } }>;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }> | null;
+    };
+    if (data.errors?.length) {
+      return { source: "error", message: (data.errors[0]?.message ?? "unknown").slice(0, 200) };
+    }
+    const account = data.data?.viewer?.accounts?.[0];
+    if (!account) return { source: "error", message: "account not found" };
+    const sum = <K extends string>(list: Array<{ sum: Record<K, number> }> | undefined, key: K) =>
+      (list ?? []).reduce((total, g) => total + (g.sum[key] ?? 0), 0);
+    return {
+      source: "cloudflare",
+      day,
+      d1RowsRead: sum(account.d1AnalyticsAdaptiveGroups, "rowsRead"),
+      d1RowsWritten: sum(account.d1AnalyticsAdaptiveGroups, "rowsWritten"),
+      workerRequests: sum(account.workersInvocationsAdaptive, "requests"),
+      workerErrors: sum(account.workersInvocationsAdaptive, "errors"),
+    };
+  } catch (error) {
+    return { source: "error", message: String(error).slice(0, 200) };
+  }
 }
 
 // ----- Validation -----
@@ -403,7 +781,7 @@ function validate(body: unknown): ScoreSubmission | { error: string } {
   const raw = body as Record<string, unknown>;
 
   const gameId = typeof raw.gameId === "string" ? raw.gameId.trim() : "";
-  if (!/^[a-z0-9-]{1,32}$/.test(gameId)) return { error: "invalid_game" };
+  if (!GAME_ID_RE.test(gameId)) return { error: "invalid_game" };
 
   // Absent means the main board, which is what every existing game sends.
   // The charset is deliberately narrow: board ids are concatenated into

@@ -8,6 +8,7 @@
 
 import {
   loadQueue,
+  loadVisitorId,
   saveQueue,
   type Player,
   type QueuedScore,
@@ -118,6 +119,40 @@ export async function submitFeedback(
     }),
   });
   return response?.ok ?? false;
+}
+
+/** Don't count a restart-tap-restart flurry as a dozen plays. */
+const PLAY_PING_GAP_MS = 10_000;
+const lastPlayPing = new Map<string, number>();
+
+/**
+ * Tell the server a game was started, for the play counts on /admin.
+ * Fire-and-forget: never awaited by gameplay, never queued when offline, and
+ * any failure is ignored -- a missed count is fine, a stalled game isn't.
+ */
+export function reportPlay(gameId: string): void {
+  const now = Date.now();
+  const last = lastPlayPing.get(gameId) ?? 0;
+  if (now - last < PLAY_PING_GAP_MS) return;
+  lastPlayPing.set(gameId, now);
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  void request("/api/plays", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      gameId,
+      deviceId: loadVisitorId(),
+      installed: isInstalled(),
+      version: __APP_VERSION__,
+    }),
+  });
+}
+
+function isInstalled(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
 }
 
 /** Enough detail to act on a report without interrogating the reporter. */

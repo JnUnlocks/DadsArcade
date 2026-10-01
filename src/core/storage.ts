@@ -12,6 +12,8 @@ const KEY_BESTS = "hyperdrive.bests";
 const KEY_QUEUE = "hyperdrive.queue";
 const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
 const KEY_DAILY_SEEN = "hyperdrive.dailySeen";
+/** Anonymous id for play counts, made before the player ever enters initials. */
+const KEY_VISITOR = "hyperdrive.visitor";
 
 export interface Player {
   /** Three-character arcade initials, the way the machine asked for them. */
@@ -140,7 +142,31 @@ export function savePlayer(player: Player): void {
   write(KEY_PLAYER, player);
 }
 
+/**
+ * The device id for a new player. Reuses the anonymous visitor id that play
+ * counts have already been using, so a phone is one device on /admin from its
+ * first tap, not one before initials and another after.
+ */
 export function createDeviceId(): string {
+  return loadVisitorId();
+}
+
+/** Stable per-browser id: the player's device id once they have one. */
+export function loadVisitorId(): string {
+  const player = loadPlayer();
+  if (player) return player.deviceId;
+  try {
+    const existing = localStorage.getItem(KEY_VISITOR);
+    if (existing && existing.length >= 8) return existing;
+    const fresh = randomId();
+    localStorage.setItem(KEY_VISITOR, fresh);
+    return fresh;
+  } catch {
+    return randomId();
+  }
+}
+
+function randomId(): string {
   if (crypto.randomUUID) return crypto.randomUUID();
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");

@@ -5,7 +5,7 @@
  * Games plug in through GameModule and never worry about any of it.
  */
 
-import { flushQueue, submitScore } from "./core/api";
+import { flushQueue, reportPlay, submitScore } from "./core/api";
 import { AudioEngine, type SoundName } from "./core/audio";
 import type { Track } from "./core/music";
 import type { GameHost, GameInstance, GameModule, RunSummary } from "./core/game";
@@ -432,6 +432,7 @@ export class Shell implements GameHost {
     this.shakeAmount = 0;
     this.hitStopRemaining = 0;
     this.instance = module.create(this);
+    reportPlay(module.id);
     this.input.reset();
     this.screen = "playing";
     this.clearUi();
