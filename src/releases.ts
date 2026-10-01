@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.7",
+    date: "2026-09-30",
+    title: "A slime that holds its stretch",
+    notes: [
+      "Riley's Slime Shop: pulling the slime and then holding still no longer lets it spring back on its own -- it stays stretched until you actually let go, the way real slime does.",
+    ],
+  },
+  {
     version: "0.12.6",
     date: "2026-09-30",
     title: "A sturdier scoreboard",

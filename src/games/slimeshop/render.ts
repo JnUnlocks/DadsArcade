@@ -103,7 +103,15 @@ export class SlimeBlob {
     }
   }
 
-  update(dt: number, texture: Texture): void {
+  /**
+   * `held` is whether the player's finger is still down right now, distinct
+   * from whether it moved *this* frame. A finger that stops moving but stays
+   * down should leave the slime stretched -- that's the difference between a
+   * toy you can hold in a pulled shape and one that recoils out of your hand
+   * the instant you pause. Only an actual release (`held` false) should let
+   * the pull relax; the clamp in `pull()` is what stops it going forever.
+   */
+  update(dt: number, texture: Texture, held: boolean): void {
     const feel = TEXTURE_FEEL[texture];
     this.phase += dt * 1.7;
 
@@ -121,9 +129,10 @@ export class SlimeBlob {
       this.velocities[i] = nextVelocity;
     }
 
-    // Ease the pull back to nothing so a held finger doesn't stretch forever.
-    this.pullX *= 1 - Math.min(1, step * 3);
-    this.pullY *= 1 - Math.min(1, step * 3);
+    if (!held) {
+      this.pullX *= 1 - Math.min(1, step * 3);
+      this.pullY *= 1 - Math.min(1, step * 3);
+    }
   }
 
   /**

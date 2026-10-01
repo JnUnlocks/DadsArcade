@@ -221,7 +221,7 @@ export class SlimeShop implements GameInstance {
   update(dt: number, input: InputSnapshot): void {
     this.time += dt;
     this.particles.update(dt);
-    this.blob.update(dt, this.texture);
+    this.blob.update(dt, this.texture, input.pointerDown);
 
     // Squish. Relative deltas suit this better than an absolute position would:
     // you can drag anywhere on the counter and never cover the slime with your
