@@ -33,6 +33,7 @@ import { buildAboutScreen } from "./ui/about";
 import { buildReleaseNotesScreen } from "./ui/releases";
 import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
+import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 
 type ScreenName = "menu" | "playing" | "paused" | "resuming" | "gameover";
@@ -377,7 +378,7 @@ export class Shell implements GameHost {
     this.ui.append(
       buildAboutScreen(
         () => this.showMenu(),
-        () => this.showSettings(true),
+        () => this.showFeedback(() => this.showAbout()),
       ),
     );
   }
@@ -391,19 +392,25 @@ export class Shell implements GameHost {
   }
 
 
-  /** `openFeedback` jumps straight to the note box, scrolled into view. */
-  showSettings(openFeedback = false): void {
+  showSettings(): void {
     this.clearUi();
     this.ui.append(
       buildSettingsScreen(
         this._settings,
-        this.player,
         (patch) => this.updateSettings(patch),
         () => this.showMenu(),
-        openFeedback,
+        () => this.showFeedback(() => this.showSettings()),
         () => this.showReleaseNotes(() => this.showSettings()),
       ),
     );
+  }
+
+  /** The note box. `onBack` returns to whichever screen it was opened from. */
+  showFeedback(onBack: () => void): void {
+    this.clearUi();
+    const screen = buildFeedbackScreen(this.player, onBack);
+    this.ui.append(screen);
+    focusFeedback(screen);
   }
 
   startGame(module: GameModule): void {

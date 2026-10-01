@@ -5,15 +5,13 @@
  * announce correctly to screen readers and respond to assistive tech.
  */
 
-import { submitFeedback } from "../core/api";
-import type { Player, Settings } from "../core/storage";
+import type { Settings } from "../core/storage";
 
 export function buildSettingsScreen(
   settings: Readonly<Settings>,
-  player: Player | null,
   onChange: (patch: Partial<Settings>) => void,
   onBack: () => void,
-  openFeedback = false,
+  onFeedback: () => void,
   onReleaseNotes?: () => void,
 ): HTMLElement {
   const screen = document.createElement("div");
@@ -77,24 +75,26 @@ export function buildSettingsScreen(
     ),
   );
 
-  const feedback = buildFeedbackSection(player);
-  list.append(feedback);
   screen.append(list);
 
-  if (openFeedback) {
-    // Arrived here from "SEND A NOTE" -- open the box and bring it into view
-    // rather than dropping them at the top of a long settings list.
-    feedback.querySelector<HTMLButtonElement>(".btn--inline")?.click();
-    requestAnimationFrame(() => {
-      feedback.scrollIntoView({ block: "center" });
-    });
-  }
+  // Outside the list, so the way to send a note is on screen the moment
+  // Settings opens instead of below the last toggle. Side by side while both
+  // labels fit; stacked on a narrow phone or with larger text.
+  const actions = document.createElement("div");
+  actions.className = "settings-actions";
+
+  const feedback = document.createElement("button");
+  feedback.className = "btn";
+  feedback.textContent = "SEND A NOTE";
+  feedback.addEventListener("click", onFeedback);
 
   const back = document.createElement("button");
   back.className = "btn btn--ghost";
   back.textContent = "BACK";
   back.addEventListener("click", onBack);
-  screen.append(back);
+
+  actions.append(feedback, back);
+  screen.append(actions);
 
   if (onReleaseNotes) {
     const notes = document.createElement("button");
@@ -110,82 +110,6 @@ export function buildSettingsScreen(
   screen.append(credit);
 
   return screen;
-}
-
-/**
- * Feedback box. Collapsed to a single button until tapped, so it never
- * competes with the actual settings.
- */
-function buildFeedbackSection(player: Player | null): HTMLElement {
-  const section = document.createElement("div");
-  section.className = "setting setting--feedback";
-
-  const heading = document.createElement("span");
-  heading.className = "setting-name";
-  heading.textContent = "Feedback";
-
-  const hint = document.createElement("span");
-  hint.className = "setting-hint";
-  hint.textContent = "Something broken, confusing, or an idea? Tell us.";
-
-  const open = document.createElement("button");
-  open.className = "btn btn--ghost btn--inline";
-  open.textContent = "WRITE A NOTE";
-
-  const form = document.createElement("div");
-  form.className = "feedback-form";
-  form.hidden = true;
-
-  const box = document.createElement("textarea");
-  box.className = "feedback-input";
-  box.rows = 4;
-  box.maxLength = 2000;
-  box.placeholder = "What happened, or what would make it better?";
-  box.setAttribute("aria-label", "Your feedback");
-
-  const send = document.createElement("button");
-  send.className = "btn btn--primary btn--inline";
-  send.textContent = "SEND";
-  send.disabled = true;
-
-  const status = document.createElement("span");
-  status.className = "setting-hint feedback-status";
-
-  box.addEventListener("input", () => {
-    send.disabled = box.value.trim().length === 0;
-  });
-
-  open.addEventListener("click", () => {
-    form.hidden = false;
-    open.hidden = true;
-    box.focus();
-  });
-
-  send.addEventListener("click", async () => {
-    const message = box.value.trim();
-    if (message.length === 0) return;
-
-    send.disabled = true;
-    status.textContent = "Sending…";
-    status.style.color = "";
-
-    const ok = await submitFeedback(message, player);
-    if (ok) {
-      form.hidden = true;
-      status.textContent = "Sent — thank you.";
-      status.style.color = "var(--accent)";
-      box.value = "";
-    } else {
-      // Keep their text so a retry costs nothing.
-      send.disabled = false;
-      status.textContent = "Couldn't send — check your connection and try again.";
-      status.style.color = "var(--danger)";
-    }
-  });
-
-  form.append(box, send);
-  section.append(heading, hint, open, form, status);
-  return section;
 }
 
 function toggle(

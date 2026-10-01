@@ -112,8 +112,8 @@ left open.
 
 ## Reading feedback
 
-There's a **Feedback** box at the bottom of the in-game Settings screen. Notes
-go into the same D1 database as the scores, tagged with the sender's initials
+**SEND A NOTE** on the Settings screen (and at the end of The Story) opens a
+note box on its own screen. Notes go into the same D1 database as the scores, tagged with the sender's initials
 plus app version, screen size and whether they'd installed it — enough to act on
 a report without having to ask non-technical questions.
 

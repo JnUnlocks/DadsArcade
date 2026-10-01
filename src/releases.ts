@@ -34,6 +34,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.12.8",
+    date: "2026-09-30",
+    title: "An easier way to send a note",
+    notes: [
+      "Sending us a note is much easier on a phone. SEND A NOTE now sits right next to BACK in Settings, and opens its own screen with the box and the SEND button at the top, above the keyboard, instead of hiding at the bottom of the list.",
+      "If you back out halfway through writing a note, it's still there when you come back.",
+      "Settings is tidier: the rows are no longer squashed, so every description has room to breathe.",
+    ],
+  },
+  {
     version: "0.12.7",
     date: "2026-09-30",
     title: "A slime that holds its stretch",
