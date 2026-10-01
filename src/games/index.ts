@@ -18,12 +18,12 @@ import { plasmaSortModule } from "./plasmasort";
 
 export const GAMES: GameModule[] = [
   starfighterModule,
+  plasmaSortModule,
   mallardModule,
   reefModule,
   towerModule,
   crossingModule,
   brickfallModule,
   slimeShopModule,
-  plasmaSortModule,
   blackDiscModule,
 ];

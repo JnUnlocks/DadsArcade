@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.13.1",
+    date: "2026-09-30",
+    title: "Plasma Sort moves to the front row",
+    notes: [
+      "Plasma Sort now sits on the top row of the arcade, right next to Starfighter, so the day's puzzle is the first thing you see.",
+    ],
+  },
+  {
     version: "0.13.0",
     date: "2026-09-30",
     title: "Plasma Sort: a new puzzle every day",
