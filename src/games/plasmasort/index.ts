@@ -179,6 +179,8 @@ export class PlasmaSort implements GameInstance {
 
   private time = 0;
   private paused = false;
+  /** The rules card is up. The clock waits while someone reads. */
+  private helpOpen = false;
 
   private undoButton: HTMLButtonElement | null = null;
   private resetButton: HTMLButtonElement | null = null;
@@ -245,7 +247,7 @@ export class PlasmaSort implements GameInstance {
     }
 
     if (this.phase === "playing") {
-      this.seconds += dt;
+      if (!this.helpOpen) this.seconds += dt;
       const settled = this.flights.length === 0 && this.sealIn.every((s) => s < 0);
       if (settled && isSolved(this.board)) this.finish();
       return;
@@ -920,8 +922,64 @@ export class PlasmaSort implements GameInstance {
       panel.append(actionButton("NEW PUZZLE", () => this.begin(this.mode)));
     }
 
-    this.root.replaceChildren(panel);
+    const help = document.createElement("button");
+    help.className = "plasma-help-link";
+    help.textContent = "HOW TO PLAY";
+    help.addEventListener("click", () => this.openHelp());
+
+    this.root.replaceChildren(panel, help);
     this.refreshControls();
+  }
+
+  /**
+   * The rules on a card over the rack. Laid over the canvas, so a tap meant
+   * for the card can't pour a tube behind it.
+   */
+  private openHelp(): void {
+    if (this.helpOpen) return;
+    this.helpOpen = true;
+
+    const overlay = div("plasma-help");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", "How to play");
+    const card = div("plasma-help-card");
+
+    const title = document.createElement("h2");
+    title.textContent = "HOW TO PLAY";
+
+    const list = div("howto");
+    for (const [icon, text] of [
+      ["①", "Tap a tube to pick up the colour on top. Tap another tube to pour it in."],
+      ["②", "You can only pour onto the same colour, or into an empty tube. A tube holds four."],
+      ["③", "Sort every tube down to a single colour and the puzzle's done."],
+      ["↶", "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose -- only not finish yet."],
+      ["★", "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour."],
+    ] as const) {
+      const row = div("howto-row");
+      const glyph = document.createElement("span");
+      glyph.className = "howto-icon";
+      glyph.textContent = icon;
+      glyph.setAttribute("aria-hidden", "true");
+      const copy = document.createElement("span");
+      copy.textContent = text;
+      row.append(glyph, copy);
+      list.append(row);
+    }
+
+    const close = () => {
+      this.helpOpen = false;
+      overlay.remove();
+    };
+    const done = actionButton("GOT IT", close);
+    done.classList.add("plasma-help-done");
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) close();
+    });
+
+    card.append(title, list, done);
+    overlay.append(card);
+    this.root.append(overlay);
+    done.focus();
   }
 
   /**

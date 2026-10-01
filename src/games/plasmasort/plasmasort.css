@@ -101,6 +101,74 @@
   background: rgba(8, 14, 30, 0.88);
 }
 
+/* ----- How to play ----- */
+
+/* A quiet text link rather than a third big button: it's for the first go,
+   not every go, so it shouldn't compete with UNDO and RESET. */
+.plasma-help-link {
+  display: block;
+  margin: calc(6px * var(--ui-scale)) auto 0;
+  min-height: calc(36px * var(--ui-scale));
+  padding: 0 18px;
+  border: none;
+  background: none;
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.plasma-help-link:active {
+  color: var(--ink);
+}
+
+.plasma-help {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px
+    calc(env(safe-area-inset-bottom, 0px) + 16px);
+  background: rgba(3, 6, 16, 0.78);
+  overflow-y: auto;
+}
+
+.plasma-help-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 380px;
+  padding: 22px 20px 18px;
+  border-radius: 18px;
+  border: 1.5px solid color-mix(in srgb, #d96bff 55%, transparent);
+  background: rgba(8, 14, 30, 0.96);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.plasma-help-card h2 {
+  margin: 0;
+  font-size: calc(18px * var(--ui-scale));
+  letter-spacing: 0.12em;
+}
+
+.plasma-help-card .howto-icon {
+  color: #d96bff;
+}
+
+.plasma-help-done {
+  flex: none;
+  width: 100%;
+}
+
 /* ----- Share ----- */
 
 /* Magenta, the cabinet's own colour: SHARE is the one button here that

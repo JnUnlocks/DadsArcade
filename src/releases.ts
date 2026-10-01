@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.14.1",
+    date: "2026-10-01",
+    title: "How to play Plasma Sort",
+    notes: [
+      "There's a HOW TO PLAY link under UNDO and RESET in Plasma Sort. Tap it for the rules: how pouring works, what UNDO and RESET do, and what par and the stars mean.",
+      "The clock stops while the rules are open, so reading them doesn't cost you any time.",
+    ],
+  },
+  {
     version: "0.14.0",
     date: "2026-10-01",
     title: "Letter Lock: a new word every day",
