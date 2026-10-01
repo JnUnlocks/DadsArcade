@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.13.0",
+    date: "2026-09-30",
+    title: "Plasma Sort: a new puzzle every day",
+    notes: [
+      "A new cabinet: Plasma Sort. Tap a tube, tap another, and the colour on top pours across. Get every tube down to one colour.",
+      "TODAY'S PUZZLE is the same for everyone, with its own scoreboard for the day. Your first solve is the one that counts, so take your time -- there's no clock running out, and UNDO always works.",
+      "Every puzzle has a PAR: the fewest pours it can be done in. Match it for three stars. A pour you take back still counts, so it pays to look before you pour.",
+      "Solve the daily puzzle on back-to-back days and the game keeps your streak. FREE PLAY deals a fresh puzzle whenever you like, and WARM-UP is a smaller one with no score at all.",
+    ],
+  },
+  {
     version: "0.12.8",
     date: "2026-09-30",
     title: "An easier way to send a note",

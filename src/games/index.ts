@@ -14,6 +14,7 @@ import { slimeShopModule } from "./slimeshop";
 import { starfighterModule } from "./starfighter";
 import { towerModule } from "./tower";
 import { blackDiscModule } from "./blackdisc";
+import { plasmaSortModule } from "./plasmasort";
 
 export const GAMES: GameModule[] = [
   starfighterModule,
@@ -23,5 +24,6 @@ export const GAMES: GameModule[] = [
   crossingModule,
   brickfallModule,
   slimeShopModule,
+  plasmaSortModule,
   blackDiscModule,
 ];

@@ -72,7 +72,16 @@ export type SoundName =
   | "discTick5"
   | "discBuzz"
   | "discRuleBreak"
-  | "discWin";
+  | "discWin"
+  // Plasma Sort
+  | "plasmaLift"
+  | "plasmaDrop"
+  | "plasmaPour"
+  | "plasmaDeny"
+  | "plasmaUndo"
+  | "plasmaSeal"
+  | "plasmaSolved"
+  | "plasmaPerfect";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -439,6 +448,40 @@ export class AudioEngine {
       case "discWin":
         this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.22);
         this.blip(t + 0.42, "sine", 1568, 1568, 0.4, 0.16, 6);
+        break;
+      // ----- Plasma Sort -----
+      // A puzzle is played in a quiet room, one tap at a time, for minutes.
+      // Everything here is a soft sine and short: the lift and the pour are
+      // heard dozens of times a game and have to stay pleasant on the last.
+      case "plasmaLift":
+        this.blip(t, "sine", 520, 700, 0.07, 0.1);
+        break;
+      case "plasmaDrop":
+        this.blip(t, "sine", 620, 440, 0.07, 0.08);
+        break;
+      case "plasmaPour":
+        // Rise, then a low "set down" as the run lands in the next tube.
+        this.blip(t, "sine", 440, 880, 0.12, 0.11);
+        this.blip(t + 0.26, "sine", 300, 220, 0.09, 0.14);
+        break;
+      case "plasmaDeny":
+        // A dull double-tap rather than a buzzer: "not there", not "wrong".
+        this.blip(t, "triangle", 190, 170, 0.06, 0.16);
+        this.blip(t + 0.08, "triangle", 170, 150, 0.07, 0.14);
+        break;
+      case "plasmaUndo":
+        this.blip(t, "sine", 760, 380, 0.13, 0.1);
+        break;
+      case "plasmaSeal":
+        this.arpeggio(t, [784, 1175], 0.07, "sine", 0.17);
+        this.blip(t + 0.14, "sine", 1568, 1568, 0.22, 0.09);
+        break;
+      case "plasmaSolved":
+        this.arpeggio(t, [523, 659, 784, 1047], 0.09, "sine", 0.2);
+        break;
+      case "plasmaPerfect":
+        this.arpeggio(t, [523, 659, 784, 1047, 1319, 1568], 0.08, "sine", 0.2);
+        this.blip(t + 0.52, "sine", 2093, 2093, 0.45, 0.13, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

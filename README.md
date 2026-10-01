@@ -24,6 +24,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Brickfall** | Falling-block puzzles | A shuffled bag so you never wait twenty pieces for a straight one, a lock delay so a piece that lands beside a gap can still be slid into it, and twenty-five levels that are each measurably faster than the last |
 | **JB's Tower Trouble** | Donkey Kong | Junk that rolls downhill, drops off the open end of each girder and sometimes takes a ladder down instead; jumps you commit to at take-off; and a wrench that smashes junk but stops you climbing while you hold it |
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
+| **Plasma Sort** | Colour-sort (water-sort) puzzles | One puzzle a day, the same for everyone, with a par found by search — so the day's board ranks who saw the solution, not who got a kind shuffle |
 | **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
@@ -277,6 +278,34 @@ returning a `boardId` from its `RunSummary`.
 
 ---
 
+## Plasma Sort, and what "par" means
+
+Tap a tube, tap another, and the run of one colour on top pours across. Six
+colours, eight tubes, four cells each. It's the arcade's second daily board,
+and the first game built around one.
+
+- **TODAY'S PUZZLE** is dealt from the date
+  ([`puzzle.ts`](src/games/plasmasort/puzzle.ts)), so every device gets the same
+  tubes. Deals are thrown back until one is solvable, isn't half-sorted
+  already, and takes a respectable number of pours.
+- **Par is real.** A breadth-first search finds the fewest pours that solve the
+  deal, on the phone, in a few milliseconds. Scoring is 1,000 for solving, minus
+  50 for each pour over par (never below 100), plus up to 200 for speed. A pour
+  taken back with UNDO still counts.
+- **The first solve is the ranked one.** The puzzle is identical on a second
+  go, so a board of best attempts would be a board of replays. The attempt is
+  saved after every pour ([`progress.ts`](src/games/plasmasort/progress.ts)), so
+  quitting or RESTART resumes it rather than wiping the counter. That rule is
+  kept by the device, not the server — the right amount for a family board.
+- **Nobody can lose.** No lives, no clock running out, and UNDO and RESET
+  always work. Finishing is safe; only the score is strict.
+
+FREE PLAY deals a random six-colour puzzle onto the all-time board, WARM-UP is
+four colours and unranked, and a solved daily on consecutive days keeps a
+streak in `hyperdrive.plasmasort.streak`.
+
+---
+
 ## Black Disc, and skipping the leaderboard on purpose
 
 Every other cabinet is one player against a machine, so a personal best means
@@ -478,7 +507,18 @@ src/games/crossing/
   index.ts       the GameModule: hopping, riding, scoring
 ```
 
-The rule of thumb across both: anything whose *rules* can be got wrong lives in
+And Plasma Sort:
+
+```
+src/games/plasmasort/
+  puzzle.ts       pouring rules, the seeded deal, the par solver, scoring
+  progress.ts     today's saved attempt and the daily streak
+  render.ts       tubes, cells, the rack, the title art
+  plasmasort.css  the mode chooser and the UNDO / RESET bar
+  index.ts        the GameModule: taps, pour animation, modes, the result card
+```
+
+The rule of thumb across all of them: anything whose *rules* can be got wrong lives in
 a DOM-free module with a test beside it. `color.ts`, `orders.ts`, `prizes.ts`,
 `lanes.ts` and the reef's `maze.ts` all qualify. Note that every module a test
 can reach needs real `.ts` extensions on its relative imports, and must avoid
