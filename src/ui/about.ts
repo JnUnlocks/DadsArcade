@@ -22,7 +22,7 @@ const STORY: ReadonlyArray<string> = [
 
   "Everything is drawn and synthesised from scratch. No borrowed art, no sound files. The ships are shapes, the explosions are noise and a filter, and the whole arcade is smaller than a single photo.",
 
-  "Six machines now, and room on the floor for more. Built for one player in particular — and then, somehow, for all of us.",
+  "A whole arcade now, and room on the floor for more. Built for one player in particular — and then, somehow, for all of us.",
 ];
 
 export function buildAboutScreen(

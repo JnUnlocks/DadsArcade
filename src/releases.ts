@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.14.2",
+    date: "2026-10-02",
+    title: "The story catches up",
+    notes: [
+      "The Story said there were six machines. There are ten now, so its last line no longer counts them -- it just says there's a whole arcade, and room for more.",
+      "When you share the arcade's link, the preview now names every game, starting with the newest two: Letter Lock and Plasma Sort.",
+    ],
+  },
+  {
     version: "0.14.1",
     date: "2026-10-01",
     title: "How to play Plasma Sort",
