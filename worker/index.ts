@@ -152,7 +152,13 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (pathname.startsWith("/api/admin/")) {
     if (!isAuthorizedAdmin(request, env)) return json({ error: "forbidden" }, 403);
     if (pathname === "/api/admin/overview" && request.method === "GET") {
-      return getAdminOverview(env);
+      return getAdminOverview(env, url);
+    }
+    if (pathname === "/api/admin/mine" && request.method === "POST") {
+      return postMine(request, env);
+    }
+    if (pathname === "/api/admin/mine" && request.method === "DELETE") {
+      return deleteMine(env, url);
     }
     return json({ error: "not_found" }, 404);
   }
@@ -512,17 +518,51 @@ interface GameStatsRow {
   playersAllTime: number;
 }
 
+interface PlayerRow {
+  initials: string;
+  devices: number;
+  games: number;
+  runs: number;
+  lastRun: number | null;
+  days30: number;
+  runs7d: number;
+  mine: boolean;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Devices the admin marked as their own (family, testing), as a SQL subquery.
+ * A mark is one device id, or a set of initials -- initials catch every phone
+ * and browser that person uses, including ones that appear later. Evaluated in
+ * SQL so nothing is copied around; both source tables are tiny.
+ */
+const MINE_SQL = `(SELECT value FROM mine WHERE kind = 'device'
+                    UNION
+                   SELECT device_id FROM best_scores
+                    WHERE initials IN (SELECT value FROM mine WHERE kind = 'initials'))`;
+
 /**
  * Everything /admin shows, in one round trip. Every query here is shaped to
  * read little: play_days and best_scores are one row per device, and the only
  * reads of the scores history are index ranges bounded by time or LIMIT.
+ *
+ * By default devices marked as "mine" are left out of every count, so the
+ * numbers describe real players. `?mine=include` brings them back.
  */
-async function getAdminOverview(env: Env): Promise<Response> {
+async function getAdminOverview(env: Env, url: URL): Promise<Response> {
   const now = Date.now();
   const today = utcDay(now);
-  const day7 = utcDay(now - 6 * 24 * 60 * 60 * 1000); // today + 6 days back
-  const day30 = utcDay(now - 29 * 24 * 60 * 60 * 1000);
+  const includeMine = url.searchParams.get("mine") === "include";
+  const notMine = includeMine ? "1 = 1" : `device_id NOT IN ${MINE_SQL}`;
+
+  const day7 = utcDay(now - 6 * DAY_MS); // today + 6 days back
+  const day14 = utcDay(now - 13 * DAY_MS);
+  const day30 = utcDay(now - 29 * DAY_MS);
   const weekSince = now - WEEK_MS;
+  const since14 = Date.parse(day14 + "T00:00:00Z");
+  const since30 = Date.parse(day30 + "T00:00:00Z");
+  const since90 = now - 90 * DAY_MS;
 
   const [
     playsByGame,
@@ -533,6 +573,13 @@ async function getAdminOverview(env: Env): Promise<Response> {
     installSplit,
     versions,
     playsByDay,
+    runsByDay,
+    gameRunsByDay,
+    trackingSince,
+    playersAll,
+    playersRecent,
+    mineList,
+    mineCount,
     rejections,
     recentScores,
     feedback,
@@ -545,7 +592,7 @@ async function getAdminOverview(env: Env): Promise<Response> {
               SUM(CASE WHEN day = ?2 THEN plays ELSE 0 END) AS playsToday,
               COUNT(DISTINCT device_id) AS activeDevices7d
          FROM play_days
-        WHERE day >= ?1
+        WHERE day >= ?1 AND ${notMine}
         GROUP BY game_id`,
     ).bind(day7, today),
     env.DB.prepare(
@@ -554,56 +601,99 @@ async function getAdminOverview(env: Env): Promise<Response> {
               COUNT(*) AS devicesAllTime,
               COUNT(DISTINCT initials) AS playersAllTime
          FROM best_scores
-        WHERE board_id = 'global'
+        WHERE board_id = 'global' AND ${notMine}
         GROUP BY game_id`,
     ),
     env.DB.prepare(
       `SELECT game_id AS gameId, COUNT(*) AS runs7d
          FROM scores
-        WHERE created_at >= ?1
+        WHERE created_at >= ?1 AND ${notMine}
         GROUP BY game_id`,
     ).bind(weekSince),
     env.DB.prepare(
       `SELECT
-         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day = ?1) AS devicesToday,
-         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?2) AS devices7d,
-         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day = ?1) AS playsToday,
-         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day >= ?2) AS plays7d,
-         (SELECT COUNT(DISTINCT initials) FROM best_scores) AS playersAllTime,
-         (SELECT COUNT(DISTINCT device_id) FROM best_scores) AS devicesAllTime,
-         (SELECT COUNT(*) FROM scores WHERE created_at >= ?3) AS runsToday`,
+         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day = ?1 AND ${notMine}) AS devicesToday,
+         (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?2 AND ${notMine}) AS devices7d,
+         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day = ?1 AND ${notMine}) AS playsToday,
+         (SELECT COALESCE(SUM(plays), 0) FROM play_days WHERE day >= ?2 AND ${notMine}) AS plays7d,
+         (SELECT COUNT(DISTINCT initials) FROM best_scores WHERE ${notMine}) AS playersAllTime,
+         (SELECT COUNT(DISTINCT device_id) FROM best_scores WHERE ${notMine}) AS devicesAllTime,
+         (SELECT COUNT(*) FROM scores WHERE created_at >= ?3 AND ${notMine}) AS runsToday`,
     ).bind(today, day7, Date.parse(today + "T00:00:00Z")),
     // Devices seen on 2+ different days in the last 30: the "they came back"
     // number, which matters more than any one busy day.
     env.DB.prepare(
       `SELECT COUNT(*) AS returning30d,
-              (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?1) AS active30d
+              (SELECT COUNT(DISTINCT device_id) FROM play_days WHERE day >= ?1 AND ${notMine}) AS active30d
          FROM (SELECT device_id
                  FROM play_days
-                WHERE day >= ?1
+                WHERE day >= ?1 AND ${notMine}
                 GROUP BY device_id
                HAVING COUNT(DISTINCT day) >= 2)`,
     ).bind(day30),
     env.DB.prepare(
       `SELECT installed, COUNT(DISTINCT device_id) AS devices
          FROM play_days
-        WHERE day >= ?1
+        WHERE day >= ?1 AND ${notMine}
         GROUP BY installed`,
     ).bind(day7),
     env.DB.prepare(
       `SELECT COALESCE(version, 'unknown') AS version, COUNT(DISTINCT device_id) AS devices
          FROM play_days
-        WHERE day >= ?1
+        WHERE day >= ?1 AND ${notMine}
         GROUP BY version
         ORDER BY devices DESC`,
     ).bind(day7),
     env.DB.prepare(
       `SELECT day, SUM(plays) AS plays, COUNT(DISTINCT device_id) AS devices
          FROM play_days
-        WHERE day >= ?1
+        WHERE day >= ?1 AND ${notMine}
         GROUP BY day
         ORDER BY day`,
     ).bind(day30),
+    // Saved runs per day for 30 days. Unlike play counts this goes back to
+    // before play tracking, so the trend lines have history from day one.
+    env.DB.prepare(
+      `SELECT date(created_at / 1000, 'unixepoch') AS day,
+              COUNT(*) AS runs,
+              COUNT(DISTINCT device_id) AS devices,
+              COUNT(DISTINCT initials) AS players
+         FROM scores
+        WHERE created_at >= ?1 AND ${notMine}
+        GROUP BY day
+        ORDER BY day`,
+    ).bind(since30),
+    env.DB.prepare(
+      `SELECT game_id AS gameId, date(created_at / 1000, 'unixepoch') AS day, COUNT(*) AS runs
+         FROM scores
+        WHERE created_at >= ?1 AND ${notMine}
+        GROUP BY game_id, day`,
+    ).bind(since14),
+    env.DB.prepare(`SELECT MIN(day) AS since FROM play_days`),
+    env.DB.prepare(
+      `SELECT initials,
+              COUNT(DISTINCT device_id) AS devices,
+              COUNT(DISTINCT game_id) AS games,
+              SUM(runs) AS runs
+         FROM best_scores
+        WHERE ${notMine}
+        GROUP BY initials`,
+    ),
+    // Recent activity per player, bounded to 90 days by the time index.
+    env.DB.prepare(
+      `SELECT initials,
+              MAX(created_at) AS lastRun,
+              COUNT(DISTINCT CASE WHEN created_at >= ?2
+                                  THEN date(created_at / 1000, 'unixepoch') END) AS days30,
+              SUM(CASE WHEN created_at >= ?3 THEN 1 ELSE 0 END) AS runs7d
+         FROM scores
+        WHERE created_at >= ?1 AND ${notMine}
+        GROUP BY initials`,
+    ).bind(since90, since30, weekSince),
+    env.DB.prepare(
+      `SELECT kind, value, label, created_at AS createdAt FROM mine ORDER BY created_at DESC`,
+    ),
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM ${MINE_SQL}`),
     env.DB.prepare(
       `SELECT reason, SUM(n) AS n
          FROM rejections
@@ -612,7 +702,8 @@ async function getAdminOverview(env: Env): Promise<Response> {
         ORDER BY n DESC`,
     ).bind(day7),
     env.DB.prepare(
-      `SELECT id, game_id AS gameId, initials, score, board_id AS boardId, created_at AS createdAt
+      `SELECT id, game_id AS gameId, initials, score, board_id AS boardId,
+              created_at AS createdAt, (device_id IN ${MINE_SQL}) AS mine
          FROM scores
         ORDER BY created_at DESC
         LIMIT 50`,
@@ -631,7 +722,7 @@ async function getAdminOverview(env: Env): Promise<Response> {
               COUNT(DISTINCT game_id) AS games,
               MAX(created_at) AS lastPlayed
          FROM best_scores
-        WHERE board_id >= 'daily-' AND board_id < 'daily.'
+        WHERE board_id >= 'daily-' AND board_id < 'daily.' AND ${notMine}
         GROUP BY board_id
         ORDER BY boardId DESC
         LIMIT 60`,
@@ -675,17 +766,56 @@ async function getAdminOverview(env: Env): Promise<Response> {
   });
   for (const r of rows<GameStatsRow>(runs7dByGame)) game(r.gameId).runs7d = r.runs7d;
 
+  // Per-game runs per day, oldest first, one slot for each of the last 14 days
+  // (zeros included) so the client can draw a sparkline without gap logic.
+  const days14: string[] = [];
+  for (let i = 13; i >= 0; i -= 1) days14.push(utcDay(now - i * DAY_MS));
+  const gameRuns: Record<string, number[]> = {};
+  for (const r of rows<{ gameId: string; day: string; runs: number }>(gameRunsByDay)) {
+    const slot = days14.indexOf(r.day);
+    if (slot < 0) continue;
+    const series = (gameRuns[r.gameId] ??= days14.map(() => 0));
+    series[slot] = r.runs;
+  }
+
+  // One row per player (initials). All-time totals come from best_scores; the
+  // recency columns from a 90-day window, so a player who has been away longer
+  // shows no last-seen date rather than costing a full history scan.
+  const recent = new Map(rows<Omit<PlayerRow, "devices" | "games" | "runs" | "mine">>(playersRecent)
+    .map((r) => [r.initials, r]));
+  const mineInitials = new Set(
+    rows<{ kind: string; value: string }>(mineList)
+      .filter((m) => m.kind === "initials")
+      .map((m) => m.value),
+  );
+  const players: PlayerRow[] = rows<{ initials: string; devices: number; games: number; runs: number }>(playersAll)
+    .map((p) => ({
+      ...p,
+      lastRun: recent.get(p.initials)?.lastRun ?? null,
+      days30: recent.get(p.initials)?.days30 ?? 0,
+      runs7d: recent.get(p.initials)?.runs7d ?? 0,
+      mine: mineInitials.has(p.initials),
+    }))
+    .sort((a, b) => (b.lastRun ?? 0) - (a.lastRun ?? 0) || b.runs - a.runs)
+    .slice(0, 40);
+
   const usage = await getCloudflareUsage(env, today);
 
   return json({
     generatedAt: now,
     today,
+    includeMine,
     totals: rows(totals)[0] ?? {},
     retention: rows(returning)[0] ?? {},
     installSplit: rows(installSplit),
     versions: rows(versions),
     playsByDay: rows(playsByDay),
+    runsByDay: rows(runsByDay),
+    trackingSince: rows<{ since: string | null }>(trackingSince)[0]?.since ?? null,
     games: [...games.values()].sort((a, b) => b.plays7d - a.plays7d || b.runsAllTime - a.runsAllTime),
+    gameRuns,
+    players,
+    mine: { items: rows(mineList), devices: rows<{ n: number }>(mineCount)[0]?.n ?? 0 },
     rejections: rows(rejections),
     recentScores: rows(recentScores),
     feedback: rows(feedback),
@@ -696,6 +826,53 @@ async function getAdminOverview(env: Env): Promise<Response> {
       usage,
     },
   });
+}
+
+/**
+ * Mark a device, or a set of initials, as "mine" so /admin leaves it out of
+ * the player counts. Re-marking just refreshes the label.
+ */
+async function postMine(request: Request, env: Env): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+  if (typeof body !== "object" || body === null) {
+    return json({ error: "invalid_body" }, 400);
+  }
+  const raw = body as Record<string, unknown>;
+
+  const kind = raw.kind === "device" || raw.kind === "initials" ? raw.kind : null;
+  if (!kind) return json({ error: "invalid_kind" }, 400);
+
+  const value = typeof raw.value === "string" ? raw.value.trim() : "";
+  const valid =
+    kind === "device"
+      ? value.length >= 8 && value.length <= 64
+      : /^[A-Z0-9]{1,3}$/.test(value);
+  if (!valid) return json({ error: "invalid_value" }, 400);
+
+  const label = typeof raw.label === "string" ? raw.label.trim().slice(0, 40) || null : null;
+
+  await env.DB.prepare(
+    `INSERT INTO mine (kind, value, label, created_at) VALUES (?1, ?2, ?3, ?4)
+     ON CONFLICT (kind, value) DO UPDATE SET label = excluded.label`,
+  )
+    .bind(kind, value, label, Date.now())
+    .run();
+  return json({ ok: true });
+}
+
+async function deleteMine(env: Env, url: URL): Promise<Response> {
+  const kind = url.searchParams.get("kind");
+  const value = url.searchParams.get("value")?.trim() ?? "";
+  if ((kind !== "device" && kind !== "initials") || !value) {
+    return json({ error: "invalid_params" }, 400);
+  }
+  await env.DB.prepare(`DELETE FROM mine WHERE kind = ?1 AND value = ?2`).bind(kind, value).run();
+  return json({ ok: true });
 }
 
 function rows<T = Record<string, unknown>>(result: D1Result<unknown> | undefined): T[] {

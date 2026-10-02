@@ -117,3 +117,20 @@ CREATE TABLE IF NOT EXISTS rejections (
   n      INTEGER NOT NULL DEFAULT 1,
   PRIMARY KEY (day, reason)
 ) WITHOUT ROWID;
+
+-- Devices the admin has marked as their own (family, testing), so /admin can
+-- describe real players. kind 'device' = one device id; kind 'initials' = every
+-- device that has submitted a score under those initials, including ones that
+-- show up later. Only /admin reads this; the game never does.
+CREATE TABLE IF NOT EXISTS mine (
+  kind       TEXT    NOT NULL,   -- 'device' | 'initials'
+  value      TEXT    NOT NULL,
+  label      TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (kind, value)
+) WITHOUT ROWID;
+
+-- Serves "devices that belong to these initials" for the mine filter, and the
+-- per-player rollup on /admin.
+CREATE INDEX IF NOT EXISTS idx_best_initials
+  ON best_scores (initials);
