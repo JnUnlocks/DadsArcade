@@ -79,6 +79,11 @@ npm run deploy
 every step checks for existing state first, so later runs are updates rather
 than duplicates. Use it for all subsequent deploys too.
 
+A deploy replaces the whole site with what's in the folder, so the script first
+checks that this copy contains everything on GitHub's `main` and stops if it
+doesn't. A branch cut before the last release would otherwise ship without it.
+If it stops, `git rebase origin/main`, renumber the release, and deploy again.
+
 <details>
 <summary>Doing it by hand instead</summary>
 

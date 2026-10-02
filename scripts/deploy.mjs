@@ -4,10 +4,11 @@
  *
  * Assumes you've already run `npx wrangler login` (that step opens a browser
  * and can't be automated). From there this:
- *   1. finds or creates the D1 database,
- *   2. writes its id into wrangler.jsonc for you,
- *   3. applies the schema,
- *   4. builds and deploys.
+ *   1. refuses to ship a copy that's missing work already on GitHub,
+ *   2. finds or creates the D1 database,
+ *   3. writes its id into wrangler.jsonc for you,
+ *   4. applies the schema,
+ *   5. builds and deploys.
  *
  * Safe to re-run. Every step checks for existing state first, so a second run
  * is an update rather than a duplicate.
@@ -38,7 +39,7 @@ const WRANGLER = fileURLToPath(
   new URL("../node_modules/wrangler/bin/wrangler.js", import.meta.url),
 );
 
-const step = (n, msg) => console.log(`\n\x1b[36m[${n}/5]\x1b[0m ${msg}`);
+const step = (n, msg) => console.log(`\n\x1b[36m[${n}/6]\x1b[0m ${msg}`);
 const ok = (msg) => console.log(`      \x1b[32m✓\x1b[0m ${msg}`);
 const fail = (msg) => {
   console.error(`\n\x1b[31m✗ ${msg}\x1b[0m`);
@@ -80,9 +81,68 @@ function npmScript(name) {
   run(npmCli, ["run", name]);
 }
 
-// ---- 1. Confirm login -------------------------------------------------------
+// ---- 1. Refuse a stale copy -------------------------------------------------
 
-step(1, "Checking your Cloudflare login…");
+/**
+ * A deploy replaces the whole site with whatever is in this folder. Releases
+ * are written on branches in more than one place, so a branch cut before the
+ * last release still builds and ships happily -- and takes that release off
+ * the live site. v0.13.4 was written while v0.14.0 went out; deployed as it
+ * stood, it would have removed Letter Lock.
+ *
+ * So this copy has to contain everything on GitHub's main before it goes out.
+ */
+step(1, "Checking this copy has everything that's already live…");
+
+function git(args) {
+  return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+}
+
+let inRepo = true;
+try {
+  git(["rev-parse", "--git-dir"]);
+} catch {
+  inRepo = false;
+}
+
+if (!inRepo) {
+  ok("Not a git checkout -- skipping");
+} else {
+  try {
+    git(["fetch", "origin", "main"]);
+  } catch {
+    fail("Couldn't reach GitHub to check for newer work. Try again when you're online.");
+  }
+  let contained = true;
+  try {
+    git(["merge-base", "--is-ancestor", "origin/main", "HEAD"]);
+  } catch {
+    contained = false;
+  }
+  if (!contained) {
+    const missing = git(["log", "--format=      %h %s", "HEAD..origin/main"]).trimEnd();
+    fail(
+      `This copy is missing work that's already on GitHub main:
+
+${missing}
+
+` +
+        `Deploying it would take those changes off the live site.
+` +
+        `Bring it up to date first:
+
+    git rebase origin/main
+
+` +
+        `then give the release a version number above the newest one and deploy again.`,
+    );
+  }
+  ok("Nothing on GitHub main is missing from this copy");
+}
+
+// ---- 2. Confirm login -------------------------------------------------------
+
+step(2, "Checking your Cloudflare login…");
 let who;
 try {
   who = capture(WRANGLER, ["whoami"]);
@@ -101,9 +161,9 @@ if (/not authenticated/i.test(who)) {
 const email = who.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0];
 ok(email ? `Logged in as ${email}` : "Logged in");
 
-// ---- 2. Find or create the database ----------------------------------------
+// ---- 3. Find or create the database ----------------------------------------
 
-step(2, `Looking for the "${DB_NAME}" database…`);
+step(3, `Looking for the "${DB_NAME}" database…`);
 
 function findDatabaseId() {
   try {
@@ -135,9 +195,9 @@ if (databaseId) {
   ok(`Created (${databaseId})`);
 }
 
-// ---- 3. Write the id into wrangler.jsonc ------------------------------------
+// ---- 4. Write the id into wrangler.jsonc ------------------------------------
 
-step(3, `Wiring the database id into ${CONFIG}…`);
+step(4, `Wiring the database id into ${CONFIG}…`);
 const config = readFileSync(CONFIG, "utf8");
 
 if (config.includes(`"${databaseId}"`)) {
@@ -153,15 +213,15 @@ if (config.includes(`"${databaseId}"`)) {
   );
 }
 
-// ---- 4. Schema --------------------------------------------------------------
+// ---- 5. Schema --------------------------------------------------------------
 
-step(4, "Creating the tables (scores + feedback)…");
+step(5, "Creating the tables (scores + feedback)…");
 run(WRANGLER, ["d1", "execute", DB_NAME, "--remote", "--file=worker/schema.sql"]);
 ok("Schema applied");
 
-// ---- 5. Build and ship ------------------------------------------------------
+// ---- 6. Build and ship ------------------------------------------------------
 
-step(5, "Building and deploying…");
+step(6, "Building and deploying…");
 npmScript("build");
 run(WRANGLER, ["deploy"]);
 
