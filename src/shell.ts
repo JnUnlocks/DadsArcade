@@ -638,7 +638,8 @@ export class Shell implements GameHost {
       badge.style.color = "var(--accent-warm)";
       screen.append(badge);
     }
-    const seconds = Math.round(this.elapsedMs / 1000);
+    const durationMs = summary.durationMs ?? this.elapsedMs;
+    const seconds = Math.round(durationMs / 1000);
     screen.append(
       el(
         "p",
@@ -668,7 +669,7 @@ export class Shell implements GameHost {
       gameId: this.module?.id ?? "unknown",
       score: this._score,
       wave: summary.progress,
-      durationMs: Math.round(this.elapsedMs),
+      durationMs: Math.round(durationMs),
       playedAt: Date.now(),
       ...(summary.boardId ? { boardId: summary.boardId } : {}),
     };

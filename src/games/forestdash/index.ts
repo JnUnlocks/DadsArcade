@@ -119,11 +119,11 @@ export class ForestDash implements GameInstance {
     this.particles.update(dt);
     if (this.hintTimer > 0) this.hintTimer -= dt;
 
-    // One button: a touch anywhere, Space, or Up. Up is the one key the
-    // shell reports as a level, so it's the one that can be held to glide.
+    // One button: a touch anywhere, or Space, Z, J, Up or W on a keyboard.
+    // Every one of them can be held to glide.
     const up = input.axisY < 0;
-    const held = input.pointerDown || up;
-    const pressed = input.justPressed || (up && !this.wasHeld);
+    const held = input.pointerDown || up || input.fireHeld;
+    const pressed = input.justPressed || (held && !this.wasHeld);
     this.wasHeld = held;
 
     if (this.phase === "countdown") {
@@ -244,6 +244,9 @@ export class ForestDash implements GameInstance {
       progress: place,
       progressLabel: "Place",
       headline: `${place === 1 ? "1ST" : "2ND"} PLACE · ${formatTime(this.finishTime)}`,
+      // The race clock, not the time since the game opened: the shell's
+      // clock also counts the countdown and the finish-line celebration.
+      durationMs: Math.round(this.finishTime * 1000),
       ranked: false,
     });
   }

@@ -38,6 +38,13 @@ export interface InputSnapshot {
    * which is a level and is always true when autofire is on.
    */
   firePressed: boolean;
+  /**
+   * True while a fire key is physically held, whatever autofire says.
+   * `firing` can't tell you this -- with autofire on it's always true -- and
+   * a game where holding the button does something (Forest Dash's glide)
+   * needs the key's real level.
+   */
+  fireHeld: boolean;
 }
 
 /** True when the event came from somewhere the player is typing. */
@@ -102,6 +109,7 @@ export class Input {
       pointerDown: this.pointerDown,
       secondaryTaps: this.secondaryTaps,
       firePressed: this.firePressed,
+      fireHeld: this.anyHeld(KEYS_FIRE),
     };
     this.dragX = 0;
     this.dragY = 0;

@@ -78,6 +78,13 @@ export interface RunSummary {
    */
   ranked?: boolean;
 
+  /**
+   * How long the run took, when the game knows better than the shell's clock
+   * -- a race whose countdown and victory lap shouldn't count. Defaults to the
+   * time since the game started.
+   */
+  durationMs?: number;
+
   /** Replaces "GAME OVER" -- for modes where losing isn't a concept. */
   headline?: string;
 }
