@@ -158,3 +158,63 @@ export function makeReturnPath(target: Vec2, viewWidth: number): Path {
     target,
   );
 }
+
+/**
+ * A bonus-stage pass.
+ *
+ * Challenge stages aren't a fight -- nothing shoots back and nothing rams you.
+ * The whole stage is a shooting gallery of squadrons flying showy set routes,
+ * and the tension comes entirely from the perfect bonus riding on hitting every
+ * last one. So these paths are chosen to look good and stay readable rather
+ * than to threaten: wide arcs that cross the screen and leave.
+ */
+export function makeBonusPath(
+  variant: number,
+  viewWidth: number,
+  viewHeight: number,
+): Path {
+  const midY = viewHeight * 0.42;
+  switch (variant % 4) {
+    case 0: // sweep in low from the left, arc up and out of the top right
+      return makePath(
+        { x: -50, y: viewHeight * 0.62 },
+        { x: viewWidth * 0.35, y: viewHeight * 0.18 },
+        { x: viewWidth * 0.75, y: midY + 80 },
+        { x: viewWidth + 50, y: viewHeight * 0.1 },
+      );
+    case 1: // mirror of the above
+      return makePath(
+        { x: viewWidth + 50, y: viewHeight * 0.62 },
+        { x: viewWidth * 0.65, y: viewHeight * 0.18 },
+        { x: viewWidth * 0.25, y: midY + 80 },
+        { x: -50, y: viewHeight * 0.1 },
+      );
+    case 2: // drop in from the top left, loop through the middle, exit left
+      return makePath(
+        { x: viewWidth * 0.2, y: -50 },
+        { x: viewWidth * 1.05, y: midY },
+        { x: viewWidth * -0.1, y: midY + 60 },
+        { x: viewWidth * 0.4, y: viewHeight + 50 },
+      );
+    default: // mirror
+      return makePath(
+        { x: viewWidth * 0.8, y: -50 },
+        { x: viewWidth * -0.05, y: midY },
+        { x: viewWidth * 1.1, y: midY + 60 },
+        { x: viewWidth * 0.6, y: viewHeight + 50 },
+      );
+  }
+}
+
+/** The dreadnought's entrance: a slow, heavy drop into its holding station. */
+export function makeBossEntryPath(
+  viewWidth: number,
+  stationY: number,
+): Path {
+  return makePath(
+    { x: viewWidth / 2, y: -90 },
+    { x: viewWidth / 2, y: -20 },
+    { x: viewWidth / 2, y: stationY - 40 },
+    { x: viewWidth / 2, y: stationY },
+  );
+}

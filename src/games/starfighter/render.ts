@@ -19,6 +19,8 @@ export const PALETTE = {
   grunt: "#ff5470",
   escort: "#c46bff",
   cruiser: "#ffc14d",
+  dreadnought: "#ff8a3d",
+  dreadnoughtDark: "#c2561c",
   enemyBullet: "#ff9f6b",
   tractor: "#ffe08a",
 } as const;
@@ -27,6 +29,7 @@ const ENEMY_COLOR: Record<EnemyKind, string> = {
   grunt: PALETTE.grunt,
   escort: PALETTE.escort,
   cruiser: PALETTE.cruiser,
+  dreadnought: PALETTE.dreadnought,
 };
 
 // ---------- Starfield ----------
@@ -292,5 +295,109 @@ export function drawScorePopup(
   ctx.font = '700 11px ui-monospace, "SF Mono", Menlo, monospace';
   ctx.textAlign = "center";
   ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// ---------- Boss ----------
+
+/**
+ * The dreadnought.
+ *
+ * Built big and asymmetric-free: a wide hull with a lit core, flanking gun
+ * pods and a jagged underside. It has to read instantly as "this one is
+ * different" against a screen that otherwise only holds small fighters, so it
+ * gets scale, its own colour, and a core that pulses faster as it takes damage.
+ */
+export function drawBoss(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  flash: boolean,
+  hpFraction: number,
+  t: number,
+): void {
+  const body = flash ? "#ffffff" : PALETTE.dreadnought;
+  // The core beats faster the closer it is to going up.
+  const urgency = 3 + (1 - hpFraction) * 9;
+  const pulse = 0.55 + Math.sin(t * urgency) * 0.45;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Main hull.
+  ctx.fillStyle = flash ? "#ffffff" : PALETTE.dreadnoughtDark;
+  ctx.beginPath();
+  ctx.moveTo(-46, -6);
+  ctx.lineTo(-30, -20);
+  ctx.lineTo(30, -20);
+  ctx.lineTo(46, -6);
+  ctx.lineTo(34, 12);
+  ctx.lineTo(16, 6);
+  ctx.lineTo(8, 20);
+  ctx.lineTo(-8, 20);
+  ctx.lineTo(-16, 6);
+  ctx.lineTo(-34, 12);
+  ctx.closePath();
+  ctx.fill();
+
+  // Upper deck.
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(-30, -18);
+  ctx.lineTo(-18, -28);
+  ctx.lineTo(18, -28);
+  ctx.lineTo(30, -18);
+  ctx.closePath();
+  ctx.fill();
+
+  // Gun pods, one each side.
+  for (const side of [-1, 1] as const) {
+    ctx.fillStyle = body;
+    ctx.fillRect(side * 38 - 5, -8, 10, 18);
+    ctx.fillStyle = flash ? "#ffffff" : PALETTE.enemyBullet;
+    ctx.fillRect(side * 38 - 2, 8, 4, 6);
+  }
+
+  // The core. This is the bit the player is aiming at.
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  const core = ctx.createRadialGradient(0, -4, 1, 0, -4, 20 * pulse);
+  core.addColorStop(0, "rgba(255, 246, 216, 0.95)");
+  core.addColorStop(0.5, `rgba(255, 160, 80, ${0.5 * pulse})`);
+  core.addColorStop(1, "rgba(255, 120, 40, 0)");
+  ctx.fillStyle = core;
+  ctx.beginPath();
+  ctx.arc(0, -4, 20 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/** The boss health bar, pinned under the HUD so it never covers the fight. */
+export function drawBossHealthBar(
+  ctx: CanvasRenderingContext2D,
+  viewWidth: number,
+  top: number,
+  fraction: number,
+): void {
+  const w = viewWidth * 0.62;
+  const x = (viewWidth - w) / 2;
+  const h = 6;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  ctx.beginPath();
+  ctx.roundRect(x, top, w, h, 3);
+  ctx.fill();
+
+  const filled = Math.max(0, Math.min(1, fraction));
+  // Shades toward red as it empties, so the state is readable at a glance
+  // without having to compare bar lengths.
+  const colour = filled > 0.5 ? PALETTE.dreadnought : "#ff4d6d";
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.roundRect(x, top, Math.max(2, w * filled), h, 3);
+  ctx.fill();
   ctx.restore();
 }
