@@ -18,7 +18,9 @@ import {
   START_LENGTH,
   START_ROW,
   advance,
+  CLASSIC_MAX_LEVEL,
   classicBonusValue,
+  classicLevel,
   classicSpeed,
   createSnake,
   pickFreeCell,
@@ -214,9 +216,22 @@ describe("snake: food and pickups", () => {
 });
 
 describe("snake: classic pace and bonus", () => {
-  it("speeds up with every piece of food, to a ceiling", () => {
-    assert.ok(classicSpeed(10) > classicSpeed(0));
+  it("goes up a level every five pieces of food, to level 9", () => {
+    assert.equal(classicLevel(0), 1);
+    assert.equal(classicLevel(4), 1);
+    assert.equal(classicLevel(5), 2);
+    assert.equal(classicLevel(40), CLASSIC_MAX_LEVEL);
+    assert.equal(classicLevel(400), CLASSIC_MAX_LEVEL);
+  });
+
+  it("starts at a stroll and gets quicker with every level, to a ceiling", () => {
+    assert.ok(classicSpeed(0) <= 5, "level 1 has to be slow enough to learn on");
+    for (let food = 5; food <= 40; food += 5) {
+      assert.ok(classicSpeed(food) > classicSpeed(food - 5), `no step up at ${food}`);
+    }
+    assert.equal(classicSpeed(4), classicSpeed(0), "speed holds steady within a level");
     assert.equal(classicSpeed(40), classicSpeed(400));
+    assert.ok(classicSpeed(400) <= 10.5);
   });
 
   it("pays 100 for an instant bonus, counting down in tens to 10", () => {

@@ -173,7 +173,9 @@ Emulators can't tell you how the controls feel. Worth doing once:
       the phone's share sheet opens, and what it sends has squares but no
       letters.
 - [ ] Hyper Snake: in **CLASSIC**, a fast up-then-left with one thumb makes
-      both turns, without lifting. In **HYPER**, hold **BOOST** with the right
+      both turns, without lifting; level 1 is slow enough to learn on. Switch
+      **CONTROLS** to **KEYPAD** on the title card: the 2-4-6-8 keys fit under
+      a thumb, the board shrinks to make room, and nothing overlaps. In **HYPER**, hold **BOOST** with the right
       thumb and steer with the left at the same time; a laser shows its
       flickering line before it fires; and losing a life keeps the apples
       already eaten. Finish a run in each and confirm they land on different

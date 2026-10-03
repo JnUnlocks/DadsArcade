@@ -205,9 +205,24 @@ export const CLASSIC_FOOD_POINTS = 10;
 export const CLASSIC_BONUS_EVERY = 5;
 export const CLASSIC_BONUS_SECONDS = 6;
 
-/** Steps per second. Starts gentle and tops out where it's still readable. */
+/**
+ * Classic has nine levels, like the speed setting on the phone -- except
+ * here you climb them by eating rather than picking one from a menu.
+ */
+export const CLASSIC_MAX_LEVEL = 9;
+export const CLASSIC_FOOD_PER_LEVEL = 5;
+
+export function classicLevel(foodEaten: number): number {
+  return Math.min(CLASSIC_MAX_LEVEL, 1 + Math.floor(foodEaten / CLASSIC_FOOD_PER_LEVEL));
+}
+
+/**
+ * Steps per second. Level 1 is a stroll -- slow enough to learn the controls
+ * on -- and each level is a clear step quicker, up to a level 9 that's fast
+ * but still readable.
+ */
 export function classicSpeed(foodEaten: number): number {
-  return Math.min(10.5, 6.5 + foodEaten * 0.1);
+  return 5 + (classicLevel(foodEaten) - 1) * 0.65;
 }
 
 /** The bonus is worth less the longer it's left: 100 down to 10, in tens. */

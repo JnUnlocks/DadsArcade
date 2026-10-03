@@ -102,11 +102,15 @@ export function drawLcdPanel(
 
 const lcdInk = (highContrast: boolean): string => (highContrast ? LCD.inkStrong : LCD.ink);
 
-/** Score on the left, the bonus countdown on the right, like the original. */
+/**
+ * Score on the left and the level beside it. When a bonus is out, its
+ * countdown takes the right, like the original.
+ */
 export function drawLcdHeader(
   ctx: CanvasRenderingContext2D,
   layout: Layout,
   score: number,
+  level: number,
   bonusValue: number | null,
   highContrast: boolean,
 ): void {
@@ -117,6 +121,10 @@ export function drawLcdHeader(
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   ctx.fillText(String(score).padStart(4, "0"), layout.x0 - 2, y);
+  ctx.textAlign = "center";
+  ctx.font = `700 12px ${FONT}`;
+  ctx.fillText(`LEVEL ${level}`, layout.x0 + (layout.cell * COLS) / 2, y);
+  ctx.font = `700 15px ${FONT}`;
   if (bonusValue !== null) {
     ctx.textAlign = "right";
     ctx.fillText(String(bonusValue).padStart(3, "0"), layout.x0 + layout.cell * COLS + 2, y);

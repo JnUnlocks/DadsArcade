@@ -5,7 +5,8 @@
  *
  *   CLASSIC  The 1997 rules, on the 1997 screen. A walled field, one life,
  *            and a snake that moves a whole square at a time. Every fifth
- *            piece of food a bonus critter turns up, worth less the longer
+ *            piece of food is a level: the snake gets a step quicker, up to
+ *            level 9, and a bonus critter turns up, worth less the longer
  *            you leave it. Nothing else. It has its own scoreboard, because
  *            a Classic score and a Hyper score aren't the same kind of number.
  *
@@ -21,6 +22,9 @@
  * What both keep from the original, because it's what made it good: turns are
  * buffered so a fast UP-then-LEFT never drops one, and you can follow your own
  * tail through the square it's just leaving. See rules.ts.
+ *
+ * Swiping is the default, but the phone this came from had buttons, so the
+ * title card offers a keypad too: 2, 4, 6 and 8, laid out as they were.
  */
 
 import type { GameHost, GameInstance, GameModule, HudState } from "../../core/game";
@@ -37,6 +41,7 @@ import {
   advance,
   cellKey,
   classicBonusValue,
+  classicLevel,
   classicSpeed,
   createSnake,
   occupies,
@@ -88,6 +93,15 @@ const GAME_ID = "snake";
 /** Classic runs are filed here, apart from the Hyper board. */
 export const CLASSIC_BOARD = "classic";
 const MODE_KEY = "hyperdrive.snake.mode";
+const KEYPAD_KEY = "hyperdrive.snake.keypad";
+
+/** The phone's own steering keys, and the desktop number keys that match. */
+const KEYPAD: ReadonlyArray<{ digit: string; letters: string; dir: Dir; label: string }> = [
+  { digit: "2", letters: "abc", dir: "up", label: "Up" },
+  { digit: "4", letters: "ghi", dir: "left", label: "Left" },
+  { digit: "6", letters: "mno", dir: "right", label: "Right" },
+  { digit: "8", letters: "tuv", dir: "down", label: "Down" },
+];
 
 const READY_TIME = 1.3;
 const DYING_TIME = 1.3;
@@ -125,6 +139,8 @@ class HyperSnake implements GameInstance {
   private readonly particles = new Particles();
   private readonly root: HTMLElement;
   private readonly boostButton: HTMLButtonElement;
+  private readonly keypad: HTMLElement;
+  private useKeypad = loadKeypad();
 
   private mode: Mode = loadLastMode();
   private phase: Phase = "choosing";
@@ -163,13 +179,14 @@ class HyperSnake implements GameInstance {
   private lastAxisY = 0;
 
   private layout: Layout = { cell: 18, x0: 0, y0: 0 };
-  private layoutFor = { w: 0, h: 0, mode: "" };
+  private layoutFor = { w: 0, h: 0, key: "" };
 
   constructor(host: GameHost) {
     this.host = host;
     this.root = document.createElement("div");
     this.root.className = "snake-root";
     this.boostButton = this.buildBoostButton();
+    this.keypad = this.buildKeypad();
     this.buildChooser();
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
@@ -222,12 +239,68 @@ class HyperSnake implements GameInstance {
       ),
     );
 
+    // Swipe or buttons. The choice is remembered, and swiping keeps working
+    // with the keypad up, so nobody is ever stuck with the wrong one.
+    const controls = document.createElement("button");
+    controls.className = "snake-controls";
     const hint = document.createElement("p");
     hint.className = "snake-hint";
-    hint.textContent = "Swipe anywhere to turn. Arrow keys work too.";
-    panel.append(hint);
+    const describe = () => {
+      controls.textContent = this.useKeypad ? "CONTROLS: KEYPAD" : "CONTROLS: SWIPE";
+      controls.setAttribute("aria-pressed", String(this.useKeypad));
+      hint.textContent = this.useKeypad
+        ? "Steer with 2, 4, 6 and 8, like the old phone."
+        : "Swipe anywhere to turn. Tap for buttons instead.";
+    };
+    controls.addEventListener("click", () => {
+      this.useKeypad = !this.useKeypad;
+      saveKeypad(this.useKeypad);
+      this.host.sfx("uiMove");
+      describe();
+    });
+    describe();
+    panel.append(controls, hint);
 
+    this.root.classList.remove("snake-root--keypad");
     this.root.replaceChildren(panel);
+  }
+
+  /**
+   * The four steering keys off a phone keypad, in the cross they made there:
+   * 2 up, 4 left, 6 right, 8 down, with a blank 5 between them.
+   */
+  private buildKeypad(): HTMLElement {
+    const pad = document.createElement("div");
+    pad.className = "snake-keypad";
+    pad.setAttribute("role", "group");
+    pad.setAttribute("aria-label", "Steer");
+
+    for (const key of KEYPAD) {
+      const button = document.createElement("button");
+      button.className = `snake-key snake-key--${key.dir}`;
+      button.setAttribute("aria-label", key.label);
+      const digit = document.createElement("span");
+      digit.className = "snake-key__digit";
+      digit.textContent = key.digit;
+      const letters = document.createElement("span");
+      letters.className = "snake-key__letters";
+      letters.textContent = key.letters;
+      button.append(digit, letters);
+      // pointerdown, not click: a turn that waits for the thumb to lift
+      // arrives a square too late.
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        if (this.phase !== "choosing") queueTurn(this.snake, key.dir);
+      });
+      button.addEventListener("contextmenu", (event) => event.preventDefault());
+      pad.append(button);
+    }
+    const middle = document.createElement("span");
+    middle.className = "snake-key snake-key--middle";
+    middle.setAttribute("aria-hidden", "true");
+    middle.textContent = "5";
+    pad.append(middle);
+    return pad;
   }
 
   private buildBoostButton(): HTMLButtonElement {
@@ -260,7 +333,11 @@ class HyperSnake implements GameInstance {
     this.mode = mode;
     saveLastMode(mode);
     this.host.sfx("uiSelect");
-    this.root.replaceChildren(...(mode === "hyper" ? [this.boostButton] : []));
+    this.root.classList.toggle("snake-root--keypad", this.useKeypad);
+    this.root.replaceChildren(
+      ...(this.useKeypad ? [this.keypad] : []),
+      ...(mode === "hyper" ? [this.boostButton] : []),
+    );
 
     this.snake = createSnake(mode === "hyper");
     this.foodEaten = 0;
@@ -294,6 +371,9 @@ class HyperSnake implements GameInstance {
 
   private readonly onKeyDown = (event: KeyboardEvent) => {
     if (event.code === "Space") this.boostKey = true;
+    // 2, 4, 6 and 8 steer on a real keyboard too, top row or number pad.
+    const key = KEYPAD.find((k) => event.code === `Digit${k.digit}` || event.code === `Numpad${k.digit}`);
+    if (key && this.phase !== "choosing" && !event.repeat) queueTurn(this.snake, key.dir);
   };
 
   private readonly onKeyUp = (event: KeyboardEvent) => {
@@ -439,7 +519,13 @@ class HyperSnake implements GameInstance {
 
     if (this.mode === "classic") {
       this.host.addScore(CLASSIC_FOOD_POINTS);
-      this.host.sfx("uiMove");
+      const level = classicLevel(this.foodEaten);
+      if (level > classicLevel(this.foodEaten - 1)) {
+        this.host.sfx("levelUp");
+        this.popup(head, `LEVEL ${level}`, LCD.bg);
+      } else {
+        this.host.sfx("uiMove");
+      }
       this.placeFood();
       if (this.foodEaten % CLASSIC_BONUS_EVERY === 0 && !this.bonus) {
         const cell = pickFreeCell(this.rng, (c, r) => !this.isEmpty(c, r));
@@ -674,13 +760,16 @@ class HyperSnake implements GameInstance {
   private ensureLayout(): void {
     const { w, h, insetTop, insetBottom } = this.host.view;
     const f = this.layoutFor;
-    if (f.w === w && f.h === h && f.mode === this.mode) return;
-    this.layoutFor = { w, h, mode: this.mode };
+    const key = `${this.mode}:${this.useKeypad}`;
+    if (f.w === w && f.h === h && f.key === key) return;
+    this.layoutFor = { w, h, key };
 
     const classic = this.mode === "classic";
     const top = insetTop + 58 + (classic ? LCD_HEADER + LCD_PAD + 4 : FRAME + 2);
-    // Hyper keeps room under the board for BOOST and the lives row.
-    const bottom = h - insetBottom - (classic ? LCD_PAD + 12 : 84);
+    // Hyper keeps room under the board for BOOST and the lives row, and the
+    // keypad needs a good deal more in either mode.
+    const under = this.useKeypad ? (classic ? 172 : 204) : classic ? LCD_PAD + 12 : 84;
+    const bottom = h - insetBottom - under;
     const side = classic ? LCD_PAD + 6 : FRAME + 3;
     const cell = Math.min((w - side * 2) / COLS, (bottom - top) / ROWS);
     this.layout = {
@@ -716,6 +805,7 @@ class HyperSnake implements GameInstance {
       ctx,
       layout,
       this.host.score,
+      classicLevel(this.foodEaten),
       this.bonus ? classicBonusValue(this.bonus.left) : null,
       highContrast,
     );
@@ -831,6 +921,22 @@ function loadLastMode(): Mode {
   }
 }
 
+function loadKeypad(): boolean {
+  try {
+    return localStorage.getItem(KEYPAD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveKeypad(on: boolean): void {
+  try {
+    localStorage.setItem(KEYPAD_KEY, on ? "1" : "0");
+  } catch {
+    // Storage disabled -- the choice just won't be remembered.
+  }
+}
+
 function saveLastMode(mode: Mode): void {
   try {
     localStorage.setItem(MODE_KEY, mode);
@@ -844,7 +950,7 @@ export const snakeModule: GameModule = {
   title: "JB'S HYPER SNAKE",
   shortTitle: "SNAKE",
   progressShort: "ST",
-  blurb: "Swipe to turn. The old phone's snake, or the neon one with lasers.",
+  blurb: "Swipe or use the keypad. The old phone's snake, or the neon one with lasers.",
   accent: "#ff5247",
   extraBoard: { id: CLASSIC_BOARD, label: "CLASSIC", progressShort: "LEN" },
 

@@ -93,6 +93,112 @@
   text-align: center;
 }
 
+/* The swipe-or-buttons switch under the two modes. */
+.snake-controls {
+  align-self: center;
+  min-height: calc(40px * var(--ui-scale));
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(142, 163, 200, 0.45);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.snake-controls[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ----- Keypad ----- */
+
+/* With the keypad up the controls sit in one row: keys on the left, BOOST on
+   the right in HYPER, and the keys centred on their own in CLASSIC. HYPER's
+   lives are drawn in the bottom-left corner, so the row is lifted clear. */
+#ui > .snake-root--keypad {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+}
+
+#ui > .snake-root--keypad:has(.snake-boost) {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 42px);
+}
+
+.snake-root--keypad .snake-keypad:only-child {
+  margin: 0 auto;
+}
+
+.snake-root--keypad .snake-boost {
+  margin-left: 0;
+}
+
+/* A 3x3 grid with only the cross filled in, the way the phone's 2-4-6-8 sat. */
+.snake-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 58px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 5px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.snake-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  border-radius: 14px / 18px;
+  border: 1.5px solid #8b95ab;
+  background: linear-gradient(#e9edf5, #b9c1d2);
+  color: #1b2233;
+  font-family: var(--font);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.snake-key:active {
+  background: linear-gradient(#b9c1d2, #9aa3b8);
+  transform: translateY(1px);
+}
+
+.snake-key--up { grid-area: 1 / 2; }
+.snake-key--left { grid-area: 2 / 1; }
+.snake-key--right { grid-area: 2 / 3; }
+.snake-key--down { grid-area: 3 / 2; }
+
+.snake-key--middle {
+  grid-area: 2 / 2;
+  border-color: rgba(139, 149, 171, 0.35);
+  background: rgba(233, 237, 245, 0.08);
+  color: rgba(232, 240, 255, 0.3);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.snake-key__digit {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.snake-key__letters {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  opacity: 0.7;
+}
+
 /* ----- BOOST ----- */
 
 /* Bottom-right, under the right thumb; the lives sit bottom-left. */
@@ -125,6 +231,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .snake-mode:active,
+  .snake-key:active,
   .snake-boost.is-held {
     transform: none;
   }

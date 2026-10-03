@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.16.1",
+    date: "2026-10-02",
+    title: "Snake: a gentler start and a keypad",
+    notes: [
+      "CLASSIC Snake starts slower now and has levels. Every five bites is a level: the snake gets a step quicker, up to level 9. The level is shown at the top of the green screen.",
+      "You can steer Snake with buttons instead of swiping. On its title screen, tap CONTROLS to switch to KEYPAD: the 2, 4, 6 and 8 keys from the old phone, for up, left, right and down. It works in both modes, and swiping still works with the keypad on.",
+    ],
+  },
+  {
     version: "0.16.0",
     date: "2026-10-02",
     title: "Starfighter gets bosses, bonus stages and a wingman",
