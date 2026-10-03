@@ -17,6 +17,7 @@ import { blackDiscModule } from "./blackdisc";
 import { plasmaSortModule } from "./plasmasort";
 import { letterLockModule } from "./letterlock";
 import { snakeModule } from "./snake";
+import { forestDashModule } from "./forestdash";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -33,4 +34,6 @@ export const GAMES: GameModule[] = [
   brickfallModule,
   slimeShopModule,
   blackDiscModule,
+  // The newest cabinet goes on the end, as Snake did when it arrived.
+  forestDashModule,
 ];

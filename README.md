@@ -1,6 +1,6 @@
 # Dad's Arcade
 
-A mobile-first PWA arcade, built for Dad. Ten games, a shared online
+A mobile-first PWA arcade, built for Dad. Twelve games, a shared online
 leaderboard, a real pause button, and it plays with no signal.
 
 **[play.hyperdrive-arcade.workers.dev](https://play.hyperdrive-arcade.workers.dev)**
@@ -28,6 +28,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Letter Lock** | Five-letter word-guessing games | Six tries, three answers per letter — right spot, wrong spot, not in the word — and one word a day that's the same for everyone, so a grid of coloured squares in the family chat means something |
 | **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
 | **JB's Hyper Snake** | The snake on a late-90s phone | Two games on one cabinet. CLASSIC is the original on its green screen: one life, solid walls, a snake that moves a square at a time. HYPER opens the edges so you leave by one side and return by the other, and adds stages, crates, lasers that warn before they fire, and a BOOST that doubles what you eat. Both keep the two things that made it fair — turns are buffered two deep, and you can follow your tail into the square it's leaving |
+| **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
