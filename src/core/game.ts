@@ -78,6 +78,13 @@ export interface RunSummary {
    */
   ranked?: boolean;
 
+  /**
+   * How long the run took, when the game knows better than the shell's clock
+   * -- a race whose countdown and victory lap shouldn't count. Defaults to the
+   * time since the game started.
+   */
+  durationMs?: number;
+
   /** Replaces "GAME OVER" -- for modes where losing isn't a concept. */
   headline?: string;
 }
@@ -148,6 +155,12 @@ export interface GameModule {
    * an empty tab.
    */
   readonly hasDailyChallenge?: boolean;
+  /**
+   * True while a cabinet is still being tried out by the family. Its tile
+   * wears a BETA badge, so anyone who opens it knows to expect rough edges
+   * and that feedback is wanted. Remove it when the game is finished.
+   */
+  readonly beta?: boolean;
   /**
    * A second, permanent board for a mode whose scores aren't on the same scale
    * as the main one -- Snake's CLASSIC, next to its HYPER. Runs reach it by

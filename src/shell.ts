@@ -384,6 +384,7 @@ export class Shell implements GameHost {
     button.setAttribute(
       "aria-label",
       `${game.title}. ${game.blurb}` +
+        (game.beta ? " Still being tested." : "") +
         (hasFreshDaily ? " Today's challenge is up." : ""),
     );
 
@@ -420,6 +421,9 @@ export class Shell implements GameHost {
     const hint = el("span", "cabinet-hint", game.blurb);
 
     button.append(art, name, hint);
+    if (game.beta) {
+      button.append(el("span", "cabinet-badge cabinet-badge--beta", "BETA"));
+    }
     if (hasFreshDaily) {
       button.append(el("span", "cabinet-badge", "TODAY"));
     }
@@ -634,7 +638,8 @@ export class Shell implements GameHost {
       badge.style.color = "var(--accent-warm)";
       screen.append(badge);
     }
-    const seconds = Math.round(this.elapsedMs / 1000);
+    const durationMs = summary.durationMs ?? this.elapsedMs;
+    const seconds = Math.round(durationMs / 1000);
     screen.append(
       el(
         "p",
@@ -664,7 +669,7 @@ export class Shell implements GameHost {
       gameId: this.module?.id ?? "unknown",
       score: this._score,
       wave: summary.progress,
-      durationMs: Math.round(this.elapsedMs),
+      durationMs: Math.round(durationMs),
       playedAt: Date.now(),
       ...(summary.boardId ? { boardId: summary.boardId } : {}),
     };

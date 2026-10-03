@@ -49,6 +49,7 @@ const IDLE = {
   pointerDown: false,
   secondaryTaps: 0,
   firePressed: false,
+  fireHeld: false,
 };
 /**
  * A tap is a touch pressed and then released without becoming a swipe.

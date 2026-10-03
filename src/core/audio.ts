@@ -91,7 +91,13 @@ export type SoundName =
   | "lockClose"
   | "lockLocked"
   | "lockOpen"
-  | "lockMiss";
+  | "lockMiss"
+  // Forest Dash
+  | "dashJump"
+  | "dashBounce"
+  | "dashTrip"
+  | "dashAcorn"
+  | "dashFinish";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -535,6 +541,27 @@ export class AudioEngine {
         // Soft and settling rather than a buzzer. A child hears this one, and
         // it should sound like "that's all for today", not like being told off.
         this.arpeggio(t, [523, 440, 392], 0.16, "sine", 0.15);
+        break;
+
+      // ----- Forest Dash -----
+      case "dashJump":
+        // Soft and woody, because it fires every couple of seconds.
+        this.blip(t, "triangle", 300, 560, 0.1, 0.13);
+        break;
+      case "dashBounce":
+        // The mushroom cap giving way and springing back: a long rubbery rise.
+        this.blip(t, "sine", 140, 720, 0.28, 0.2, 11);
+        break;
+      case "dashTrip":
+        this.blip(t, "triangle", 260, 120, 0.14, 0.16);
+        this.burst(t, 0.06, 900, 300, 0.1);
+        break;
+      case "dashAcorn":
+        this.blip(t, "sine", 1046, 1568, 0.06, 0.1);
+        break;
+      case "dashFinish":
+        this.arpeggio(t, [392, 523, 659, 784, 1047], 0.08, "triangle", 0.22);
+        this.blip(t + 0.42, "sine", 1047, 1047, 0.36, 0.13, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
