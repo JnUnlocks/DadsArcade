@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.16.2",
+    date: "2026-10-02",
+    title: "Snake moves up",
+    notes: [
+      "JB's Hyper Snake is now the fourth machine on the menu, right next to Starfighter. Everything else is in the same order as before.",
+    ],
+  },
+  {
     version: "0.16.1",
     date: "2026-10-02",
     title: "Snake: a gentler start and a keypad",

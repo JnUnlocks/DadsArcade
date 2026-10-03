@@ -24,6 +24,8 @@ export const GAMES: GameModule[] = [
   plasmaSortModule,
   letterLockModule,
   starfighterModule,
+  // Snake sits beside Starfighter: the two straight arcade games, together.
+  snakeModule,
   mallardModule,
   reefModule,
   towerModule,
@@ -31,5 +33,4 @@ export const GAMES: GameModule[] = [
   brickfallModule,
   slimeShopModule,
   blackDiscModule,
-  snakeModule,
 ];
