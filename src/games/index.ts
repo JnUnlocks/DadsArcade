@@ -16,6 +16,7 @@ import { towerModule } from "./tower";
 import { blackDiscModule } from "./blackdisc";
 import { plasmaSortModule } from "./plasmasort";
 import { letterLockModule } from "./letterlock";
+import { snakeModule } from "./snake";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -30,4 +31,5 @@ export const GAMES: GameModule[] = [
   brickfallModule,
   slimeShopModule,
   blackDiscModule,
+  snakeModule,
 ];

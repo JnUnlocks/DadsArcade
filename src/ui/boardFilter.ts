@@ -11,9 +11,10 @@ import type { GameModule } from "../core/game.ts";
 /**
  * ALL TIME and THIS WEEK are date filters on a game's main board. TODAY is a
  * different board entirely -- the daily challenge, where everyone played the
- * same seeded run.
+ * same seeded run. So is "extra": a game's second permanent board, for a mode
+ * that scores on a different scale (Snake's CLASSIC).
  */
-export type Slice = "all" | "week" | "today";
+export type Slice = "all" | "week" | "today" | "extra";
 
 /** null means "all games". */
 export type GameFilter = string | null;
@@ -21,6 +22,18 @@ export type GameFilter = string | null;
 /** TODAY only makes sense where at least one selected game has a daily board. */
 export function todayAvailable(games: readonly GameModule[], filter: GameFilter): boolean {
   return gamesInView(games, filter).some((g) => g.hasDailyChallenge);
+}
+
+/**
+ * The game whose extra board the fourth tab would open, if there is one in
+ * view. A tab named after one game's mode only makes sense with that game
+ * chosen, so ALL GAMES never offers it.
+ */
+export function extraBoardGame(
+  games: readonly GameModule[],
+  filter: GameFilter,
+): GameModule | undefined {
+  return filter === null ? undefined : gamesInView(games, filter).find((g) => g.extraBoard);
 }
 
 /**
@@ -33,7 +46,9 @@ export function sliceAfterFilterChange(
   filter: GameFilter,
   slice: Slice,
 ): Slice {
-  return slice === "today" && !todayAvailable(games, filter) ? "all" : slice;
+  if (slice === "today" && !todayAvailable(games, filter)) return "all";
+  if (slice === "extra" && !extraBoardGame(games, filter)) return "all";
+  return slice;
 }
 
 /** The games whose scores belong on screen for this filter and slice. */
@@ -43,7 +58,9 @@ export function gamesInView(
   slice: Slice = "all",
 ): readonly GameModule[] {
   const selected = filter === null ? games : games.filter((g) => g.id === filter);
-  return slice === "today" ? selected.filter((g) => g.hasDailyChallenge) : selected;
+  if (slice === "today") return selected.filter((g) => g.hasDailyChallenge);
+  if (slice === "extra") return selected.filter((g) => g.extraBoard);
+  return selected;
 }
 
 export function shortTitleOf(game: GameModule): string {
@@ -51,6 +68,12 @@ export function shortTitleOf(game: GameModule): string {
 }
 
 /** "LV7", "RD3", "W6" -- what a score row prints after the score. */
-export function progressText(game: GameModule | undefined, progress: number): string {
-  return `${game?.progressShort ?? "W"}${progress}`;
+export function progressText(
+  game: GameModule | undefined,
+  progress: number,
+  slice: Slice = "all",
+): string {
+  const short =
+    (slice === "extra" ? game?.extraBoard?.progressShort : undefined) ?? game?.progressShort;
+  return `${short ?? "W"}${progress}`;
 }

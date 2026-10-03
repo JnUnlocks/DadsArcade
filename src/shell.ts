@@ -137,8 +137,13 @@ export class Shell implements GameHost {
     // An unranked run is practice: it shouldn't touch the personal best any
     // more than it should reach the server.
     const ranked = summary.ranked !== false;
-    const isBest =
-      ranked && this.module ? recordBest(this.module.id, this._score) : false;
+    // A run filed on a game's extra board (Snake's CLASSIC) has its own best:
+    // the two modes score on different scales, and a Hyper score would
+    // otherwise stop a Classic one ever being a personal best.
+    const onExtraBoard =
+      summary.boardId !== undefined && summary.boardId === this.module?.extraBoard?.id;
+    const bestKey = onExtraBoard ? `${this.module?.id}:${summary.boardId}` : this.module?.id;
+    const isBest = ranked && bestKey ? recordBest(bestKey, this._score) : false;
     this.renderGameOver(summary, isBest);
   }
 

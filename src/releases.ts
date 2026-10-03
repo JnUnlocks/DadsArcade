@@ -34,6 +34,39 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.16.0",
+    date: "2026-10-02",
+    title: "Starfighter gets bosses, bonus stages and a wingman",
+    notes: [
+      "Every fifth wave of STARFIGHTER is now a boss. A dreadnought slides in across the top, fires in fans, and takes a lot of knocking down. There's a bar under the score showing how close it is to going up, and its core beats faster the nearer it gets. Each one you meet is tougher than the last.",
+      "Wave 3, and every fourth wave after that, is a bonus stage. Nothing shoots at you and nothing can crash into you -- four squadrons just fly past and you shoot at them. Hit all twenty and a second jet joins you for the rest of the run.",
+      "You can fly up to three jets at once. Three jets is three times the guns. You can still earn one the old way too, by shooting down the cruiser that stole your fighter.",
+      "While you're flying more than one jet, getting hit costs you a jet instead of a life.",
+    ],
+  },
+  {
+    version: "0.15.1",
+    date: "2026-10-02",
+    title: "Hyper Snake goes through walls",
+    notes: [
+      "In HYPER, the edges of the board are open now. Go out through one side and you come back in on the other, still heading the same way. The inside of the frame glows blue to show it.",
+      "Crates, lasers and your own tail are as solid as ever, and something can be waiting just inside the far edge, so look before you go through.",
+      "CLASSIC hasn't changed. Its wall is still a wall.",
+    ],
+  },
+  {
+    version: "0.15.0",
+    date: "2026-10-02",
+    title: "JB's Hyper Snake",
+    notes: [
+      "A new cabinet, the last tile on the menu: JB's Hyper Snake. It's two games. CLASSIC is the snake from the old phone, on the old phone's green screen: one life, solid walls, and a bonus critter every fifth bite that's worth less the longer you leave it.",
+      "HYPER is the same snake in neon. Each stage has a number of apples to eat, crates to steer round, and from stage 2, lasers. A laser always shows a flickering red line for a second before it fires. You get three lives.",
+      "In HYPER, hold BOOST to sprint. Anything you eat at a sprint scores double. There are pickups too: a shield that forgives one crash, a magnet that drags apples toward you, and gold nuts for points.",
+      "Swipe anywhere to turn. You don't have to lift your thumb between turns, and two quick turns in a row both count.",
+      "CLASSIC and HYPER keep separate scores. Pick SNAKE on the high-score screen and there's a CLASSIC tab next to ALL TIME and THIS WEEK.",
+    ],
+  },
+  {
     version: "0.14.2",
     date: "2026-10-02",
     title: "The story catches up",
