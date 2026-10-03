@@ -41,7 +41,7 @@ export const RELEASES: readonly Release[] = [
       "A new cabinet, the last tile on the menu: FOREST DASH. You're a fox racing Pip the squirrel through a glowing mushroom forest at night.",
       "The fox runs on its own. Tap to jump. Keep holding after the top of a jump and you glide. Bounce on the big red mushrooms, and glide into the glowing spores to float up over the widest gaps.",
       "Nothing knocks you out. Fall in a pit and you pop back a little way behind it; run into a log or a bramble and you trip and lose speed. Every race reaches the finish line.",
-      "This is an early version to try out: one fox, one course and one racer to beat, and it doesn't go on the high-score board yet. More animals, a new course every day and racing the family's best runs are on the way.",
+      "It wears a BETA tag on its tile while the family tries it out. This early version has one fox, one course and one racer to beat, and it doesn't go on the high-score board yet. More animals, a new course every day and racing the family's best runs are on the way.",
     ],
   },
   {

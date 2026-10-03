@@ -384,6 +384,7 @@ export class Shell implements GameHost {
     button.setAttribute(
       "aria-label",
       `${game.title}. ${game.blurb}` +
+        (game.beta ? " Still being tested." : "") +
         (hasFreshDaily ? " Today's challenge is up." : ""),
     );
 
@@ -420,6 +421,9 @@ export class Shell implements GameHost {
     const hint = el("span", "cabinet-hint", game.blurb);
 
     button.append(art, name, hint);
+    if (game.beta) {
+      button.append(el("span", "cabinet-badge cabinet-badge--beta", "BETA"));
+    }
     if (hasFreshDaily) {
       button.append(el("span", "cabinet-badge", "TODAY"));
     }

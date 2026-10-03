@@ -1372,6 +1372,14 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* A cabinet still being tried out. Top-left and cool-coloured, so it never
+   collides with or reads like the warm TODAY badge in the other corner. */
+.cabinet-badge--beta {
+  right: auto;
+  left: 6px;
+  background: var(--accent);
+}
+
 /* The icon inside a SHARE button (ui/shareButton.ts). Each game styles the
    button itself; the icon's size is the one thing they have in common. */
 .share-icon {

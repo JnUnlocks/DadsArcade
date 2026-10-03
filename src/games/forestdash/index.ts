@@ -334,6 +334,8 @@ export const forestDashModule: GameModule = {
   progressShort: "PL",
   blurb: "Race Pip the squirrel through the mushroom forest. Tap to jump, hold to glide.",
   accent: "#ff5a6e",
+  // In family testing until the full cast and the daily course land.
+  beta: true,
 
   drawIcon(ctx, size) {
     drawForestDashIcon(ctx, size);

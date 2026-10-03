@@ -149,6 +149,12 @@ export interface GameModule {
    */
   readonly hasDailyChallenge?: boolean;
   /**
+   * True while a cabinet is still being tried out by the family. Its tile
+   * wears a BETA badge, so anyone who opens it knows to expect rough edges
+   * and that feedback is wanted. Remove it when the game is finished.
+   */
+  readonly beta?: boolean;
+  /**
    * A second, permanent board for a mode whose scores aren't on the same scale
    * as the main one -- Snake's CLASSIC, next to its HYPER. Runs reach it by
    * reporting this id as their `boardId`; the leaderboard screen then offers
