@@ -34,6 +34,20 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.18.0",
+    date: "2026-10-03",
+    title: "Mom Mom's Crossword, and a Word Finder",
+    notes: [
+      "A new cabinet, made for Mom Mom Stec: MOM MOM'S CROSSWORD. One new crossword every day, the same grid for the whole family, printed like the puzzle page of a newspaper.",
+      "Tap a square and type. Tap the same square again to turn from across to down. The clue you're on is always above the grid, and the arrows beside it step through the rest.",
+      "It was built for a tablet first. On an iPad held sideways the grid sits on the left with both lists of clues beside it. On a phone the grid takes the top, and the CLUES button swaps the keyboard for the full list.",
+      "Stuck? CHECK tells you which letters of a word are wrong, LETTER fills in one square, WORD fills in the whole word. Each adds a little time to your clock, and nobody ever has to give up. The day's board ranks the fastest time, hints included.",
+      "QUICK and CLASSIC make a fresh puzzle whenever you want one, small or full-size. Every puzzle is saved as you go, so you can put it down and come back.",
+      "Next to it on the menu is the WORD FINDER, a helper for any crossword, including the one in the real paper. Type the letters you have with a ? for each blank, like C?T, and it lists every word that fits. It unscrambles letters too. The first time you open it, it needs a connection to fetch its dictionary.",
+      "Both wear a BETA tag while the family tries them out. Tell us which clues were too hard, too easy or just wrong.",
+    ],
+  },
+  {
     version: "0.17.0",
     date: "2026-10-03",
     title: "Forest Dash, a race through the mushroom forest",

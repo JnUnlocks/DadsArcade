@@ -18,6 +18,8 @@ import { plasmaSortModule } from "./plasmasort";
 import { letterLockModule } from "./letterlock";
 import { snakeModule } from "./snake";
 import { forestDashModule } from "./forestdash";
+import { crosswordModule } from "./crossword";
+import { wordFinderModule } from "./wordfinder";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -27,6 +29,10 @@ export const GAMES: GameModule[] = [
   starfighterModule,
   // Snake sits beside Starfighter: the two straight arcade games, together.
   snakeModule,
+  // Mom Mom's Crossword, the third daily puzzle, and the Word Finder that
+  // helps with it, side by side in the row under the first two.
+  crosswordModule,
+  wordFinderModule,
   mallardModule,
   reefModule,
   towerModule,

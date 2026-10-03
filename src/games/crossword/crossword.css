@@ -1,0 +1,950 @@
+/* ---------- Mom Mom's Crossword, and the Word Finder ---------- */
+
+/* Both cabinets are DOM from edge to edge and cover the canvas entirely. The
+   shell's canvas is a phone-shaped column however wide the screen is; a
+   crossword on a tablet wants the grid and the clue lists side by side.
+
+   Three layouts, widest last:
+     phone             grid on top, current clue above it, keyboard below,
+                       and the full clue list one button away
+     tablet, upright   the same, with both clue lists always showing
+     tablet, sideways  grid on the left; clues, hints and keyboard on the right
+
+   Two looks, set by a class on the root: --paper for the daily puzzle, which
+   is printed in THE STEC GAZETTE, and --neon for free play, which is the
+   arcade's own. Everything below reads its colours from these variables. */
+
+.xw-root {
+  --xw-bg: #05070f;
+  --xw-ink: #e8f0ff;
+  --xw-dim: #8ea3c8;
+  --xw-line: rgba(142, 163, 200, 0.5);
+  --xw-square: #111b36;
+  --xw-block: #05070f;
+  --xw-word: rgba(70, 224, 255, 0.22);
+  --xw-cursor: #46e0ff;
+  --xw-cursor-ink: #04121c;
+  --xw-helped: #ffc14d;
+  --xw-wrong: #ff4d6d;
+  --xw-panel: rgba(20, 30, 56, 0.94);
+  --xw-edge: rgba(142, 163, 200, 0.34);
+  --xw-face: var(--font);
+
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 10px)
+    calc(env(safe-area-inset-bottom, 0px) + 8px) calc(env(safe-area-inset-left, 0px) + 10px);
+  background: var(--xw-bg);
+  color: var(--xw-ink);
+  font-family: var(--xw-face);
+}
+
+/* Newsprint: cream paper, black ink, and a serif face. */
+.xw-root--paper {
+  --xw-bg: #f1ead9;
+  --xw-ink: #1b1a17;
+  --xw-dim: #5f594c;
+  --xw-line: #1b1a17;
+  --xw-square: #fffdf6;
+  --xw-block: #1b1a17;
+  --xw-word: #ffe9a3;
+  --xw-cursor: #f2b632;
+  --xw-cursor-ink: #1b1a17;
+  --xw-helped: #1d5fa8;
+  --xw-wrong: #c0271f;
+  --xw-panel: #fffdf6;
+  --xw-edge: rgba(27, 26, 23, 0.4);
+  --xw-face: Georgia, "Times New Roman", serif;
+}
+
+/* ----- The chooser ----- */
+
+.xw-root--chooser {
+  align-items: center;
+  justify-content: safe center;
+  gap: calc(18px * var(--ui-scale));
+  overflow-y: auto;
+  touch-action: pan-y;
+  background: radial-gradient(ellipse at 50% 35%, #101a36, #05070f 70%);
+}
+
+.xw-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  text-align: center;
+  /* Clears the shell's pause button on a narrow phone. */
+  padding: 56px 8px 0;
+}
+
+.xw-title-over {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.3em;
+  color: #e9dcb8;
+}
+
+.xw-title-name {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: calc(clamp(26px, 6vw, 46px) * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: #f1ead9;
+}
+
+.xw-title-sub {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.2em;
+  color: var(--dim);
+}
+
+.xw-title-streak {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-warm);
+}
+
+.xw-modes {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 460px;
+}
+
+.xw-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: calc(56px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(142, 163, 200, 0.3);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.xw-mode--daily {
+  border-color: #e9dcb8;
+  background: color-mix(in srgb, #e9dcb8 14%, rgba(8, 14, 30, 0.92));
+}
+
+.xw-mode:active,
+.xw-mode-new:active {
+  transform: scale(0.98);
+}
+
+.xw-mode-name {
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: pre;
+}
+
+.xw-mode-hint {
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.35;
+  color: var(--dim);
+}
+
+.xw-mode-row {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.xw-mode-new {
+  flex: 0 0 calc(72px * var(--ui-scale));
+  border-radius: 14px;
+  border: 1.5px solid rgba(44, 232, 138, 0.6);
+  background: color-mix(in srgb, #2ce88a 12%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.xw-modes-note {
+  max-width: 460px;
+  padding: 0 8px;
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.5;
+  text-align: center;
+  color: var(--dim);
+}
+
+/* ----- Masthead ----- */
+
+.xw-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  /* The shell's pause button sits in the top right corner. */
+  padding-right: 66px;
+}
+
+.xw-masthead {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.xw-paper-name {
+  font-size: calc(clamp(17px, 3.4vw, 30px) * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xw-dateline {
+  margin-top: 3px;
+  font-size: calc(clamp(8px, 1.4vw, 11px) * var(--ui-scale));
+  letter-spacing: 0.08em;
+  color: var(--xw-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xw-root--paper .xw-masthead {
+  padding-bottom: 5px;
+  border-bottom: 3px double var(--xw-line);
+}
+
+.xw-clock {
+  flex: none;
+  min-width: 3.4em;
+  font-family: var(--font);
+  font-size: calc(18px * var(--ui-scale));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ----- Body ----- */
+
+.xw-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.xw-board {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--ui-scale));
+}
+
+.xw-side {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+}
+
+/* ----- The current clue ----- */
+
+.xw-cluebar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-height: calc(46px * var(--ui-scale));
+}
+
+.xw-cluebar-arrow,
+.xw-cluebar-body {
+  border: 1.5px solid var(--xw-edge);
+  border-radius: 10px;
+  background: var(--xw-word);
+  color: var(--xw-ink);
+  font-family: var(--xw-face);
+  cursor: pointer;
+}
+
+.xw-cluebar-arrow {
+  flex: 0 0 calc(44px * var(--ui-scale));
+  font-size: calc(24px * var(--ui-scale));
+  line-height: 1;
+}
+
+.xw-cluebar-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.xw-cluebar-label {
+  flex: none;
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.xw-cluebar-text {
+  font-size: calc(clamp(13px, 2vw, 18px) * var(--ui-scale));
+  line-height: 1.25;
+}
+
+/* ----- The grid ----- */
+
+.xw-gridwrap {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Its width and height are set in pixels by the game: the biggest square that
+   fits the wrap. --xw-cell is one square's side, for sizing the letters. */
+.xw-grid {
+  --xw-cell: 30px;
+  display: grid;
+  grid-template-columns: repeat(var(--xw-size), 1fr);
+  grid-template-rows: repeat(var(--xw-size), 1fr);
+  gap: 1px;
+  border: 2px solid var(--xw-line);
+  background: var(--xw-line);
+}
+
+.xw-block {
+  background: var(--xw-block);
+}
+
+.xw-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--xw-square);
+  color: var(--xw-ink);
+  font-family: var(--xw-face);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.xw-cell-num {
+  position: absolute;
+  top: 3%;
+  left: 6%;
+  font-family: var(--font);
+  font-size: calc(var(--xw-cell) * 0.26);
+  line-height: 1;
+  color: var(--xw-dim);
+}
+
+.xw-cell-letter {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding-top: 12%;
+  font-size: calc(var(--xw-cell) * 0.6);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.xw-cell--word {
+  background: var(--xw-word);
+}
+
+.xw-cell--cursor {
+  background: var(--xw-cursor);
+  color: var(--xw-cursor-ink);
+}
+
+.xw-cell--cursor .xw-cell-num {
+  color: var(--xw-cursor-ink);
+}
+
+/* A letter a hint wrote in: another ink, and a dot in the corner so it reads
+   without telling the two inks apart. */
+.xw-cell--helped .xw-cell-letter {
+  color: var(--xw-helped);
+}
+
+.xw-cell--helped::after {
+  content: "";
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  width: 14%;
+  height: 14%;
+  border-radius: 50%;
+  background: var(--xw-helped);
+}
+
+.xw-cell--cursor.xw-cell--helped .xw-cell-letter {
+  color: var(--xw-cursor-ink);
+}
+
+/* A letter CHECK found wrong: red, and struck through. */
+.xw-cell--wrong .xw-cell-letter {
+  color: var(--xw-wrong);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.xw-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  max-width: 92%;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #1b1a17;
+  color: #fffdf6;
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.xw-toast--on {
+  visibility: visible;
+}
+
+/* ----- Clue lists ----- */
+
+/* Hidden on a phone until CLUES is pressed; then they take the keyboard's
+   place. On anything wider they're always there (see the media queries). */
+.xw-clues {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+.xw-root--list .xw-clues {
+  display: grid;
+  height: 38vh;
+}
+
+.xw-root--list .xw-keys {
+  display: none;
+}
+
+.xw-cluecol {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xw-cluecol-head {
+  position: sticky;
+  top: 0;
+  padding: 3px 4px;
+  background: var(--xw-bg);
+  border-bottom: 1.5px solid var(--xw-line);
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.xw-clue {
+  display: flex;
+  gap: 6px;
+  padding: calc(5px * var(--ui-scale)) 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--xw-ink);
+  font-family: var(--xw-face);
+  font-size: calc(clamp(12px, 1.5vw, 15px) * var(--ui-scale));
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.xw-clue-num {
+  flex: 0 0 1.6em;
+  font-weight: 700;
+  text-align: right;
+}
+
+.xw-clue--done {
+  color: var(--xw-dim);
+}
+
+.xw-clue--on {
+  background: var(--xw-word);
+  color: var(--xw-ink);
+}
+
+/* ----- Hints ----- */
+
+.xw-tools {
+  display: flex;
+  gap: 5px;
+}
+
+.xw-tool {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: calc(42px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1.5px solid var(--xw-edge);
+  background: var(--xw-panel);
+  color: var(--xw-ink);
+  font-family: var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.xw-tool:active,
+.xw-key:active,
+.xw-act:active {
+  transform: scale(0.95);
+}
+
+.xw-tool-name {
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.xw-tool-cost {
+  font-size: calc(8.5px * var(--ui-scale));
+  color: var(--xw-dim);
+}
+
+/* ----- Keyboard ----- */
+
+.xw-keys {
+  display: flex;
+  flex-direction: column;
+  gap: calc(5px * var(--ui-scale));
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.xw-keyrow {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.xw-key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: calc((100% - 36px) / 10);
+  height: calc(44px * var(--ui-scale));
+  padding: 0;
+  border-radius: 8px;
+  border: 1.5px solid var(--xw-edge);
+  background: var(--xw-panel);
+  color: var(--xw-ink);
+  font-family: var(--font);
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.xw-key--wide {
+  flex: 1.6 1 0;
+  max-width: none;
+}
+
+.xw-key-icon {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+  vertical-align: middle;
+}
+
+/* ----- Result ----- */
+
+.xw-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.xw-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--xw-edge);
+  background: var(--xw-panel);
+  font-family: var(--font);
+  text-align: center;
+}
+
+.xw-card-head {
+  font-size: calc(20px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.xw-card-sub {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--xw-dim);
+}
+
+.xw-card-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: calc(26px * var(--ui-scale));
+  font-weight: 700;
+}
+
+.xw-card-unit {
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  color: var(--xw-dim);
+}
+
+.xw-card-streak {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.xw-actions {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.xw-act {
+  flex: 1 1 0;
+  min-height: calc(48px * var(--ui-scale));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1.5px solid var(--xw-edge);
+  background: var(--xw-panel);
+  color: var(--xw-ink);
+  font-family: var(--font);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.xw-share {
+  flex: 1.4 1 0;
+  border-color: #17a35f;
+  background: #17a35f;
+  color: #ffffff;
+}
+
+/* ----- Tablet, upright: both clue lists always showing ----- */
+
+@media (min-width: 700px) {
+  .xw-root {
+    padding-left: calc(env(safe-area-inset-left, 0px) + 18px);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 18px);
+  }
+
+  .xw-clues,
+  .xw-root--list .xw-clues {
+    display: grid;
+    height: 22vh;
+  }
+
+  .xw-root--list .xw-keys {
+    display: flex;
+  }
+
+  .xw-tool--list {
+    display: none;
+  }
+
+  .xw-key {
+    height: calc(50px * var(--ui-scale));
+  }
+}
+
+/* ----- Tablet, sideways: grid on the left, everything else on the right ----- */
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .xw-body {
+    flex-direction: row;
+    gap: 18px;
+  }
+
+  .xw-side {
+    flex: 0 0 clamp(340px, 42%, 560px);
+  }
+
+  .xw-clues,
+  .xw-root--list .xw-clues {
+    flex: 1 1 0;
+    height: auto;
+  }
+}
+
+/* ----- The Word Finder, over the grid ----- */
+
+.xw-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px)
+    calc(env(safe-area-inset-bottom, 0px) + 12px) calc(env(safe-area-inset-left, 0px) + 14px);
+  background: #070b18;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.xw-sheet-clue {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.4;
+  color: #e9dcb8;
+}
+
+/* ----- The Word Finder ----- */
+
+.finder-root {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px)
+    calc(env(safe-area-inset-bottom, 0px) + 12px) calc(env(safe-area-inset-left, 0px) + 14px);
+  background: radial-gradient(ellipse at 50% 20%, #101a36, #05070f 70%);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.finder {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.finder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+}
+
+/* Standing alone, the title has the shell's pause button to its right. */
+.finder-root .finder-head {
+  padding-right: 66px;
+}
+
+.finder-title {
+  font-size: calc(20px * var(--ui-scale));
+  letter-spacing: 0.14em;
+}
+
+.finder-close {
+  min-height: calc(44px * var(--ui-scale));
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(142, 163, 200, 0.4);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.finder-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.finder-tab {
+  flex: 1 1 0;
+  min-height: calc(42px * var(--ui-scale));
+  border-radius: 10px;
+  border: 1.5px solid rgba(142, 163, 200, 0.3);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.finder-tab--on {
+  border-color: #7fd6c2;
+  background: color-mix(in srgb, #7fd6c2 18%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+}
+
+.finder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The page turns text selection off everywhere so a drag never highlights the
+   game; a text box has to turn it back on or iOS won't put a cursor in it. */
+.finder-input {
+  width: 100%;
+  min-height: calc(52px * var(--ui-scale));
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 2px solid #7fd6c2;
+  background: #0a1124;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(22px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: manipulation;
+}
+
+.finder-input--narrow {
+  min-height: calc(44px * var(--ui-scale));
+  border-width: 1.5px;
+  border-color: rgba(142, 163, 200, 0.4);
+  font-size: calc(15px * var(--ui-scale));
+}
+
+.finder-input::placeholder {
+  color: rgba(142, 163, 200, 0.45);
+  letter-spacing: 0.12em;
+}
+
+.finder-hint,
+.finder-status {
+  font-size: calc(10.5px * var(--ui-scale));
+  line-height: 1.4;
+  color: var(--dim);
+}
+
+.finder-status {
+  min-height: 1.4em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #7fd6c2;
+}
+
+.finder-results {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-content: start;
+  gap: 6px;
+}
+
+.finder-word {
+  width: 100%;
+  min-height: calc(44px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(142, 163, 200, 0.24);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+}
+
+.finder-word--pick {
+  cursor: pointer;
+}
+
+.finder-word--pick:active {
+  background: color-mix(in srgb, #7fd6c2 24%, rgba(8, 14, 30, 0.92));
+}
+
+.finder-word-text {
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.finder-word-clue {
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.3;
+  color: var(--dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xw-mode:active,
+  .xw-mode-new:active,
+  .xw-tool:active,
+  .xw-key:active,
+  .xw-act:active {
+    transform: none;
+  }
+}

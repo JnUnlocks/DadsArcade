@@ -28,6 +28,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Letter Lock** | Five-letter word-guessing games | Six tries, three answers per letter — right spot, wrong spot, not in the word — and one word a day that's the same for everyone, so a grid of coloured squares in the family chat means something |
 | **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
 | **JB's Hyper Snake** | The snake on a late-90s phone | Two games on one cabinet. CLASSIC is the original on its green screen: one life, solid walls, a snake that moves a square at a time. HYPER opens the edges so you leave by one side and return by the other, and adds stages, crates, lasers that warn before they fire, and a BOOST that doubles what you eat. Both keep the two things that made it fair — turns are buffered two deep, and you can follow your tail into the square it's leaving |
+| **Mom Mom's Crossword** | The quick crossword in a newspaper | One puzzle a day, the same for everyone, on a lattice grid filled from a hand-written clue bank, so every answer is a word a family knows. Hints cost time and never the solve. With it, the **Word Finder**: a pattern and anagram helper for any crossword |
 | **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
@@ -449,6 +450,79 @@ well-known game's name, its green, yellow and grey, and its particular look
 are not, so Letter Lock has its own name, the arcade's own cyan and amber, a
 ring where that game has a second colour of square, and a lock where it has
 nothing at all.
+
+---
+
+## Mom Mom's Crossword, and the Word Finder
+
+Made for Mom Mom Stec. A crossword a day, the same grid for everyone, printed
+as THE STEC GAZETTE; QUICK (9x9) and CLASSIC (11x11) make a fresh one on
+demand. It was built for a tablet first: both cabinets are DOM from edge to
+edge rather than drawn on the shell's phone-shaped canvas, so on an iPad held
+sideways the grid and the clue lists sit side by side.
+
+### Where the puzzles come from
+
+Nothing is downloaded and nothing is stored: `generate.ts` makes the puzzle
+from a seed, so the day's seed gives every phone the same grid.
+
+The grid is the lattice kind a newspaper's quick crossword uses. Words run
+along every other row and column, and about half of each word's letters are
+crossed. A grid where every letter is crossed needs tens of thousands of words
+to fill, most of them obscure; a lattice fills from the 1,200 or so in
+`clues.ts`, each written by hand with a clue a family can get. That file is
+the place to add words, fix a clue, or take one out. A grid is cut at random
+(mirrored, so it looks the same upside down), checked, and filled by a
+backtracking search that drops a grid that won't fill and tries the next.
+`generate.test.ts` makes the next two years of daily puzzles and checks every
+one.
+
+Changing the clue bank changes future puzzles, so a puzzle in progress is
+saved whole, not re-made from its seed.
+
+### Hints, and the score
+
+CHECK (+10s), LETTER (+20s), WORD (+60s) and FINDER (+20s) add seconds to the
+clock. There is no way to lose. The score is a curve on the total time
+(`scoreSolve` in `rules.ts`): half the top score at par, never zero. The
+daily is filed under `daily-YYYY-MM-DD` like the other dailies and counts the
+first solve.
+
+### The Word Finder
+
+A cabinet of its own (`games/wordfinder`) and the FINDER button inside the
+crossword are the same panel (`crossword/finder.ts`). PATTERN and ANAGRAM
+search the public-domain ENABLE word list; CLUE searches the arcade's own
+clues, because the databases of published newspaper clues that the big lookup
+sites use aren't ours to ship. Inside the crossword the panel leaves out
+everything that knows those clues, or it would simply be the answer.
+
+The dictionary is `public/crossword-words.txt`: 168,000 words, 1.6 MB, about
+440 KB over the wire. It is fetched the first time the finder opens and cached
+by the service worker, so it costs nothing to anyone who never opens it. Until
+it arrives the finder answers from the words already in the app. To rebuild it
+(the rude words are filtered out there):
+
+```bash
+curl -o enable1.txt https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt
+node scripts/build-wordlist.mjs enable1.txt
+```
+
+```
+src/games/crossword/
+  clues.ts        the clue bank: every word a puzzle can contain
+  generate.ts     the grid, the fill, the numbering, from a seed
+  rules.ts        the fill, hints and their prices, scoring, the day's seed
+  lookup.ts       the finder's searches: pattern, anagram, clue
+  progress.ts     the saved puzzle for each mode, and the daily streak
+  share.ts        the spoiler-free text a result sends
+  finder.ts       the Word Finder panel, and its dictionary
+  render.ts       the two cabinets' marquee art
+  crossword.css   the newspaper, the arcade look, the three layouts
+  index.ts        the GameModule: typing, hints, modes, the DOM
+src/games/wordfinder/
+  index.ts        the finder as a cabinet of its own
+```
 
 ---
 
