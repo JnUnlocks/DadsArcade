@@ -27,6 +27,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Plasma Sort** | Colour-sort (water-sort) puzzles | One puzzle a day, the same for everyone, with a par found by search — so the day's board ranks who saw the solution, not who got a kind shuffle |
 | **Letter Lock** | Five-letter word-guessing games | Six tries, three answers per letter — right spot, wrong spot, not in the word — and one word a day that's the same for everyone, so a grid of coloured squares in the family chat means something |
 | **Black Disc** | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
+| **JB's Hyper Snake** | The snake on a late-90s phone | Two games on one cabinet. CLASSIC is the original on its green screen: one life, solid walls, a snake that moves a square at a time. HYPER opens the edges so you leave by one side and return by the other, and adds stages, crates, lasers that warn before they fire, and a BOOST that doubles what you eat. Both keep the two things that made it fair — turns are buffered two deep, and you can follow your tail into the square it's leaving |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
@@ -60,6 +61,7 @@ To try it on your actual phone while developing, `npm run dev` prints a
 npm run typecheck    # app + worker
 npm test             # pause/resume, reef maze, slime colour + daily seeding,
                      # crossing solvability + hop rules, brickfall board + music
+                     # snake turn queue + stages with no dead ends
 npm run build        # typecheck, then production bundle into dist/
 ```
 
@@ -170,6 +172,14 @@ Emulators can't tell you how the controls feel. Worth doing once:
       go back in — both guesses are still there. Finish it and tap **SHARE**:
       the phone's share sheet opens, and what it sends has squares but no
       letters.
+- [ ] Hyper Snake: in **CLASSIC**, a fast up-then-left with one thumb makes
+      both turns, without lifting; level 1 is slow enough to learn on. Switch
+      **CONTROLS** to **KEYPAD** on the title card: the 2-4-6-8 keys fit under
+      a thumb, the board shrinks to make room, and nothing overlaps. In **HYPER**, hold **BOOST** with the right
+      thumb and steer with the left at the same time; a laser shows its
+      flickering line before it fires; and losing a life keeps the apples
+      already eaten. Finish a run in each and confirm they land on different
+      boards — **HIGH SCORES → SNAKE** has a **CLASSIC** tab.
 
 ---
 

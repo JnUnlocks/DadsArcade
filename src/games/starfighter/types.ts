@@ -1,6 +1,6 @@
 import type { Path } from "./formation";
 
-export type EnemyKind = "grunt" | "escort" | "cruiser";
+export type EnemyKind = "grunt" | "escort" | "cruiser" | "dreadnought";
 
 export type EnemyState =
   | "waiting" // queued off-screen, waiting for its entry cue
@@ -8,7 +8,10 @@ export type EnemyState =
   | "formation" // parked in the grid, swaying with the group
   | "diving" // peeled off, swooping at the player
   | "returning" // looping back around to rejoin the formation
-  | "beaming"; // cruiser hovering with its tractor beam deployed
+  | "beaming" // cruiser hovering with its tractor beam deployed
+  | "bossEntry" // the dreadnought flying in at the start of a boss wave
+  | "bossHover" // the dreadnought holding station, sweeping and firing
+  | "flyby"; // bonus-stage pass: flies a set path and leaves, never attacks
 
 export interface Enemy {
   kind: EnemyKind;
@@ -23,6 +26,8 @@ export interface Enemy {
   pathDistance: number;
   speed: number;
   hp: number;
+  /** Starting hp, so the boss can draw a health bar as a fraction. */
+  maxHp: number;
   /** Seconds of white hit-flash remaining. */
   flash: number;
   fireCooldown: number;

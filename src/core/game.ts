@@ -148,6 +148,18 @@ export interface GameModule {
    * an empty tab.
    */
   readonly hasDailyChallenge?: boolean;
+  /**
+   * A second, permanent board for a mode whose scores aren't on the same scale
+   * as the main one -- Snake's CLASSIC, next to its HYPER. Runs reach it by
+   * reporting this id as their `boardId`; the leaderboard screen then offers
+   * a tab with this label, and the personal best is kept separately too.
+   */
+  readonly extraBoard?: {
+    readonly id: string;
+    readonly label: string;
+    /** This board's own progress abbreviation, if it counts something else. */
+    readonly progressShort?: string;
+  };
   /** Draw the cabinet's marquee art into a size x size box at the origin. */
   drawIcon(ctx: CanvasRenderingContext2D, size: number): void;
   /**

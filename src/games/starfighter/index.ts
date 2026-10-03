@@ -21,6 +21,8 @@ import {
   COLS,
   ROWS,
   headingOnPath,
+  makeBonusPath,
+  makeBossEntryPath,
   makeDivePath,
   makeEntryPath,
   makeReturnPath,
@@ -32,6 +34,8 @@ import {
   PALETTE,
   Particles,
   Starfield,
+  drawBoss,
+  drawBossHealthBar,
   drawEnemy,
   drawEnemyBullet,
   drawPlayer,
@@ -57,16 +61,49 @@ const SCORE: Record<EnemyKind, number> = {
   grunt: 50,
   escort: 80,
   cruiser: 150,
+  dreadnought: 3000,
 };
 
 const HP: Record<EnemyKind, number> = {
   grunt: 1,
   escort: 1,
   cruiser: 3,
+  dreadnought: 1, // real value is set per wave in buildBossWave
 };
 
 const FIRST_EXTRA_LIFE = 20000;
 const EXTRA_LIFE_INTERVAL = 40000;
+
+/** Single, dual, triple. Earned, and the ceiling is deliberately low. */
+const MAX_FIGHTERS = 3;
+/** Gap between wingmen, in virtual units. */
+const FIGHTER_SPACING = 18;
+
+/** Squadrons in a bonus stage, and how many ships fly in each. */
+const BONUS_SQUADS = 4;
+const BONUS_PER_SQUAD = 5;
+const BONUS_TOTAL = BONUS_SQUADS * BONUS_PER_SQUAD;
+const BONUS_HIT_POINTS = 120;
+const BONUS_PERFECT_POINTS = 5000;
+/** How long the results card holds before the next wave builds. */
+const BONUS_RESULT_TIME = 2.8;
+
+const BOSS_FIRE_INTERVAL = 1.5;
+const BOSS_SWEEP_SPEED = 0.6;
+const BOSS_SWEEP_RANGE = 0.3;
+
+type WaveKind = "normal" | "bonus" | "boss";
+
+/**
+ * Every fifth wave is a boss; bonus stages land on 3 and every fourth wave
+ * after. Where they would collide (wave 15, 35, ...) the boss wins, because a
+ * milestone fight is the better thing to land on a round number.
+ */
+function waveKind(wave: number): WaveKind {
+  if (wave % 5 === 0) return "boss";
+  if (wave >= 3 && (wave - 3) % 4 === 0) return "bonus";
+  return "normal";
+}
 
 class Starfighter implements GameInstance {
   private readonly rng = new Rng((Math.random() * 0xffffffff) >>> 0);
@@ -85,18 +122,27 @@ class Starfighter implements GameInstance {
   private respawnTimer = 0;
   private thrust = 0;
 
-  /** Rescued wingman flying alongside -- doubles your guns. */
-  private dualFighter = false;
+  /**
+   * How many jets you're flying: 1 normally, up to MAX_FIGHTERS once you've
+   * earned wingmen by rescuing a captured fighter or acing a bonus stage.
+   */
+  private fighters = 1;
   private captureHeld = false;
 
   private lives = 3;
   private wave = 1;
+  private kind: WaveKind = "normal";
   private time = 0;
   private fireCooldown = 0;
   private diveTimer = 2.5;
   private waveBannerTimer = 1.6;
   private nextExtraLife = FIRST_EXTRA_LIFE;
   private gameEnded = false;
+
+  /** Bonus-stage scoring: how many flew, how many you actually hit. */
+  private bonusHits = 0;
+  private bonusResultTimer = 0;
+  private bonusPerfect = false;
 
   constructor(private readonly host: GameHost) {
     const { w, h } = host.view;
@@ -121,7 +167,7 @@ class Starfighter implements GameInstance {
     this.updatePopups(dt);
     this.resolveCollisions();
     this.maybeStartDive(dt);
-    this.checkWaveCleared();
+    this.checkWaveCleared(dt);
   }
 
   private updatePlayer(dt: number, input: InputSnapshot): void {
@@ -150,8 +196,9 @@ class Starfighter implements GameInstance {
     this.playerY += dy;
     this.thrust = Math.min(1, Math.abs(dx) * 0.06 + Math.abs(dy) * 0.06);
 
-    // Horizontal: full width. Vertical: a band at the bottom only.
-    const margin = this.dualFighter ? 22 : 13;
+    // Horizontal: full width, but a wider formation needs more room so a
+    // wingman never ends up clipped off the edge of the screen.
+    const margin = 13 + (this.fighters - 1) * (FIGHTER_SPACING / 2);
     this.playerX = clamp(this.playerX, margin, w - margin);
     this.playerY = clamp(this.playerY, h * 0.68, h - insetBottom - 26);
 
@@ -165,21 +212,28 @@ class Starfighter implements GameInstance {
     }
   }
 
+  /**
+   * Where each jet sits relative to the player's steering point. Centred, so
+   * earning a wingman widens the formation evenly instead of sliding the whole
+   * thing sideways and throwing off your aim.
+   */
+  private fighterOffsets(): number[] {
+    const n = this.fighters;
+    const start = -((n - 1) / 2) * FIGHTER_SPACING;
+    return Array.from({ length: n }, (_, i) => start + i * FIGHTER_SPACING);
+  }
+
   private maxBullets(): number {
-    return this.dualFighter ? MAX_PLAYER_BULLETS * 2 : MAX_PLAYER_BULLETS;
+    // The two-shot limit is per jet, so the constraint that defines the game
+    // still applies -- a triple fighter is more guns, not unlimited fire.
+    return MAX_PLAYER_BULLETS * this.fighters;
   }
 
   private firePlayerShot(): void {
     this.fireCooldown = FIRE_INTERVAL;
-    this.playerBullets.push({
-      x: this.playerX,
-      y: this.playerY - 12,
-      vx: 0,
-      vy: -BULLET_SPEED,
-    });
-    if (this.dualFighter) {
+    for (const offset of this.fighterOffsets()) {
       this.playerBullets.push({
-        x: this.playerX + 18,
+        x: this.playerX + offset,
         y: this.playerY - 12,
         vx: 0,
         vy: -BULLET_SPEED,
@@ -202,13 +256,79 @@ class Starfighter implements GameInstance {
     const { w, h } = this.host.view;
     const topMargin = this.formationTop();
 
-    for (const enemy of this.enemies) {
+    // Reverse-indexed: a bonus-stage flyby removes itself once it leaves the
+    // screen, which a for..of loop can't do safely.
+    for (let ei = this.enemies.length - 1; ei >= 0; ei -= 1) {
+      const enemy = this.enemies[ei]!;
       if (enemy.flash > 0) enemy.flash -= dt;
 
       switch (enemy.state) {
         case "waiting": {
           enemy.spawnDelay -= dt;
-          if (enemy.spawnDelay <= 0) enemy.state = "entering";
+          if (enemy.spawnDelay > 0) break;
+          enemy.state =
+            enemy.kind === "dreadnought"
+              ? "bossEntry"
+              : this.kind === "bonus"
+                ? "flyby"
+                : "entering";
+          break;
+        }
+
+        case "flyby": {
+          // Fly the set route and leave. Escaping isn't a failure -- it just
+          // costs the perfect.
+          if (!enemy.path) {
+            removeAt(this.enemies, ei);
+            break;
+          }
+          enemy.pathDistance += enemy.speed * dt;
+          const t = enemy.pathDistance / enemy.path.length;
+          if (t >= 1) {
+            removeAt(this.enemies, ei);
+          } else {
+            const point = pointOnPath(enemy.path, t);
+            enemy.x = point.x;
+            enemy.y = point.y;
+            enemy.angle = headingOnPath(enemy.path, t);
+          }
+          break;
+        }
+
+        case "bossEntry": {
+          if (!enemy.path) {
+            enemy.state = "bossHover";
+            break;
+          }
+          enemy.pathDistance += enemy.speed * dt;
+          const t = enemy.pathDistance / enemy.path.length;
+          if (t >= 1) {
+            enemy.state = "bossHover";
+            enemy.path = null;
+          } else {
+            const point = pointOnPath(enemy.path, t);
+            enemy.x = point.x;
+            enemy.y = point.y;
+          }
+          enemy.angle = Math.PI / 2;
+          break;
+        }
+
+        case "bossHover": {
+          // Sweeps across its station and fires spreads. Deliberately a
+          // predictable rhythm: the fight should be about finding gaps in the
+          // pattern, not about reacting to something unreadable.
+          enemy.x =
+            w / 2 + Math.sin(this.time * BOSS_SWEEP_SPEED) * w * BOSS_SWEEP_RANGE;
+          enemy.angle = Math.PI / 2;
+          enemy.fireCooldown -= dt;
+          if (enemy.fireCooldown <= 0 && this.playerAlive) {
+            enemy.fireCooldown = Math.max(
+              0.75,
+              BOSS_FIRE_INTERVAL - Math.floor(this.wave / 5) * 0.12,
+            );
+            this.fireBossSpread(enemy);
+          }
           break;
         }
 
@@ -295,6 +415,33 @@ class Starfighter implements GameInstance {
     }
   }
 
+  /**
+   * A fan of shots plus one aimed straight at the player, so there's always a
+   * reason to move rather than sit under the boss and hold the trigger.
+   */
+  private fireBossSpread(boss: Enemy): void {
+    const speed = ENEMY_BULLET_SPEED + this.wave * 3;
+    const arms = 5;
+    for (let i = 0; i < arms; i += 1) {
+      const spread = ((i - (arms - 1) / 2) / (arms - 1)) * 1.1;
+      const angle = Math.PI / 2 + spread;
+      this.enemyBullets.push({
+        x: boss.x,
+        y: boss.y + 18,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+      });
+    }
+    const aimed = Math.atan2(this.playerY - boss.y, this.playerX - boss.x);
+    this.enemyBullets.push({
+      x: boss.x,
+      y: boss.y + 18,
+      vx: Math.cos(aimed) * speed * 1.15,
+      vy: Math.sin(aimed) * speed * 1.15,
+    });
+    this.host.sfx("bossHit");
+  }
+
   private maybeFire(enemy: Enemy, dt: number, ratePerSecond: number): void {
     if (!this.playerAlive) return;
     enemy.fireCooldown -= dt;
@@ -367,12 +514,30 @@ class Starfighter implements GameInstance {
 
     if (!this.playerAlive || this.invulnerable > 0) return;
 
-    // Enemy shots vs player.
+    // Nothing in a bonus stage can hurt you -- the squadrons are a shooting
+    // gallery, and losing a jet to a flyby would make the perfect bonus feel
+    // like a trap rather than a prize.
+    if (this.kind === "bonus") return;
+
+    // Every jet in the formation is its own target.
+    const offsets = this.fighterOffsets();
+    // Each jet's hitbox has to reach at least halfway to its neighbour, or a
+    // shot can thread the gap between two jets and pass straight through the
+    // formation -- which reads as the game ignoring a hit. A wider formation
+    // being a wider target is also the fair cost of carrying more guns.
+    const hitRadius =
+      this.fighters > 1
+        ? Math.max(PLAYER_RADIUS, FIGHTER_SPACING / 2 + 0.5)
+        : PLAYER_RADIUS;
+
     for (let i = this.enemyBullets.length - 1; i >= 0; i -= 1) {
       const bullet = this.enemyBullets[i]!;
-      if (within(bullet.x, bullet.y, this.playerX, this.playerY, PLAYER_RADIUS)) {
+      const hit = offsets.find((o) =>
+        within(bullet.x, bullet.y, this.playerX + o, this.playerY, hitRadius),
+      );
+      if (hit !== undefined) {
         removeAt(this.enemyBullets, i);
-        this.killPlayer();
+        this.takeHit(this.playerX + hit);
         return;
       }
     }
@@ -380,22 +545,65 @@ class Starfighter implements GameInstance {
     // Ramming.
     for (const enemy of this.enemies) {
       if (enemy.state === "waiting") continue;
-      if (
-        within(
-          enemy.x,
-          enemy.y,
-          this.playerX,
-          this.playerY,
-          PLAYER_RADIUS + ENEMY_RADIUS - 4,
-        )
-      ) {
-        this.killPlayer();
+      const radius =
+        hitRadius + (enemy.kind === "dreadnought" ? 30 : ENEMY_RADIUS) - 4;
+      const hit = offsets.find((o) =>
+        within(enemy.x, enemy.y, this.playerX + o, this.playerY, radius),
+      );
+      if (hit !== undefined) {
+        this.takeHit(this.playerX + hit);
         return;
       }
     }
   }
 
+  /**
+   * A hit costs a wingman if you have one, and only costs a life when you're
+   * flying alone. That makes an earned jet genuinely protective rather than
+   * decorative, and stops a long run ending on a single clipped shot.
+   */
+  private takeHit(atX: number): void {
+    if (this.fighters > 1) {
+      this.fighters -= 1;
+      this.invulnerable = 1.2;
+      this.particles.burst(atX, this.playerY, PALETTE.player, 18, 110);
+      this.popups.push({
+        x: this.playerX,
+        y: this.playerY - 24,
+        text: "WINGMAN DOWN",
+        life: 1.2,
+      });
+      this.host.sfx("playerExplode");
+      this.host.shake(6);
+      this.host.hitStop(0.06);
+      return;
+    }
+    this.killPlayer();
+  }
+
   private killEnemy(enemy: Enemy, index: number): void {
+    if (enemy.state === "flyby") {
+      this.bonusHits += 1;
+      this.host.addScore(BONUS_HIT_POINTS);
+      this.popups.push({
+        x: enemy.x,
+        y: enemy.y,
+        text: `+${BONUS_HIT_POINTS}`,
+        life: 0.6,
+      });
+      this.particles.burst(enemy.x, enemy.y, PALETTE.grunt, 12, 80);
+      this.host.sfx("enemyExplode");
+      this.host.hitStop(0.02);
+      removeAt(this.enemies, index);
+      this.checkExtraLife();
+      return;
+    }
+
+    if (enemy.kind === "dreadnought") {
+      this.killBoss(enemy, index);
+      return;
+    }
+
     // Galaga's rule: an enemy caught mid-dive is worth double.
     const diving =
       enemy.state === "diving" ||
@@ -421,7 +629,7 @@ class Starfighter implements GameInstance {
     // Destroying the cruiser that stole your fighter gives it back.
     if (enemy.holdingCapture) {
       this.captureHeld = false;
-      this.dualFighter = true;
+      this.gainFighter();
       this.host.sfx("rescue");
       this.host.shake(6);
       this.popups.push({
@@ -440,12 +648,19 @@ class Starfighter implements GameInstance {
     this.checkExtraLife();
   }
 
+  /** Earn a jet, up to the cap. Silent no-op when already at full strength. */
+  private gainFighter(): boolean {
+    if (this.fighters >= MAX_FIGHTERS) return false;
+    this.fighters += 1;
+    return true;
+  }
+
   private killPlayer(): void {
     this.playerAlive = false;
     this.respawnTimer = 1.5;
     this.lives -= 1;
-    // Losing your ship also loses the rescued wingman.
-    this.dualFighter = false;
+    // Losing your ship costs the whole formation.
+    this.fighters = 1;
     this.particles.burst(this.playerX, this.playerY, PALETTE.player, 30, 150);
     this.host.sfx("playerExplode");
     this.host.shake(9);
@@ -489,7 +704,7 @@ class Starfighter implements GameInstance {
     this.respawnTimer = 1.6;
     this.lives -= 1;
     this.captureHeld = true;
-    this.dualFighter = false;
+    this.fighters = 1;
     cruiser.holdingCapture = true;
     cruiser.beamTimer = 0;
     this.host.sfx("captureBeam");
@@ -505,9 +720,28 @@ class Starfighter implements GameInstance {
   // ----- Wave management -----
 
   private buildWave(): void {
+    this.kind = waveKind(this.wave);
+    this.enemies = [];
+    this.enemyBullets.length = 0;
+    this.bonusHits = 0;
+    this.bonusResultTimer = 0;
+    this.bonusPerfect = false;
+    this.waveBannerTimer = 1.6;
+
+    if (this.kind === "bonus") {
+      this.buildBonusWave();
+      return;
+    }
+    if (this.kind === "boss") {
+      this.buildBossWave();
+      return;
+    }
+    this.buildFormationWave();
+  }
+
+  private buildFormationWave(): void {
     const { w, h } = this.host.view;
     const topMargin = this.formationTop();
-    this.enemies = [];
 
     let queueIndex = 0;
     for (let row = 0; row < ROWS; row += 1) {
@@ -531,6 +765,7 @@ class Starfighter implements GameInstance {
           pathDistance: 0,
           speed: 190 + this.wave * 9,
           hp: HP[kind],
+          maxHp: HP[kind],
           flash: 0,
           fireCooldown: this.rng.range(1, 4),
           spawnDelay: delay,
@@ -544,10 +779,129 @@ class Starfighter implements GameInstance {
     // Faster, more frequent dives as waves progress, with a floor so it stays
     // readable rather than becoming a wall.
     this.diveTimer = Math.max(0.9, 2.6 - this.wave * 0.12);
-    this.waveBannerTimer = 1.6;
+  }
+
+  /**
+   * A challenge stage. Squadrons fly set routes and leave; nothing shoots and
+   * nothing rams. The whole point is the perfect bonus, which is also the only
+   * reliable way to build up to a triple fighter.
+   */
+  private buildBonusWave(): void {
+    const { w, h } = this.host.view;
+
+    for (let squad = 0; squad < BONUS_SQUADS; squad += 1) {
+      for (let i = 0; i < BONUS_PER_SQUAD; i += 1) {
+        this.enemies.push({
+          kind: squad % 2 === 0 ? "grunt" : "escort",
+          row: 0,
+          col: 0,
+          x: -100,
+          y: -100,
+          angle: Math.PI / 2,
+          state: "waiting",
+          path: makeBonusPath(squad, w, h),
+          pathDistance: 0,
+          speed: 210 + this.wave * 4,
+          hp: 1,
+          maxHp: 1,
+          flash: 0,
+          fireCooldown: Infinity,
+          // Squads arrive one after another, with the ships in each strung out
+          // along the same route so they read as a flight rather than a blob.
+          spawnDelay: squad * 2.2 + i * 0.22,
+          beamTimer: 0,
+          holdingCapture: false,
+        });
+      }
+    }
+  }
+
+  /** Every fifth wave: one dreadnought, with a small escort screen. */
+  private buildBossWave(): void {
+    const { w, h } = this.host.view;
+    const stationY = this.formationTop() + 20;
+    const tier = Math.floor(this.wave / 5);
+
+    this.enemies.push({
+      kind: "dreadnought",
+      row: 0,
+      col: 0,
+      x: w / 2,
+      y: -90,
+      angle: Math.PI / 2,
+      state: "waiting",
+      path: makeBossEntryPath(w, stationY),
+      pathDistance: 0,
+      speed: 120,
+      hp: 14 + tier * 6,
+      maxHp: 14 + tier * 6,
+      flash: 0,
+      fireCooldown: 2.2,
+      spawnDelay: 0.6,
+      beamTimer: 0,
+      holdingCapture: false,
+    });
+
+    // A thin escort screen, so the boss isn't alone on an empty screen.
+    const escorts = Math.min(6, 2 + tier);
+    const topMargin = this.formationTop() + 76;
+    for (let i = 0; i < escorts; i += 1) {
+      const col = i < escorts / 2 ? i : COLS - 1 - (i - Math.floor(escorts / 2));
+      const slot: Vec2 = slotPosition(2, col, w, topMargin, 0);
+      this.enemies.push({
+        kind: "escort",
+        row: 2,
+        col,
+        x: slot.x,
+        y: -60,
+        angle: Math.PI / 2,
+        state: "waiting",
+        path: makeEntryPath(slot, i, w, h),
+        pathDistance: 0,
+        speed: 200 + this.wave * 8,
+        hp: 1,
+        maxHp: 1,
+        flash: 0,
+        fireCooldown: this.rng.range(1.5, 4),
+        spawnDelay: 1.2 + i * 0.3,
+        beamTimer: 0,
+        holdingCapture: false,
+      });
+    }
+
+    this.diveTimer = 3.2;
+  }
+
+  private killBoss(enemy: Enemy, index: number): void {
+    this.host.addScore(SCORE.dreadnought);
+    this.popups.push({
+      x: enemy.x,
+      y: enemy.y,
+      text: `+${SCORE.dreadnought}`,
+      life: 1.4,
+    });
+    // A boss should go up like a boss: several staggered bursts rather than
+    // one puff identical to a grunt's.
+    for (let i = 0; i < 5; i += 1) {
+      this.particles.burst(
+        enemy.x + this.rng.range(-34, 34),
+        enemy.y + this.rng.range(-18, 18),
+        i % 2 === 0 ? PALETTE.dreadnought : PALETTE.cruiser,
+        22,
+        150,
+      );
+    }
+    this.host.sfx("playerExplode");
+    this.host.shake(14);
+    this.host.hitStop(0.14);
+    removeAt(this.enemies, index);
+    this.checkExtraLife();
   }
 
   private maybeStartDive(dt: number): void {
+    // Nothing dives in a bonus stage -- the squadrons fly their routes and
+    // that's the whole act.
+    if (this.kind === "bonus") return;
     this.diveTimer -= dt;
     if (this.diveTimer > 0 || !this.playerAlive) return;
 
@@ -584,12 +938,45 @@ class Starfighter implements GameInstance {
     enemy.speed = 210 + this.wave * 11;
   }
 
-  private checkWaveCleared(): void {
-    if (this.enemies.length > 0 || this.gameEnded) return;
+  private checkWaveCleared(dt: number): void {
+    if (this.gameEnded) return;
+
+    // A bonus stage ends when the last squadron has flown, hit or not, and
+    // then holds on a results card before the next wave starts.
+    if (this.kind === "bonus") {
+      if (this.enemies.length > 0) return;
+      if (this.bonusResultTimer === 0) this.settleBonusStage();
+      this.bonusResultTimer -= dt;
+      if (this.bonusResultTimer > 0) return;
+    } else if (this.enemies.length > 0) {
+      return;
+    }
+
     this.wave += 1;
-    this.enemyBullets.length = 0;
     this.buildWave();
     this.host.sfx("waveStart");
+  }
+
+  /** Score the challenge stage and hand out the wingman if it was perfect. */
+  private settleBonusStage(): void {
+    const { w, h } = this.host.view;
+    this.bonusResultTimer = BONUS_RESULT_TIME;
+    this.bonusPerfect = this.bonusHits >= BONUS_TOTAL;
+
+    if (!this.bonusPerfect) return;
+
+    this.host.addScore(BONUS_PERFECT_POINTS);
+    const earned = this.gainFighter();
+    this.host.sfx(earned ? "rescue" : "extraLife");
+    this.host.shake(6);
+    this.popups.push({
+      x: w / 2,
+      y: h * 0.52,
+      // Say so plainly when the jet can't be granted, rather than implying a
+      // reward that didn't arrive.
+      text: earned ? "WINGMAN JOINS YOU" : "FULL SQUADRON",
+      life: BONUS_RESULT_TIME,
+    });
   }
 
   // ----- Render -----
@@ -602,7 +989,18 @@ class Starfighter implements GameInstance {
       if (enemy.state === "beaming") {
         drawTractorBeam(ctx, enemy.x, enemy.y + 10, BEAM_LENGTH, this.time);
       }
-      drawEnemy(ctx, enemy.kind, enemy.x, enemy.y, enemy.angle, enemy.flash > 0);
+      if (enemy.kind === "dreadnought") {
+        drawBoss(
+          ctx,
+          enemy.x,
+          enemy.y,
+          enemy.flash > 0,
+          enemy.hp / enemy.maxHp,
+          this.time,
+        );
+      } else {
+        drawEnemy(ctx, enemy.kind, enemy.x, enemy.y, enemy.angle, enemy.flash > 0);
+      }
       if (enemy.holdingCapture) {
         // The stolen fighter, tethered above its captor.
         drawPlayer(ctx, enemy.x, enemy.y - 22, 0);
@@ -620,9 +1018,8 @@ class Starfighter implements GameInstance {
       // Blink while invulnerable so the state is legible.
       const blinking = this.invulnerable > 0 && Math.floor(this.time * 12) % 2 === 0;
       if (!blinking) {
-        drawPlayer(ctx, this.playerX, this.playerY, this.thrust);
-        if (this.dualFighter) {
-          drawPlayer(ctx, this.playerX + 18, this.playerY, this.thrust);
+        for (const offset of this.fighterOffsets()) {
+          drawPlayer(ctx, this.playerX + offset, this.playerY, this.thrust);
         }
       }
     }
@@ -633,19 +1030,74 @@ class Starfighter implements GameInstance {
       drawScorePopup(ctx, popup.x, popup.y, popup.text, Math.min(1, popup.life * 2));
     }
 
-    if (this.waveBannerTimer > 0) {
-      this.drawWaveBanner(ctx);
+    // Boss health, pinned just under the HUD so it never sits over the fight.
+    const boss = this.enemies.find((e) => e.kind === "dreadnought");
+    if (boss && boss.state !== "waiting") {
+      drawBossHealthBar(
+        ctx,
+        this.host.view.w,
+        this.host.view.insetTop + 48,
+        boss.hp / boss.maxHp,
+      );
     }
+
+    if (this.bonusResultTimer > 0) this.drawBonusResult(ctx);
+    else if (this.waveBannerTimer > 0) this.drawWaveBanner(ctx);
   }
 
   private drawWaveBanner(ctx: CanvasRenderingContext2D): void {
     const { w, h } = this.host.view;
+    const label =
+      this.kind === "bonus"
+        ? "BONUS STAGE"
+        : this.kind === "boss"
+          ? "WARNING — DREADNOUGHT"
+          : `WAVE ${this.wave}`;
+
     ctx.save();
     ctx.globalAlpha = Math.min(1, this.waveBannerTimer * 1.4);
-    ctx.fillStyle = PALETTE.player;
-    ctx.font = '700 22px ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.fillStyle =
+      this.kind === "boss"
+        ? PALETTE.dreadnought
+        : this.kind === "bonus"
+          ? PALETTE.tractor
+          : PALETTE.player;
+    ctx.font = `700 ${this.kind === "boss" ? 17 : 22}px ui-monospace, "SF Mono", Menlo, monospace`;
     ctx.textAlign = "center";
-    ctx.fillText(`WAVE ${this.wave}`, w / 2, h * 0.42);
+    ctx.fillText(label, w / 2, h * 0.42);
+
+    if (this.kind === "bonus") {
+      ctx.globalAlpha *= 0.85;
+      ctx.font = '12px ui-monospace, "SF Mono", Menlo, monospace';
+      ctx.fillStyle = PALETTE.player;
+      ctx.fillText("Hit them all for a wingman", w / 2, h * 0.42 + 22);
+    }
+    ctx.restore();
+  }
+
+  /** The challenge-stage scorecard: how many you got, and what it earned. */
+  private drawBonusResult(ctx: CanvasRenderingContext2D): void {
+    const { w, h } = this.host.view;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, this.bonusResultTimer * 1.6);
+    ctx.textAlign = "center";
+
+    ctx.font = '700 20px ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.fillStyle = this.bonusPerfect ? PALETTE.tractor : PALETTE.player;
+    ctx.fillText(
+      this.bonusPerfect ? "PERFECT!" : "STAGE COMPLETE",
+      w / 2,
+      h * 0.4,
+    );
+
+    ctx.font = '13px ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.fillStyle = "#cfe6ff";
+    ctx.fillText(`${this.bonusHits} / ${BONUS_TOTAL} HIT`, w / 2, h * 0.4 + 24);
+
+    if (this.bonusPerfect) {
+      ctx.fillStyle = PALETTE.tractor;
+      ctx.fillText(`+${BONUS_PERFECT_POINTS}`, w / 2, h * 0.4 + 44);
+    }
     ctx.restore();
   }
 

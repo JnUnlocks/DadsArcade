@@ -10,6 +10,7 @@ import type { GameModule } from "../core/game";
 import { dailyKey } from "../core/rng";
 import type { Player } from "../core/storage";
 import {
+  extraBoardGame,
   gamesInView,
   progressText,
   shortTitleOf,
@@ -84,6 +85,8 @@ export function buildLeaderboardScreen(
     all: tabButton("ALL TIME"),
     week: tabButton("THIS WEEK"),
     today: tabButton("TODAY"),
+    // Named for whichever game is chosen, in render().
+    extra: tabButton(""),
   };
   for (const [name, tab] of Object.entries(tabBySlice) as Array<[Slice, HTMLButtonElement]>) {
     tab.addEventListener("click", () => {
@@ -129,6 +132,10 @@ export function buildLeaderboardScreen(
 
     // Only offer TODAY where a selected game actually has a daily board.
     tabBySlice.today.hidden = !todayAvailable(games, filter);
+    // And a game's second board only with that game chosen.
+    const extra = extraBoardGame(games, filter)?.extraBoard;
+    tabBySlice.extra.hidden = !extra;
+    if (extra) tabBySlice.extra.textContent = extra.label;
     for (const [name, tab] of Object.entries(tabBySlice) as Array<[Slice, HTMLButtonElement]>) {
       tab.classList.toggle("is-active", name === slice);
     }
@@ -139,7 +146,12 @@ export function buildLeaderboardScreen(
   async function load(): Promise<void> {
     const mine = ++requestId;
     const period = slice === "week" ? "week" : "all";
-    const board = slice === "today" ? `daily-${dailyKey()}` : "";
+    const board =
+      slice === "today"
+        ? `daily-${dailyKey()}`
+        : slice === "extra"
+          ? (extraBoardGame(games, filter)?.extraBoard?.id ?? "")
+          : "";
     const visible = gamesInView(games, filter, slice);
 
     body.replaceChildren(message("LOADING…"));
@@ -170,7 +182,7 @@ export function buildLeaderboardScreen(
       const rows = result?.status === "fulfilled" ? result.value : [];
       const parts: HTMLElement[] = [];
       if (game) parts.push(sectionHeader(game, null));
-      if (rows.length > 0) parts.push(...rows.map((row, i) => buildRow(row, i, game)));
+      if (rows.length > 0) parts.push(...rows.map((row, i) => buildRow(row, i, game, slice)));
       else parts.push(message(emptyText(slice)));
       body.replaceChildren(...parts);
       return;
@@ -188,7 +200,7 @@ export function buildLeaderboardScreen(
       } else if (result.value.length === 0) {
         section.append(message(slice === "today" ? "Nobody yet today." : "No scores yet."));
       } else {
-        section.append(...result.value.map((row, n) => buildRow(row, n, game)));
+        section.append(...result.value.map((row, n) => buildRow(row, n, game, slice)));
       }
       sections.push(section);
     });
@@ -234,6 +246,7 @@ function buildRow(
   row: LeaderboardRow,
   index: number,
   game: GameModule | undefined,
+  slice: Slice,
 ): HTMLElement {
   const line = document.createElement("div");
   line.className = "board-row";
@@ -260,7 +273,7 @@ function buildRow(
 
   const wave = document.createElement("span");
   wave.className = "board-wave";
-  wave.textContent = progressText(game, row.wave);
+  wave.textContent = progressText(game, row.wave, slice);
 
   line.append(rank, initials, score, wave);
   return line;
