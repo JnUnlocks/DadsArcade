@@ -146,6 +146,12 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (pathname === "/api/feedback" && request.method === "POST") {
     return postFeedback(request, env);
   }
+  if (pathname === "/api/ghosts" && request.method === "GET") {
+    return getGhosts(env, url);
+  }
+  if (pathname === "/api/ghosts" && request.method === "POST") {
+    return postGhost(request, env);
+  }
   if (pathname.startsWith("/api/scores/") && request.method === "DELETE") {
     return deleteScore(request, env, pathname);
   }
@@ -381,6 +387,132 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
     .run();
 
   return json({ ok: true });
+}
+
+// ----- Saved races -----
+
+/** A course key as the game issues it, e.g. "mossy-1-k3f9x2". */
+const COURSE_RE = /^[a-z0-9-]{1,40}$/;
+/** How many other people's runs a race is given. */
+const GHOSTS_PER_RACE = 3;
+/** A run is a few hundred numbers; this is several times the longest real one. */
+const GHOST_LOG_MAX = 4000;
+/** The races step 60 times a second. */
+const GHOST_STEP_MS = 1000 / 60;
+
+/**
+ * The fastest few saved runs of a course, from devices other than the
+ * caller's, for the game to replay as the other racers. Device ids never
+ * leave the server.
+ */
+async function getGhosts(env: Env, url: URL): Promise<Response> {
+  const gameId = url.searchParams.get("game")?.trim() ?? "";
+  const course = url.searchParams.get("course")?.trim() ?? "";
+  if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
+  if (!COURSE_RE.test(course)) return json({ error: "invalid_course" }, 400);
+  const deviceId = url.searchParams.get("device")?.trim() ?? "";
+
+  const { results } = await env.DB.prepare(
+    `SELECT initials, character, time_ms AS timeMs, log
+       FROM ghosts
+      WHERE game_id = ?1 AND course = ?2 AND device_id != ?3
+      ORDER BY time_ms ASC
+      LIMIT ?4`,
+  )
+    .bind(gameId, course, deviceId, GHOSTS_PER_RACE)
+    .all<{ initials: string; character: string; timeMs: number; log: string }>();
+
+  const ghosts = [];
+  for (const row of results ?? []) {
+    try {
+      ghosts.push({ ...row, log: JSON.parse(row.log) as number[] });
+    } catch {
+      // A row that won't parse is skipped rather than failing the race.
+    }
+  }
+  return json({ ghosts });
+}
+
+/**
+ * Save a finished race, if it's this device's fastest on this course.
+ *
+ * Like scores, this is shape-checked, not proven: the server doesn't run the
+ * race. The game replays every run it's handed before showing it, so a
+ * made-up one shows as a racer who never finishes, and is dropped.
+ */
+async function postGhost(request: Request, env: Env): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+  if (typeof body !== "object" || body === null) {
+    return json({ error: "invalid_body" }, 400);
+  }
+  const raw = body as Record<string, unknown>;
+
+  const gameId = typeof raw.gameId === "string" ? raw.gameId.trim() : "";
+  if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
+  const course = typeof raw.course === "string" ? raw.course.trim() : "";
+  if (!COURSE_RE.test(course)) return json({ error: "invalid_course" }, 400);
+  const deviceId = typeof raw.deviceId === "string" ? raw.deviceId.trim() : "";
+  if (deviceId.length < 8 || deviceId.length > 64) {
+    return json({ error: "invalid_device" }, 400);
+  }
+  // Optional: someone who has never entered initials can still be raced.
+  const initials = (typeof raw.initials === "string" ? raw.initials : "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 3);
+  const character = typeof raw.character === "string" ? raw.character : "";
+  if (!/^[a-z]{1,12}$/.test(character)) return json({ error: "invalid_character" }, 400);
+
+  const timeMs = toInt(raw.timeMs);
+  if (timeMs === null || timeMs < 5000 || timeMs > 10 * 60 * 1000) {
+    return json({ error: "time_out_of_range" }, 400);
+  }
+
+  // Pairs of [step, state]: steps climbing, states 0 to 3, none after the end.
+  const log = raw.log;
+  if (!Array.isArray(log) || log.length % 2 !== 0 || log.length > GHOST_LOG_MAX) {
+    return json({ error: "invalid_log" }, 400);
+  }
+  const lastStep = Math.ceil(timeMs / GHOST_STEP_MS) + 1;
+  let previous = -1;
+  for (let i = 0; i < log.length; i += 2) {
+    const step: unknown = log[i];
+    const state: unknown = log[i + 1];
+    if (
+      !Number.isInteger(step) ||
+      !Number.isInteger(state) ||
+      (step as number) <= previous ||
+      (step as number) > lastStep ||
+      (state as number) < 0 ||
+      (state as number) > 3
+    ) {
+      return json({ error: "invalid_log" }, 400);
+    }
+    previous = step as number;
+  }
+
+  // Only a faster run replaces the saved one; a slower one writes nothing.
+  const result = await env.DB.prepare(
+    `INSERT INTO ghosts
+       (game_id, course, device_id, initials, character, time_ms, log, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+     ON CONFLICT (game_id, course, device_id) DO UPDATE SET
+       initials   = excluded.initials,
+       character  = excluded.character,
+       time_ms    = excluded.time_ms,
+       log        = excluded.log,
+       created_at = excluded.created_at
+     WHERE excluded.time_ms < ghosts.time_ms`,
+  )
+    .bind(gameId, course, deviceId, initials, character, timeMs, JSON.stringify(log), Date.now())
+    .run();
+
+  return json({ ok: true, saved: (result.meta.changes ?? 0) > 0 });
 }
 
 /** Without a configured token, admin access is disabled entirely rather than open. */

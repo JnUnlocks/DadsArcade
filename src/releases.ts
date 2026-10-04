@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.19.0",
+    date: "2026-10-03",
+    title: "Forest Dash: pick your animal, race the family, three new courses",
+    notes: [
+      "Forest Dash now opens on a title card. Pick your racer: the fox, the bunny, the raccoon or the fawn. They all run, jump and glide exactly alike, so pick the one you like the look of.",
+      "Three new courses next to the Mossy Floor: GLOWCAP GROVE is the bouncy one, ROOT TANGLE is logs and brambles close together, and MOONLIT RIDGE is the hard one. Tap a course to start. Your animal and your last course are remembered.",
+      "You can race the family now. Your fastest run on each course is saved, and it shows up as a racer with your initials in everyone else's next race on that course, next to Pip. You don't have to be playing at the same time. The first race after this update has nobody but Pip in it, because nobody has a saved run yet.",
+      "Your best time on each course is shown on its button.",
+      "Pause the game and the rules are right there under the buttons: how to jump, glide, bounce and float.",
+    ],
+  },
+  {
     version: "0.18.0",
     date: "2026-10-03",
     title: "Mom Mom's Crossword, and a Word Finder",

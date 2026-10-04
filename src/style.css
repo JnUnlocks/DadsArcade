@@ -617,6 +617,35 @@ body {
   z-index: 5;
 }
 
+/* How to play, under the pause menu's buttons (GameModule.howToPlay). */
+.pause-howto {
+  width: 100%;
+  max-width: 340px;
+  padding: calc(12px * var(--ui-scale)) 16px;
+  border: 1px solid rgba(142, 163, 200, 0.3);
+  border-radius: 14px;
+  background: rgba(8, 14, 30, 0.6);
+  text-align: left;
+}
+
+.pause-howto h3 {
+  margin: 0 0 8px;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.pause-howto ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink);
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.45;
+}
+
 .pause-btn:active {
   background: rgba(70, 224, 255, 0.22);
 }

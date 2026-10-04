@@ -219,6 +219,144 @@ export function buildTrack(): Track {
   return b.build();
 }
 
+/**
+ * Glowcap Grove: the bouncy one. More mushrooms and more spores than the
+ * Mossy Floor, and fewer things to trip over.
+ */
+function buildGlowcapGrove(): Track {
+  const b = new TrackBuilder();
+  b.flat(140).start().flat(420);
+
+  b.acorns(4, 20).flat(220);
+  b.capGap(380, [[150, 30]]).flat(320);
+  b.arc(3, 120, 50).gap(120).flat(280);
+  b.log().flat(300);
+  b.capGap(650, [[150, 40], [400, 70]]).flat(380);
+  b.acorns(4, 20).puddle(140).flat(280);
+  // Hold on through an updraft and you come down a long way past it, so
+  // each one is followed by plenty of ground before the next pit.
+  b.updraftGap(560, 120, 400, 260).flat(340);
+  b.log().flat(300).acorns(4, 20).flat(320);
+  b.arc(3, 130, 50).gap(130).flat(280);
+  b.capGap(380, [[150, 30]]).flat(320);
+  b.bramble().flat(300);
+  b.arc(5, 300, 60).gap(300).flat(340);
+  b.updraftGap(560, 120, 400, 260).flat(340);
+  b.bramble().flat(300).log().flat(320);
+  b.arc(3, 120, 50).gap(120).flat(260);
+  b.acorns(5, 20).flat(240).finish().flat(600);
+  return b.build();
+}
+
+/**
+ * The Old Root Tangle: the trippy one. Logs, brambles, puddles and ledges
+ * close together, so it's about jumping on the beat rather than gliding.
+ */
+function buildRootTangle(): Track {
+  const b = new TrackBuilder();
+  b.flat(140).start().flat(420);
+
+  b.log().flat(260).log().flat(300);
+  b.acorns(4, 20).puddle(150).flat(240);
+  b.bramble().flat(280);
+  b.step(40).flat(280).step(80).flat(300);
+  b.arc(3, 120, 40).gap(120, 0).flat(280);
+  b.log().flat(200).bramble().flat(300);
+  b.arc(3, 140, 50).gap(140).flat(260);
+  b.puddle(140).flat(220).log().flat(300);
+  b.step(50).flat(260);
+  b.arc(3, 130, 40).gap(130, 0).flat(280);
+  b.bramble().flat(220).log().flat(220).log().flat(300);
+  b.capGap(380, [[150, 30]]).flat(320);
+  b.acorns(4, 20).puddle(140).flat(240);
+  b.log().flat(240).bramble().flat(280);
+  b.arc(3, 130, 50).gap(130).flat(260);
+  b.acorns(5, 20).flat(240).finish().flat(600);
+  return b.build();
+}
+
+/**
+ * Moonlit Ridge: the high one, and the hardest. Climb the ledges, then glide
+ * back down across the widest gaps in the forest.
+ */
+function buildMoonlitRidge(): Track {
+  const b = new TrackBuilder();
+  b.flat(140).start().flat(420);
+
+  b.acorns(4, 20).flat(200);
+  b.step(50).flat(240).step(100).flat(300);
+  b.arc(5, 300, 60).gap(300, 0).flat(340);
+  b.log().flat(280);
+  b.updraftGap(560, 120, 400, 260).flat(340);
+  b.step(40).flat(240).step(90).flat(260);
+  b.arc(3, 140, 40).gap(140, 40).flat(280);
+  b.arc(5, 300, 60).gap(300, 0).flat(340);
+  b.bramble().flat(280);
+  b.capGap(650, [[150, 40], [400, 70]]).flat(380);
+  b.acorns(4, 20).puddle(140).flat(260);
+  b.step(50).flat(260);
+  b.arc(5, 300, 60).gap(300, 0).flat(340);
+  b.updraftGap(560, 120, 400, 260).flat(340);
+  b.log().flat(300).puddle(140).flat(260);
+  b.arc(3, 130, 50).gap(130).flat(260);
+  b.acorns(5, 20).flat(240).finish().flat(600);
+  return b.build();
+}
+
+/** One of the courses on the title card. */
+export interface Course {
+  /** Stable id: part of the key the family's runs are filed under. */
+  id: string;
+  name: string;
+  blurb: string;
+  build(): Track;
+}
+
+export const COURSES: readonly Course[] = [
+  {
+    id: "mossy",
+    name: "MOSSY FLOOR",
+    blurb: "The first course. One new thing at a time.",
+    build: buildTrack,
+  },
+  {
+    id: "glowcap",
+    name: "GLOWCAP GROVE",
+    blurb: "Bouncy. Lots of mushrooms and glowing spores.",
+    build: buildGlowcapGrove,
+  },
+  {
+    id: "tangle",
+    name: "ROOT TANGLE",
+    blurb: "Logs, brambles and ledges, close together.",
+    build: buildRootTangle,
+  },
+  {
+    id: "ridge",
+    name: "MOONLIT RIDGE",
+    blurb: "The hard one. Climb up, then glide the widest gaps.",
+    build: buildMoonlitRidge,
+  },
+];
+
+/**
+ * A key for one exact layout of one course, e.g. "mossy-1-k3f9x2".
+ *
+ * A saved run is only a list of button presses, so it's only worth anything
+ * on the layout and the rules it was made on. The key carries a fingerprint
+ * of both: move a log and the old runs are simply never asked for again,
+ * instead of being replayed into a pit that wasn't there when they were set.
+ */
+export function courseKey(courseId: string, track: Track, rulesVersion: number): string {
+  const { ground, hazards, puddles, caps, updrafts, startX, finishX } = track;
+  const text = JSON.stringify([ground, hazards, puddles, caps, updrafts, startX, finishX]);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
+  }
+  return `${courseId}-${rulesVersion}-${(h >>> 0).toString(36)}`;
+}
+
 /** The ground directly under `x`, or null over a pit. */
 export function groundAt(track: Track, x: number): Ground | null {
   for (const g of track.ground) {

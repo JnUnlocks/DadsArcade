@@ -147,6 +147,11 @@ export interface GameModule {
    */
   readonly progressShort?: string;
   readonly blurb: string;
+  /**
+   * A few short lines on how the game is played, shown on the pause screen.
+   * Optional: a game without them gets the pause screen it always had.
+   */
+  readonly howToPlay?: readonly string[];
   /** Accent colour for this game's cabinet in the arcade menu. */
   readonly accent: string;
   /**

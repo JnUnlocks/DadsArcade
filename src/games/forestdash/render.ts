@@ -12,6 +12,7 @@
  * your eye is never pulled off the path by scenery.
  */
 
+import { CAST, type Character } from "./cast.ts";
 import type { Pose } from "./rules.ts";
 import type { Track } from "./track.ts";
 
@@ -517,22 +518,28 @@ export function drawAcorn(ctx: CanvasRenderingContext2D, x: number, y: number, s
 // ----- Racers -----
 
 /**
- * The fox, facing right, feet at the origin, about 40 world units nose to tail.
+ * A racer, facing right, feet at the origin, about 40 world units nose to tail.
  *
  * Four poses, and each has a silhouette you can tell apart at a glance --
  * which is how you know the glide has kicked in without reading anything:
  * legs out flat and the tail straight back like a rudder.
+ *
+ * Every animal in the cast is this one body with its own colours, ears and
+ * tail, so they all read the same way in every pose.
  */
-export function drawFox(
+export function drawRacer(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   pose: Pose,
   stride: number,
+  who: Character,
+  alpha = 1,
 ): void {
   if (pose === "gone") return;
   const s = WORLD_SCALE;
   ctx.save();
+  ctx.globalAlpha = alpha;
   ctx.translate(x, y);
   ctx.scale(s, s);
   if (pose === "trip") ctx.rotate(-0.45);
@@ -540,7 +547,7 @@ export function drawFox(
 
   const swing = Math.sin(stride * Math.PI * 2 * 2.6);
   const legs = (frontX: number, backX: number) => {
-    ctx.strokeStyle = PALETTE.foxDark;
+    ctx.strokeStyle = who.dark;
     ctx.lineWidth = 3.4;
     ctx.lineCap = "round";
     ctx.beginPath();
@@ -567,65 +574,117 @@ export function drawFox(
     ctx.stroke();
   };
 
-  // Tail: a big brush, straight out in a glide, bouncing behind in a run.
+  // Tail: straight out in a glide, bouncing behind in a run.
   const tailLift = pose === "glide" ? 0 : pose === "run" ? 4 + swing * 2 : 9;
-  ctx.fillStyle = PALETTE.fox;
-  ctx.beginPath();
-  ctx.moveTo(-10, -16);
-  ctx.quadraticCurveTo(-24, -18 - tailLift, -32, -22 - tailLift);
-  ctx.quadraticCurveTo(-22, -8 - tailLift / 2, -10, -11);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = PALETTE.white;
-  ctx.beginPath();
-  ctx.arc(-30, -21 - tailLift, 3.6, 0, Math.PI * 2);
-  ctx.fill();
+  if (who.tail === "brush" || who.tail === "ring") {
+    ctx.fillStyle = who.body;
+    ctx.beginPath();
+    ctx.moveTo(-10, -16);
+    ctx.quadraticCurveTo(-24, -18 - tailLift, -32, -22 - tailLift);
+    ctx.quadraticCurveTo(-22, -8 - tailLift / 2, -10, -11);
+    ctx.closePath();
+    ctx.fill();
+    if (who.tail === "ring") {
+      ctx.strokeStyle = who.dark;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "butt";
+      ctx.beginPath();
+      ctx.moveTo(-17, -17 - tailLift * 0.35);
+      ctx.lineTo(-16, -11 - tailLift * 0.3);
+      ctx.moveTo(-24, -20 - tailLift * 0.7);
+      ctx.lineTo(-23, -14 - tailLift * 0.6);
+      ctx.stroke();
+    }
+    ctx.fillStyle = who.tail === "ring" ? who.dark : who.belly;
+    ctx.beginPath();
+    ctx.arc(-30, -21 - tailLift, 3.6, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // A puff or a stub: small, and it just bobs.
+    ctx.fillStyle = who.belly;
+    ctx.beginPath();
+    ctx.arc(-14, -19 - tailLift / 3, who.tail === "puff" ? 5.5 : 3.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   legs(9, -7);
 
   // Body.
-  ctx.fillStyle = PALETTE.fox;
+  ctx.fillStyle = who.body;
   ctx.beginPath();
   ctx.ellipse(0, -16, 14, 7.5, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = PALETTE.white;
+  ctx.fillStyle = who.belly;
   ctx.beginPath();
   ctx.ellipse(5, -12, 7, 3, 0, 0, Math.PI * 2);
   ctx.fill();
+  if (who.spots) {
+    for (const [sx, sy] of [
+      [-7, -19],
+      [-1, -21],
+      [5, -19],
+    ] as const) {
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
 
-  // Head, ears, snout.
-  ctx.fillStyle = PALETTE.fox;
+  // Ears go on before the head, so the head covers where they join.
+  ctx.fillStyle = who.ears === "round" ? who.dark : who.body;
+  ctx.beginPath();
+  if (who.ears === "long") {
+    ctx.ellipse(10, -36, 2.8, 9, -0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(16, -37, 2.8, 9, 0.06, 0, Math.PI * 2);
+  } else if (who.ears === "round") {
+    ctx.arc(9, -29, 3.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(18, -29.5, 3.8, 0, Math.PI * 2);
+  } else {
+    ctx.moveTo(9, -27);
+    ctx.lineTo(10, -36);
+    ctx.lineTo(15, -29);
+    ctx.moveTo(14, -29);
+    ctx.lineTo(18, -37);
+    ctx.lineTo(20, -27);
+  }
+  ctx.fill();
+
+  // Head and snout.
+  ctx.fillStyle = who.body;
   ctx.beginPath();
   ctx.arc(14, -23, 7, 0, Math.PI * 2);
   ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(9, -27);
-  ctx.lineTo(10, -36);
-  ctx.lineTo(15, -29);
-  ctx.moveTo(14, -29);
-  ctx.lineTo(18, -37);
-  ctx.lineTo(20, -27);
-  ctx.fill();
-  ctx.fillStyle = PALETTE.white;
+  ctx.fillStyle = who.belly;
   ctx.beginPath();
   ctx.moveTo(15, -22);
   ctx.lineTo(27, -21);
   ctx.lineTo(15, -17);
   ctx.closePath();
   ctx.fill();
+  if (who.mask) {
+    ctx.fillStyle = who.dark;
+    ctx.beginPath();
+    ctx.ellipse(16, -24.5, 5.4, 2.8, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
   ctx.fillStyle = PALETTE.ink;
   ctx.beginPath();
   ctx.arc(27, -21, 1.8, 0, Math.PI * 2);
   ctx.fill();
   // Eye: closed in a trip, open and bright otherwise.
   if (pose === "trip") {
-    ctx.strokeStyle = PALETTE.ink;
+    ctx.strokeStyle = who.mask ? who.belly : PALETTE.ink;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
     ctx.moveTo(14, -25);
     ctx.lineTo(18, -24);
     ctx.stroke();
   } else {
+    ctx.fillStyle = who.mask ? who.belly : PALETTE.ink;
     ctx.beginPath();
     ctx.arc(16.5, -24.5, 1.6, 0, Math.PI * 2);
     ctx.fill();
@@ -723,8 +782,8 @@ export function drawRaceBar(
   w: number,
   y: number,
   clock: string,
-  you: number,
-  rival: number,
+  you: { at: number; color: string },
+  others: ReadonlyArray<{ at: number; color: string }>,
 ): void {
   ctx.font = "700 15px ui-monospace, Menlo, Consolas, monospace";
   ctx.textAlign = "center";
@@ -746,8 +805,10 @@ export function drawRaceBar(
     ctx.arc(x0 + Math.max(0, Math.min(1, t)) * (x1 - x0), by + 2.5, r, 0, Math.PI * 2);
     ctx.fill();
   };
-  dot(rival, PALETTE.squirrel, 4.5);
-  dot(you, PALETTE.fox, 5.5);
+  for (const o of others) dot(o.at, o.color, 4.5);
+  // You go on last and biggest, with a rim, so your dot is never lost in theirs.
+  dot(you.at, PALETTE.ink, 7);
+  dot(you.at, you.color, 5.5);
 }
 
 export function drawBanner(
@@ -801,7 +862,7 @@ export function drawForestDashIcon(ctx: CanvasRenderingContext2D, size: number):
   ctx.scale(size / 100, size / 100);
   ctx.translate(50, 36);
   ctx.scale(1.25 / WORLD_SCALE, 1.25 / WORLD_SCALE);
-  drawFox(ctx, 0, 0, "glide", 0);
+  drawRacer(ctx, 0, 0, "glide", 0, CAST[0]!);
   ctx.restore();
 }
 

@@ -561,6 +561,17 @@ export class Shell implements GameHost {
     quit.addEventListener("click", () => this.showMenu());
 
     screen.append(resume, restart, quit);
+
+    // Under the buttons, so RESUME stays where a thumb expects it.
+    const lines = this.module?.howToPlay;
+    if (lines?.length) {
+      const howTo = el("div", "pause-howto");
+      howTo.append(el("h3", "", "HOW TO PLAY"));
+      const list = el("ul", "");
+      for (const line of lines) list.append(el("li", "", line));
+      howTo.append(list);
+      screen.append(howTo);
+    }
     this.ui.append(screen);
   }
 

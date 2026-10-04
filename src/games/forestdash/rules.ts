@@ -348,6 +348,70 @@ export function sampleRun(
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, pose: a.pose };
 }
 
+// ----- Saved runs -----
+
+/**
+ * Bump this whenever a change here would make the same presses land somewhere
+ * else -- a speed, gravity, a forgiveness window. It's part of the key saved
+ * runs are filed under, so runs made on the old rules stop being raced
+ * against rather than being replayed wrongly.
+ */
+export const RULES_VERSION = 1;
+
+/**
+ * A run, as the button and nothing else: pairs of [step, state], one pair
+ * each time the button's state changed. State is 1 while held, plus 2 on the
+ * step it went down. A whole race is a couple of hundred numbers.
+ *
+ * That's enough to get the run back exactly, on any device, because the
+ * racer only ever moves in fixed steps from what the button is doing.
+ */
+export type InputLog = number[];
+
+function codeOf(c: Controls): number {
+  return (c.held ? 1 : 0) | (c.pressed ? 2 : 0);
+}
+
+/** Collects an InputLog. Call push() once for every step the racer is stepped. */
+export class InputRecorder {
+  readonly log: InputLog = [];
+  private last = 0;
+  private step = 0;
+
+  push(c: Controls): void {
+    const code = codeOf(c);
+    if (code !== this.last) {
+      this.log.push(this.step, code);
+      this.last = code;
+    }
+    this.step += 1;
+  }
+}
+
+/** Run a saved InputLog over the course again, and keep the path. */
+export function replayRun(
+  track: Track,
+  step: number,
+  log: InputLog,
+  maxSeconds = 180,
+): RecordedRun {
+  const r = createRacer(track.startX);
+  const points: PathPoint[] = [{ x: r.x, y: r.y, pose: poseOf(r) }];
+  const steps = Math.ceil(maxSeconds / step);
+  let code = 0;
+  let next = 0;
+  for (let n = 0; n < steps; n += 1) {
+    if (log[next] === n) {
+      code = log[next + 1] ?? 0;
+      next += 2;
+    }
+    stepRacer(r, track, { held: (code & 1) !== 0, pressed: (code & 2) !== 0 }, step);
+    points.push({ x: r.x, y: r.y, pose: poseOf(r) });
+    if (r.x >= track.finishX) return { points, finishTime: (n + 1) * step };
+  }
+  return { points, finishTime: Number.POSITIVE_INFINITY };
+}
+
 /** The recorded racer's finish time when played at `pace`. */
 export function paceFinishTime(run: RecordedRun, pace: number): number {
   return run.finishTime / pace;

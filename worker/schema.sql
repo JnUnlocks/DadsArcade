@@ -130,6 +130,28 @@ CREATE TABLE IF NOT EXISTS mine (
   PRIMARY KEY (kind, value)
 ) WITHOUT ROWID;
 
+-- A saved race: one device's fastest run of one course, kept as the button
+-- presses that made it (a JSON array of a few hundred small numbers), so
+-- another device can replay it and race against it. One row per device per
+-- course, replaced only by a faster run, so it stays as small as the family.
+-- `course` includes a fingerprint of the layout and rules the run was made on
+-- (see courseKey in src/games/forestdash/track.ts).
+CREATE TABLE IF NOT EXISTS ghosts (
+  game_id    TEXT    NOT NULL,
+  course     TEXT    NOT NULL,
+  device_id  TEXT    NOT NULL,
+  initials   TEXT    NOT NULL DEFAULT '',
+  character  TEXT    NOT NULL,
+  time_ms    INTEGER NOT NULL,
+  log        TEXT    NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (game_id, course, device_id)
+) WITHOUT ROWID;
+
+-- Serves "the fastest few runs of this course".
+CREATE INDEX IF NOT EXISTS idx_ghosts_course_time
+  ON ghosts (game_id, course, time_ms);
+
 -- Serves "devices that belong to these initials" for the mine filter, and the
 -- per-player rollup on /admin.
 CREATE INDEX IF NOT EXISTS idx_best_initials
