@@ -146,6 +146,12 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (pathname === "/api/feedback" && request.method === "POST") {
     return postFeedback(request, env);
   }
+  if (pathname === "/api/ghosts/times" && request.method === "GET") {
+    return getGhostTimes(env, url);
+  }
+  if (pathname === "/api/ghosts/racers" && request.method === "GET") {
+    return getGhostRacers(env, url);
+  }
   if (pathname === "/api/ghosts" && request.method === "GET") {
     return getGhosts(env, url);
   }
@@ -393,8 +399,14 @@ async function postFeedback(request: Request, env: Env): Promise<Response> {
 
 /** A course key as the game issues it, e.g. "mossy-1-k3f9x2". */
 const COURSE_RE = /^[a-z0-9-]{1,40}$/;
-/** How many other people's runs a race is given. */
+/** How many other people's runs a race is given, unless it asks for more. */
 const GHOSTS_PER_RACE = 3;
+/** The most it can ask for: enough to pick the closest few to a time from. */
+const GHOSTS_MAX = 12;
+/** Rows on a course's fastest-times list. */
+const GHOST_TIMES_ROWS = 20;
+/** A daily course's runs are kept this many days, then cleared out. */
+const DAILY_GHOST_DAYS = 7;
 /** A run is a few hundred numbers; this is several times the longest real one. */
 const GHOST_LOG_MAX = 4000;
 /** The races step 60 times a second. */
@@ -411,15 +423,26 @@ async function getGhosts(env: Env, url: URL): Promise<Response> {
   if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
   if (!COURSE_RE.test(course)) return json({ error: "invalid_course" }, 400);
   const deviceId = url.searchParams.get("device")?.trim() ?? "";
+  const limit = clampInt(
+    Number(url.searchParams.get("limit")) || GHOSTS_PER_RACE,
+    1,
+    GHOSTS_MAX,
+  );
+  // Optional: only this person's runs, for "race against RIL".
+  const initials = (url.searchParams.get("initials") ?? "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 3);
 
   const { results } = await env.DB.prepare(
     `SELECT initials, character, time_ms AS timeMs, log
        FROM ghosts
       WHERE game_id = ?1 AND course = ?2 AND device_id != ?3
+        AND (?5 = '' OR initials = ?5)
       ORDER BY time_ms ASC
       LIMIT ?4`,
   )
-    .bind(gameId, course, deviceId, GHOSTS_PER_RACE)
+    .bind(gameId, course, deviceId, limit, initials)
     .all<{ initials: string; character: string; timeMs: number; log: string }>();
 
   const ghosts = [];
@@ -431,6 +454,52 @@ async function getGhosts(env: Env, url: URL): Promise<Response> {
     }
   }
   return json({ ghosts });
+}
+
+/**
+ * A course's fastest times, one row per device, for the times list. No runs
+ * and no device ids: just who, as what, and how fast.
+ */
+async function getGhostTimes(env: Env, url: URL): Promise<Response> {
+  const gameId = url.searchParams.get("game")?.trim() ?? "";
+  const course = url.searchParams.get("course")?.trim() ?? "";
+  if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
+  if (!COURSE_RE.test(course)) return json({ error: "invalid_course" }, 400);
+  const deviceId = url.searchParams.get("device")?.trim() ?? "";
+
+  const { results } = await env.DB.prepare(
+    `SELECT initials, character, time_ms AS timeMs, (device_id = ?3) AS isYou
+       FROM ghosts
+      WHERE game_id = ?1 AND course = ?2
+      ORDER BY time_ms ASC
+      LIMIT ?4`,
+  )
+    .bind(gameId, course, deviceId, GHOST_TIMES_ROWS)
+    .all();
+  return json({ times: results ?? [] });
+}
+
+/**
+ * The initials of everyone else with a saved run in this game, for the
+ * "race against" picker. Reads one row per device per course, which stays
+ * small because old daily courses are cleared out as new ones are saved.
+ */
+async function getGhostRacers(env: Env, url: URL): Promise<Response> {
+  const gameId = url.searchParams.get("game")?.trim() ?? "";
+  if (!GAME_ID_RE.test(gameId)) return json({ error: "invalid_game" }, 400);
+  const deviceId = url.searchParams.get("device")?.trim() ?? "";
+
+  const { results } = await env.DB.prepare(
+    `SELECT initials, MAX(created_at) AS lastRun
+       FROM ghosts
+      WHERE game_id = ?1 AND device_id != ?2 AND initials != ''
+      GROUP BY initials
+      ORDER BY lastRun DESC
+      LIMIT 8`,
+  )
+    .bind(gameId, deviceId)
+    .all<{ initials: string }>();
+  return json({ racers: (results ?? []).map((r) => r.initials) });
 }
 
 /**
@@ -496,23 +565,38 @@ async function postGhost(request: Request, env: Env): Promise<Response> {
     previous = step as number;
   }
 
-  // Only a faster run replaces the saved one; a slower one writes nothing.
-  const result = await env.DB.prepare(
+  // Only a faster run replaces the saved one. The initials always follow the
+  // latest send, so a run made before someone entered theirs gets its name
+  // when they do. Every SET expression sees the OLD row.
+  const save = env.DB.prepare(
     `INSERT INTO ghosts
        (game_id, course, device_id, initials, character, time_ms, log, created_at)
      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
      ON CONFLICT (game_id, course, device_id) DO UPDATE SET
-       initials   = excluded.initials,
-       character  = excluded.character,
-       time_ms    = excluded.time_ms,
-       log        = excluded.log,
-       created_at = excluded.created_at
-     WHERE excluded.time_ms < ghosts.time_ms`,
-  )
-    .bind(gameId, course, deviceId, initials, character, timeMs, JSON.stringify(log), Date.now())
-    .run();
+       initials   = CASE WHEN excluded.initials != '' THEN excluded.initials ELSE ghosts.initials END,
+       character  = CASE WHEN excluded.time_ms < ghosts.time_ms THEN excluded.character  ELSE ghosts.character  END,
+       log        = CASE WHEN excluded.time_ms < ghosts.time_ms THEN excluded.log        ELSE ghosts.log        END,
+       created_at = CASE WHEN excluded.time_ms < ghosts.time_ms THEN excluded.created_at ELSE ghosts.created_at END,
+       time_ms    = CASE WHEN excluded.time_ms < ghosts.time_ms THEN excluded.time_ms    ELSE ghosts.time_ms    END`,
+  ).bind(gameId, course, deviceId, initials, character, timeMs, JSON.stringify(log), Date.now());
 
-  return json({ ok: true, saved: (result.meta.changes ?? 0) > 0 });
+  // A daily course is only raced on its day, so its runs would otherwise pile
+  // up for ever: saving one clears out this game's dailies from over a week
+  // ago. Daily keys start "daily-YYYYMMDD", so they sort by date and this is
+  // a range on the primary key that can only ever match old daily rows.
+  if (course.startsWith("daily-")) {
+    const cutoff = utcDay(Date.now() - DAILY_GHOST_DAYS * DAY_MS).replace(/-/g, "");
+    await env.DB.batch([
+      save,
+      env.DB.prepare(
+        `DELETE FROM ghosts WHERE game_id = ?1 AND course >= 'daily-' AND course < ?2`,
+      ).bind(gameId, `daily-${cutoff}`),
+    ]);
+  } else {
+    await save.run();
+  }
+
+  return json({ ok: true });
 }
 
 /** Without a configured token, admin access is disabled entirely rather than open. */

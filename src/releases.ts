@@ -34,6 +34,20 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.20.0",
+    date: "2026-10-05",
+    title: "How to play on every pause screen, and a lot more Forest Dash",
+    notes: [
+      "Every game now explains itself. Pause any game and the rules are under the buttons: how to move, what scores, and what costs you a life.",
+      "Forest Dash has a new course every day. TODAY'S COURSE is at the top of its title card, it's the same course for everyone, and the tile on the menu wears a TODAY badge until you've raced it.",
+      "FASTEST TIMES, on the Forest Dash title card, lists the best time each of us has set on every course, today's included.",
+      "You now race your own best too. The faint racer marked BEST is your fastest run on that course. It's there to chase: it doesn't count against your place.",
+      "RACE AGAINST lets you pick who joins your race: the FASTEST runs, the ones NEAR MY TIME, or one person by their initials.",
+      "PLAY AGAIN goes straight back to the start line of the course you just ran. CHANGE COURSE takes you back to the title card.",
+      "If a phone has never had initials put in, Forest Dash now asks for them on its title card, so you show up in the family's races by name and not as FOX.",
+    ],
+  },
+  {
     version: "0.19.0",
     date: "2026-10-03",
     title: "Forest Dash: pick your animal, race the family, three new courses",

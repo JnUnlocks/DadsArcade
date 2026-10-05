@@ -52,6 +52,26 @@ export interface GameHost {
 
   /** End the run. The shell handles scoring, leaderboard submission and UI. */
   gameOver(summary: RunSummary): void;
+
+  /** This device's initials, or null if nobody has entered any yet. */
+  readonly initials: string | null;
+
+  /**
+   * The arcade's initials box, for a game that puts names to things without
+   * a score to save -- Forest Dash's racers. Saving makes them the device's
+   * initials everywhere, exactly as the game-over prompt does.
+   */
+  initialsPrompt(buttonLabel: string, onSaved: (initials: string) => void): HTMLElement;
+}
+
+/** How a game is being started. */
+export interface StartOptions {
+  /**
+   * True when the player asked for another go of what they were just playing
+   * (PLAY AGAIN, or RESTART from pause), rather than opening the cabinet. A
+   * game with a title card can skip it and go straight back in.
+   */
+  again: boolean;
 }
 
 /** What a game reports when a run ends. */
@@ -87,6 +107,13 @@ export interface RunSummary {
 
   /** Replaces "GAME OVER" -- for modes where losing isn't a concept. */
   headline?: string;
+
+  /**
+   * Adds a button with this label under PLAY AGAIN that opens the game at its
+   * title card. For a game whose PLAY AGAIN skips the card (see StartOptions),
+   * so there is still a way back to it -- "CHANGE COURSE".
+   */
+  changeLabel?: string;
 }
 
 /** Values the shell paints into the HUD each frame. */
@@ -161,6 +188,13 @@ export interface GameModule {
    */
   readonly hasDailyChallenge?: boolean;
   /**
+   * True when this game has something new every day but files nothing on a
+   * per-day score board -- Forest Dash's daily course, which keeps times
+   * rather than scores. Its cabinet gets the TODAY badge; the high-score
+   * screen does not get a TODAY tab that could only ever be empty.
+   */
+  readonly dailyWithoutBoard?: boolean;
+  /**
    * True while a cabinet is still being tried out by the family. Its tile
    * wears a BETA badge, so anyone who opens it knows to expect rough edges
    * and that feedback is wanted. Remove it when the game is finished.
@@ -187,5 +221,5 @@ export interface GameModule {
    * one piece of chrome the shell lets a game reskin rather than hardcode.
    */
   drawLifeIcon?(ctx: CanvasRenderingContext2D, highContrast: boolean): void;
-  create(host: GameHost): GameInstance;
+  create(host: GameHost, start?: StartOptions): GameInstance;
 }

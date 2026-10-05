@@ -594,6 +594,13 @@ export const mallardModule: GameModule = {
   shortTitle: "MALLARD",
   progressShort: "RD",
   blurb: "Drag to aim. Tap FIRE, or tap with a second finger.",
+  howToPlay: [
+    "Drag anywhere to move the crosshair.",
+    "Tap FIRE to shoot, or tap the screen with a second finger.",
+    "Each round sends up one or two ducks, and you get three shells for the round.",
+    "A duck flies around for a few seconds, then breaks for the sky. Aim a little ahead of it.",
+    "Fail a round and the dog laughs at you, and you lose a life. Three lives.",
+  ],
   accent: "#ffc93c",
 
   drawIcon(ctx, size) {

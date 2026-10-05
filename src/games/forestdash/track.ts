@@ -75,7 +75,7 @@ export interface Track {
 /** A cap's bounce surface is this much narrower than it's drawn, so a toe on the rim doesn't count. */
 export const CAP_INSET = 6;
 
-class TrackBuilder {
+export class TrackBuilder {
   x = 0;
   top = 0;
   readonly track: Track = {
@@ -308,6 +308,8 @@ export interface Course {
   /** Stable id: part of the key the family's runs are filed under. */
   id: string;
   name: string;
+  /** One word, for the chips on the fastest-times list. */
+  short: string;
   blurb: string;
   build(): Track;
 }
@@ -316,24 +318,28 @@ export const COURSES: readonly Course[] = [
   {
     id: "mossy",
     name: "MOSSY FLOOR",
+    short: "MOSSY",
     blurb: "The first course. One new thing at a time.",
     build: buildTrack,
   },
   {
     id: "glowcap",
     name: "GLOWCAP GROVE",
+    short: "GLOWCAP",
     blurb: "Bouncy. Lots of mushrooms and glowing spores.",
     build: buildGlowcapGrove,
   },
   {
     id: "tangle",
     name: "ROOT TANGLE",
+    short: "TANGLE",
     blurb: "Logs, brambles and ledges, close together.",
     build: buildRootTangle,
   },
   {
     id: "ridge",
     name: "MOONLIT RIDGE",
+    short: "RIDGE",
     blurb: "The hard one. Climb up, then glide the widest gaps.",
     build: buildMoonlitRidge,
   },

@@ -131,3 +131,140 @@
   letter-spacing: 0.04em;
   text-align: center;
 }
+
+/* Today's course gets the full width, above the four that are always there. */
+.fd-course--daily {
+  grid-column: 1 / -1;
+  min-height: calc(60px * var(--ui-scale));
+  border-color: rgba(255, 225, 79, 0.7);
+  background: linear-gradient(135deg, rgba(255, 225, 79, 0.2), rgba(8, 14, 30, 0.94) 70%);
+}
+
+.fd-course--daily.is-last {
+  border-color: #ffe14f;
+  box-shadow: 0 0 16px rgba(255, 225, 79, 0.3);
+}
+
+/* ----- Who you race, and the course chips on the times list ----- */
+
+.fd-against {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fd-label {
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.fd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fd-chip {
+  min-height: calc(34px * var(--ui-scale));
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(142, 163, 200, 0.45);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.fd-chip[aria-pressed="true"] {
+  border-color: #ffe14f;
+  background: rgba(255, 225, 79, 0.14);
+  color: var(--ink);
+}
+
+.fd-link {
+  align-self: center;
+  min-height: calc(40px * var(--ui-scale));
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(142, 163, 200, 0.45);
+  background: rgba(8, 14, 30, 0.88);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+/* ----- Initials, on a device that has none ----- */
+
+.fd-who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(142, 163, 200, 0.35);
+  background: rgba(8, 14, 30, 0.92);
+}
+
+/* ----- Fastest times ----- */
+
+.fd-times {
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(142, 163, 200, 0.35);
+  background: rgba(8, 14, 30, 0.94);
+}
+
+.fd-times__title {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: calc(14px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+
+.fd-times__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: calc(120px * var(--ui-scale));
+}
+
+.fd-time {
+  display: grid;
+  grid-template-columns: 2.4em 3.2em 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(142, 163, 200, 0.08);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(13px * var(--ui-scale));
+}
+
+.fd-time span:first-child,
+.fd-time span:nth-child(3) {
+  color: var(--dim);
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.08em;
+}
+
+.fd-time span:last-child {
+  font-weight: 700;
+}
+
+.fd-time.is-you {
+  background: rgba(255, 225, 79, 0.16);
+  box-shadow: inset 3px 0 0 #ffe14f;
+}

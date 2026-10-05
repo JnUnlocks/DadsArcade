@@ -951,6 +951,14 @@ export const snakeModule: GameModule = {
   shortTitle: "SNAKE",
   progressShort: "ST",
   blurb: "Swipe or use the keypad. The old phone's snake, or the neon one with lasers.",
+  howToPlay: [
+    "Swipe to turn. Or switch CONTROLS to KEYPAD on the title card: 2 is up, 4 left, 6 right, 8 down.",
+    "Eat to grow, and don't run into yourself.",
+    "CLASSIC: one life and solid walls. Every five bites is a level and the snake gets quicker, up to level 9.",
+    "HYPER: go out one side and come back in the other. Steer round the crates, and watch for lasers, which warn before they fire. Three lives.",
+    "HYPER pickups: a shield forgives one crash, a magnet pulls apples to you, and gold nuts are points.",
+    "Hold BOOST in HYPER to sprint. Anything you eat at a sprint scores double.",
+  ],
   accent: "#ff5247",
   extraBoard: { id: CLASSIC_BOARD, label: "CLASSIC", progressShort: "LEN" },
 

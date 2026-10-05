@@ -1119,6 +1119,15 @@ export const plasmaSortModule: GameModule = {
   title: "PLASMA SORT",
   progressShort: "P",
   blurb: "Tap a tube, tap another to pour. One colour each.",
+  // The same five points as the HOW TO PLAY card on the title screen, above.
+  // Change one and change the other.
+  howToPlay: [
+    "Tap a tube to pick up the colour on top. Tap another tube to pour it in.",
+    "You can only pour onto the same colour, or into an empty tube. A tube holds four.",
+    "Sort every tube down to a single colour and the puzzle's done.",
+    "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose, only not finish yet.",
+    "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour.",
+  ],
   accent: "#d96bff",
   hasDailyChallenge: true,
 

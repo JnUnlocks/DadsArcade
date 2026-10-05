@@ -770,6 +770,14 @@ export const blackDiscModule: GameModule = {
   shortTitle: "BLACK DISC",
   progressShort: "RD",
   blurb: "Pass it, guess it, don't get caught holding it at the buzz.",
+  howToPlay: [
+    "One phone, two teams. Sit in alternating order.",
+    "Describe the word or phrase to your team. No saying part of it, spelling it, or \"rhymes with\" clues.",
+    "When they guess it, tap GOT IT and pass the phone on straight away.",
+    "Whoever is holding it when it buzzes gives the other team a point. First to seven wins.",
+    "The first SKIP in a round is free. Every one after that takes time off the clock.",
+    "Said the word, or broke another rule? Tap RULE BREAK to end the round on the spot.",
+  ],
   accent: "#dbff73",
 
   drawIcon(ctx, size) {

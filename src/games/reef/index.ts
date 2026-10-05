@@ -680,6 +680,13 @@ export const reefModule: GameModule = {
   shortTitle: "REEF",
   progressShort: "LV",
   blurb: "Swipe to swim. Eat the bubbles, dodge the jellyfish.",
+  howToPlay: [
+    "Swipe to turn. Riley keeps swimming the way she's facing.",
+    "Swipe a little early and she takes the turn when she gets to it.",
+    "Eat the bubbles. The four jellyfish chase you, each in its own way.",
+    "Bump into a jellyfish and Riley goes back to her starting spot and loses a life. Three lives.",
+    "Eat a pearl and the jellyfish get scared. Now you can eat them: 200, 400, 800, then 1,600 points.",
+  ],
   accent: "#4f96ff",
 
   drawIcon(ctx, size) {

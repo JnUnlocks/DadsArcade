@@ -512,6 +512,14 @@ export const brickfallModule: GameModule = {
   title: "BRICKFALL",
   progressShort: "LV",
   blurb: "Drag to slide, tap to turn. Fill a row to clear it. 25 levels.",
+  howToPlay: [
+    "Drag left or right to slide the piece. Tap to turn it.",
+    "Drag down to move it down faster, or tap DROP to send it straight to the bottom.",
+    "Fill a row all the way across to clear it. Four rows at once scores the most.",
+    "The outline at the bottom shows where the piece will land.",
+    "A piece that has just landed can still be slid for a moment before it sets.",
+    "Each level is faster, up to level 25. The game ends when the stack reaches the top.",
+  ],
   accent: "#8e7bff",
 
   drawIcon(ctx, size) {

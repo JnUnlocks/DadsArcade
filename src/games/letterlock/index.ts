@@ -933,6 +933,13 @@ export const letterLockModule: GameModule = {
   title: "LETTER LOCK",
   progressShort: "G",
   blurb: "Type a word, tap ENTER. Tiles show which letters fit.",
+  howToPlay: [
+    "Find the five-letter word in six tries. Type a word and tap ENTER.",
+    "Each tile then tells you one of three things: the letter is locked in the right place, it's in the word but somewhere else, or it isn't in the word.",
+    "TODAY's word is the same for everyone, and only your first go at it counts.",
+    "FREE PLAY and PRACTICE give you a random word whenever you like.",
+    "Run out of tries and the word is shown. The only thing a miss costs is your streak.",
+  ],
   accent: MINT,
   hasDailyChallenge: true,
 

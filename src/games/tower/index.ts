@@ -648,6 +648,14 @@ export const towerModule: GameModule = {
   shortTitle: "TOWER",
   progressShort: "ST",
   blurb: "D-pad to walk and climb, JUMP over junk. Rescue the good boy.",
+  howToPlay: [
+    "Use the D-pad to walk and to climb ladders. Tap JUMP to hop over rolling junk.",
+    "A jump goes the way you were heading when you took off. You can't turn in the air.",
+    "Grab a wrench to smash junk for a few seconds. You can't climb while you're holding it.",
+    "Reach the roof to rescue the dog. Each rescue earns a heart, up to five.",
+    "Get hit and you lose a heart, but you restart on the girder you'd reached, not at the bottom.",
+    "The bonus counts down while you climb. It only costs points, never a heart.",
+  ],
   accent: "#ff6a3d",
 
   drawIcon(ctx, size) {

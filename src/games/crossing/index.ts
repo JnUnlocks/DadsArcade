@@ -636,6 +636,14 @@ export const crossingModule: GameModule = {
   title: "HIGHWAY HOP",
   progressShort: "LV",
   blurb: "Tap to hop. Cross the road, ride the logs, fill all five burrows.",
+  howToPlay: [
+    "Tap to hop forward. Swipe to hop sideways.",
+    "On the road, don't be where a car is.",
+    "On the river it's the other way round: stay on the logs, because open water sends you back. A log can also carry you off the edge.",
+    "Get a frog into each of the five burrows to finish the level.",
+    "Getting hit puts you back on the kerb and costs a life. You start with five, and clearing a level gives one back.",
+    "The clock only drains a bonus. It never ends your turn.",
+  ],
   accent: "#7ddc4f",
 
   drawIcon(ctx, size) {

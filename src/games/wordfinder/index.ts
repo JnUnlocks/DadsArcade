@@ -51,6 +51,13 @@ export const wordFinderModule: GameModule = {
   title: "WORD FINDER",
   shortTitle: "FINDER",
   blurb: "Stuck on a crossword clue? Type C?T and see what fits.",
+  howToPlay: [
+    "This is a helper for any crossword, not a game. There's no score.",
+    "Type the letters you have, with a ? for each blank square, like C?T. It lists every word that fits.",
+    "It can also unscramble letters typed in any order.",
+    "Or type a word from a clue to search the clues written for Mom Mom's Crossword.",
+    "The first time you open it, it needs a connection to fetch its dictionary.",
+  ],
   accent: "#7fd6c2",
   beta: true,
   drawIcon: drawFinderIcon,

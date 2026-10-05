@@ -298,6 +298,7 @@ function message(text: string): HTMLElement {
  */
 export function buildInitialsPrompt(
   onSubmit: (initials: string) => void,
+  buttonLabel = "SAVE SCORE",
 ): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "initials";
@@ -316,7 +317,7 @@ export function buildInitialsPrompt(
 
   const submit = document.createElement("button");
   submit.className = "btn btn--primary";
-  submit.textContent = "SAVE SCORE";
+  submit.textContent = buttonLabel;
   submit.disabled = true;
 
   let composing = false;

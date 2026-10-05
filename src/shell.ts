@@ -127,6 +127,23 @@ export class Shell implements GameHost {
     this.hitStopRemaining = Math.max(this.hitStopRemaining, seconds);
   }
 
+  get initials(): string | null {
+    return this.player?.initials ?? null;
+  }
+
+  initialsPrompt(buttonLabel: string, onSaved: (initials: string) => void): HTMLElement {
+    return buildInitialsPrompt((initials) => {
+      const player: Player = {
+        initials,
+        deviceId: this.player?.deviceId ?? createDeviceId(),
+      };
+      this.player = player;
+      savePlayer(player);
+      this.audio.play("uiSelect");
+      onSaved(initials);
+    }, buttonLabel);
+  }
+
   gameOver(summary: RunSummary): void {
     if (this.screen === "gameover") return;
     this.screen = "gameover";
@@ -377,7 +394,7 @@ export class Shell implements GameHost {
     // Today's challenge exists whether or not anyone ever opens this cabinet
     // to find it -- the badge is what tells them it's there.
     const hasFreshDaily =
-      game.hasDailyChallenge === true &&
+      (game.hasDailyChallenge === true || game.dailyWithoutBoard === true) &&
       loadDailySeen()[game.id] !== dailyKey();
 
     // The blurb is the accessible description; sighted players get the art.
@@ -487,7 +504,11 @@ export class Shell implements GameHost {
     focusFeedback(screen);
   }
 
-  startGame(module: GameModule): void {
+  /**
+   * `again` is true for another go of the game just played (PLAY AGAIN,
+   * RESTART), false when the cabinet is opened from the menu.
+   */
+  startGame(module: GameModule, again = false): void {
     // First time anyone plays Starfighter on this device: explain the controls
     // once, then start. The screen is Starfighter's own instructions, so it
     // only goes in front of Starfighter -- a new phone whose first pick was
@@ -499,7 +520,7 @@ export class Shell implements GameHost {
         buildHowToScreen(() => {
           this.updateSettings({ seenHowTo: true });
           this.audio.play("uiSelect");
-          this.startGame(module);
+          this.startGame(module, again);
         }),
       );
       return;
@@ -512,7 +533,7 @@ export class Shell implements GameHost {
     this.elapsedMs = 0;
     this.shakeAmount = 0;
     this.hitStopRemaining = 0;
-    this.instance = module.create(this);
+    this.instance = module.create(this, { again });
     reportPlay(module.id);
     this.input.reset();
     this.screen = "playing";
@@ -554,7 +575,7 @@ export class Shell implements GameHost {
 
     const restart = el("button", "btn", "RESTART");
     restart.addEventListener("click", () => {
-      if (this.module) this.startGame(this.module);
+      if (this.module) this.startGame(this.module, true);
     });
 
     const quit = el("button", "btn btn--danger", "QUIT TO ARCADE");
@@ -665,8 +686,18 @@ export class Shell implements GameHost {
 
     const again = el("button", "btn btn--primary", "PLAY AGAIN");
     again.addEventListener("click", () => {
-      if (this.module) this.startGame(this.module);
+      if (this.module) this.startGame(this.module, true);
     });
+    // PLAY AGAIN goes straight back in, so a game with a title card worth
+    // returning to names a second button that opens it.
+    const afterAgain: HTMLElement[] = [];
+    if (summary.changeLabel) {
+      const change = el("button", "btn", summary.changeLabel);
+      change.addEventListener("click", () => {
+        if (this.module) this.startGame(this.module);
+      });
+      afterAgain.push(change);
+    }
 
     const board = el("button", "btn", "HIGH SCORES");
     board.addEventListener("click", () => {
@@ -688,13 +719,13 @@ export class Shell implements GameHost {
     // A sandbox run ends here: no upload, and no initials prompt, because
     // there is nothing to put a name to.
     if (!ranked) {
-      screen.append(again, board, menu);
+      screen.append(again, ...afterAgain, board, menu);
       this.ui.append(screen);
       return;
     }
 
     if (this.player) {
-      screen.append(again, board, menu);
+      screen.append(again, ...afterAgain, board, menu);
       void this.uploadRun(run, this.player, status);
     } else {
       // First ever run on this device: ask for initials the way the machine
@@ -705,7 +736,7 @@ export class Shell implements GameHost {
         savePlayer(player);
         prompt.remove();
         screen.insertBefore(again, status.nextSibling);
-        screen.append(board, menu);
+        screen.append(...afterAgain, board, menu);
         this.audio.play("uiSelect");
         void this.uploadRun(run, player, status);
       });

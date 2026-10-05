@@ -1153,6 +1153,14 @@ export const starfighterModule: GameModule = {
   title: "STARFIGHTER",
   progressShort: "WV",
   blurb: "Drag to fly. The guns handle themselves.",
+  howToPlay: [
+    "Drag anywhere to fly. The guns fire on their own, unless you turn AUTOFIRE off in Settings.",
+    "Only two of your shots can be in the air at once, so aim rather than spray.",
+    "Enemies fly in, line up, then dive at you. One shot while it's diving is worth double.",
+    "If a cruiser's beam captures your fighter, shoot that cruiser down to win it back and fly side by side.",
+    "Every fifth wave is a boss. In a bonus stage, hit every ship for a perfect.",
+    "Three lives. An extra one at 20,000 points, then every 40,000 after.",
+  ],
   accent: "#46e0ff",
 
   drawIcon(ctx, size) {
