@@ -224,6 +224,19 @@ export interface GameModule {
     readonly label: string;
     /** This board's own progress abbreviation, if it counts something else. */
     readonly progressShort?: string;
+    /**
+     * Set when the mode is a game in its own right -- Brickfall's BRICK BLAST,
+     * which shares a cabinet with CLASSIC and nothing else. The high-score
+     * screen then lists it under this name like any other game: its own chip
+     * in the filter, its own section under ALL GAMES, its own ALL TIME and
+     * THIS WEEK. Without it the board is a tab on its game's board, which is
+     * right for a variant and easy to miss for a second game.
+     */
+    readonly standalone?: {
+      readonly title: string;
+      readonly shortTitle?: string;
+      readonly accent: string;
+    };
   };
   /** Draw the cabinet's marquee art into a size x size box at the origin. */
   drawIcon(ctx: CanvasRenderingContext2D, size: number): void;

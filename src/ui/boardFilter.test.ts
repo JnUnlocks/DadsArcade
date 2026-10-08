@@ -10,6 +10,8 @@ import { describe, it } from "node:test";
 import type { GameModule } from "../core/game.ts";
 import {
   extraBoardGame,
+  listBoards,
+  standaloneKey,
   gamesInView,
   progressText,
   shortTitleOf,
@@ -90,5 +92,56 @@ describe("labels", () => {
     assert.equal(progressText(snake, 7), "ST7");
     assert.equal(progressText(snake, 31, "extra"), "LEN31");
     assert.equal(progressText(GAMES[2], 4, "extra"), "LV4");
+  });
+});
+
+describe("a mode with a board of its own", () => {
+  const blast: GameModule = {
+    ...GAMES[2]!,
+    extraBoard: {
+      id: "blast",
+      label: "BLAST",
+      standalone: { title: "BRICK BLAST", accent: "#ff5fae" },
+    },
+  };
+  const arcade = [GAMES[0]!, blast, GAMES[3]!];
+
+  it("is listed as a game, straight after the game it belongs to", () => {
+    const { games } = listBoards(arcade);
+    assert.deepEqual(
+      games.map((g) => g.id),
+      [GAMES[0]!.id, "brickfall", standaloneKey("brickfall", "blast"), GAMES[3]!.id],
+    );
+    const entry = games[2]!;
+    assert.equal(entry.title, "BRICK BLAST");
+    assert.equal(shortTitleOf(entry), "BRICK BLAST");
+    assert.equal(entry.accent, "#ff5fae");
+  });
+
+  it("reads its scores from the game's own board, not from a made-up game", () => {
+    const { sources } = listBoards(arcade);
+    assert.deepEqual(sources.get(standaloneKey("brickfall", "blast")), {
+      gameId: "brickfall",
+      board: "blast",
+    });
+    assert.deepEqual(sources.get("brickfall"), { gameId: "brickfall", board: "" });
+  });
+
+  it("isn't offered a second time as a tab", () => {
+    const { games } = listBoards(arcade);
+    assert.equal(extraBoardGame(games, "brickfall"), undefined);
+    assert.equal(extraBoardGame(games, standaloneKey("brickfall", "blast")), undefined);
+  });
+
+  it("leaves an ordinary extra board as a tab", () => {
+    const { games, sources } = listBoards(GAMES);
+    assert.deepEqual(games.map((g) => g.id), GAMES.map((g) => g.id));
+    assert.equal(extraBoardGame(games, "snake")?.id, "snake");
+    assert.equal(sources.size, GAMES.length);
+  });
+
+  it("keeps the game's progress label", () => {
+    const { games } = listBoards(arcade);
+    assert.equal(progressText(games[2], 4), progressText(blast, 4));
   });
 });

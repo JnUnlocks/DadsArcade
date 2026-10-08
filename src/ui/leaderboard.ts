@@ -12,6 +12,7 @@ import type { Player } from "../core/storage";
 import {
   extraBoardGame,
   gamesInView,
+  listBoards,
   progressText,
   shortTitleOf,
   sliceAfterFilterChange,
@@ -40,11 +41,15 @@ const SINGLE_GAME_ROWS = 20;
  * three under its own heading instead.
  */
 export function buildLeaderboardScreen(
-  games: readonly GameModule[],
+  arcadeGames: readonly GameModule[],
   initialFilter: GameFilter,
   player: Player | null,
   onBack: () => void,
 ): HTMLElement {
+  // A mode that is a game in its own right (Brickfall's BRICK BLAST) is
+  // listed as one. From here on `games` is that list, not the cabinets.
+  const { games, sources } = listBoards(arcadeGames);
+
   const screen = document.createElement("div");
   screen.className = "screen screen--board";
 
@@ -157,15 +162,17 @@ export function buildLeaderboardScreen(
     body.replaceChildren(message("LOADING…"));
 
     const results = await Promise.allSettled(
-      visible.map((game) =>
-        fetchLeaderboard(
-          game.id,
+      visible.map((game) => {
+        const source = sources.get(game.id) ?? { gameId: game.id, board: "" };
+        return fetchLeaderboard(
+          source.gameId,
           period,
           filter === null ? PER_GAME_IN_OVERVIEW : SINGLE_GAME_ROWS,
           player?.deviceId,
-          board,
-        ),
-      ),
+          // A tab's board (TODAY, a mode's tab) wins; otherwise the entry's own.
+          board || source.board,
+        );
+      }),
     );
     if (mine !== requestId) return; // superseded by a newer selection
 

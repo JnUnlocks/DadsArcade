@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.23.1",
+    date: "2026-10-08",
+    title: "BRICK BLAST gets its own place on the high scores",
+    notes: [
+      "BRICK BLAST now has its own name on the HIGH SCORES screen, next to BRICKFALL, with its own ALL TIME and THIS WEEK. Before, its scores were tucked away behind a tab on Brickfall's board.",
+      "It has its own section under ALL GAMES too, with the top three.",
+      "After a game of BRICK BLAST, the HIGH SCORES button takes you straight to the BRICK BLAST scores.",
+      "BRICKFALL's own board is CLASSIC only, as it always was.",
+    ],
+  },
+  {
     version: "0.23.0",
     date: "2026-10-08",
     title: "BRICK BLAST: turn the pieces, and a hint when you're stuck",

@@ -19,6 +19,72 @@ export type Slice = "all" | "week" | "today" | "extra";
 /** null means "all games". */
 export type GameFilter = string | null;
 
+/** Where one entry on the high-score screen gets its scores from. */
+export interface BoardSource {
+  gameId: string;
+  /** The board to read; "" is the game's main one. */
+  board: string;
+}
+
+export interface BoardListing {
+  /** What the screen lists: the games, plus one stand-in per standalone board. */
+  games: GameModule[];
+  /** Keyed by the listed id. */
+  sources: Map<string, BoardSource>;
+}
+
+/** The id a standalone board is listed under. Never sent to the server. */
+export function standaloneKey(gameId: string, boardId: string): string {
+  return `${gameId}:${boardId}`;
+}
+
+/**
+ * The high-score screen's list of games, with every standalone extra board
+ * (see GameModule.extraBoard.standalone) promoted to an entry of its own.
+ *
+ * The stand-in is the game's module under another name, placed straight after
+ * it, so the rest of this file -- and the screen -- treat it as one more
+ * game. The game it came from loses its extra tab in exchange: the same board
+ * offered twice, once as a chip and once as a tab, would be a second place to
+ * look for scores that are already on screen.
+ */
+export function listBoards(games: readonly GameModule[]): BoardListing {
+  const listed: GameModule[] = [];
+  const sources = new Map<string, BoardSource>();
+
+  for (const game of games) {
+    const extra = game.extraBoard;
+    const own = extra?.standalone;
+    sources.set(game.id, { gameId: game.id, board: "" });
+    if (!extra || !own) {
+      listed.push(game);
+      continue;
+    }
+
+    const { extraBoard: _extra, ...rest } = game;
+    listed.push({ ...rest, drawIcon: game.drawIcon, create: game.create });
+
+    const key = standaloneKey(game.id, extra.id);
+    const { shortTitle: _short, progressShort: _progress, ...base } = rest;
+    listed.push({
+      ...base,
+      drawIcon: game.drawIcon,
+      create: game.create,
+      id: key,
+      title: own.title,
+      accent: own.accent,
+      hasDailyChallenge: false,
+      ...(own.shortTitle ? { shortTitle: own.shortTitle } : {}),
+      ...((extra.progressShort ?? game.progressShort)
+        ? { progressShort: extra.progressShort ?? game.progressShort }
+        : {}),
+    });
+    sources.set(key, { gameId: game.id, board: extra.id });
+  }
+
+  return { games: listed, sources };
+}
+
 /** TODAY only makes sense where at least one selected game has a daily board. */
 export function todayAvailable(games: readonly GameModule[], filter: GameFilter): boolean {
   return gamesInView(games, filter).some((g) => g.hasDailyChallenge);

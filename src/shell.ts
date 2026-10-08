@@ -36,6 +36,7 @@ import { buildAboutScreen } from "./ui/about";
 import { buildReleaseNotesScreen } from "./ui/releases";
 import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
+import { standaloneKey } from "./ui/boardFilter";
 import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
@@ -504,7 +505,10 @@ export class Shell implements GameHost {
     );
   }
 
-  /** `null` opens the all-games view; a game id opens that game's board. */
+  /**
+   * `null` opens the all-games view; a game id opens that game's board, and a
+   * standalone board's key (see standaloneKey) opens that.
+   */
   showLeaderboard(gameId: string | null): void {
     this.clearUi();
     this.ui.append(
@@ -732,7 +736,14 @@ export class Shell implements GameHost {
 
     const board = el("button", "btn", "HIGH SCORES");
     board.addEventListener("click", () => {
-      if (this.module) this.showLeaderboard(this.module.id);
+      if (!this.module) return;
+      // After a run of a mode with a board of its own, open that board, not
+      // the cabinet's main one: the score just set is the one to go and see.
+      const extra = this.module.extraBoard;
+      const own = extra?.standalone && summary.boardId === extra.id;
+      this.showLeaderboard(
+        own && extra ? standaloneKey(this.module.id, extra.id) : this.module.id,
+      );
     });
 
     const menu = el("button", "btn btn--ghost", "ARCADE");

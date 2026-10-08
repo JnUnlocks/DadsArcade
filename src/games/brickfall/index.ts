@@ -657,7 +657,12 @@ export const brickfallModule: GameModule = {
     "BRICK BLAST: three new pieces arrive when all three are placed. Wait a few seconds and it shows a spot. It ends when no piece fits.",
   ],
   accent: "#8e7bff",
-  extraBoard: { id: BLAST_BOARD, label: "BLAST" },
+  extraBoard: {
+    id: BLAST_BOARD,
+    label: "BLAST",
+    // A different game, not a variant: listed on the high-score screen by name.
+    standalone: { title: "BRICK BLAST", accent: "#ff5fae" },
+  },
 
   drawIcon(ctx, size) {
     drawBrickfallIcon(ctx, size);
