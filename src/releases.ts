@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.23.0",
+    date: "2026-10-08",
+    title: "BRICK BLAST: turn the pieces, and a hint when you're stuck",
+    notes: [
+      "You can now turn the pieces in BRICK BLAST. Tap a piece in the tray and it turns a quarter of the way round. Tap again to keep turning. Drag it, as before, to put it on the board.",
+      "Stuck? Leave the board alone for five seconds and it shows you somewhere a piece could go: a glowing outline on the board, and the piece it means bobbing underneath. If the piece needs turning first, it says so.",
+      "It's a kinder game. The small pieces come more often and the big awkward ones less, and when the board is getting full you're dealt more of the small ones.",
+      "New pieces are now dealt so that each of the three has somewhere to go when it arrives, whenever that's possible.",
+      "The game only ends when a piece won't fit whichever way you turn it.",
+    ],
+  },
+  {
     version: "0.22.0",
     date: "2026-10-08",
     title: "BRICK BLAST is now a game of its own",

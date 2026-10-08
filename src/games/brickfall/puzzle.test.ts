@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 
 import {
   anyMoves,
+  bestMove,
   boardClearBonus,
   canPlace,
   clearLines,
@@ -16,6 +17,8 @@ import {
   deal,
   emptyBoard,
   fitsAnywhere,
+  fitsTurned,
+  freeShare,
   fullLines,
   isEmpty,
   levelForLines,
@@ -23,9 +26,12 @@ import {
   LINES_PER_LEVEL,
   MAX_LEVEL,
   place,
+  rotate,
+  sameShape,
   SHAPES,
   shapeWeight,
   SIZE,
+  turns,
   type Board,
   type Shape,
 } from "./puzzle.ts";
@@ -157,9 +163,18 @@ describe("the end of the game", () => {
   it("goes on while any piece in the tray fits", () => {
     const board = emptyBoard();
     for (let row = 0; row < SIZE; row += 1) fillRow(board, row, [0]);
-    // Only column 0 is open: a tall line fits, a wide one cannot.
-    assert.equal(anyMoves(board, [shape("h2"), null, shape("v4")]), true);
-    assert.equal(anyMoves(board, [shape("h2"), null, shape("sq2")]), false);
+    // Only column 0 is open: a tall line fits, anything two wide cannot.
+    assert.equal(anyMoves(board, [shape("sq3"), null, shape("v4")]), true);
+    assert.equal(anyMoves(board, [shape("sq3"), null, shape("sq2")]), false);
+  });
+
+  it("goes on while a piece would fit if it were turned", () => {
+    const board = emptyBoard();
+    for (let row = 0; row < SIZE; row += 1) fillRow(board, row, [0]);
+    const wide = shape("h4");
+    assert.equal(fitsAnywhere(board, wide), false, "it doesn't fit as it sits");
+    assert.equal(fitsTurned(board, wide), true, "it does on its end");
+    assert.equal(anyMoves(board, [wide, null, null]), true);
   });
 
   it("is over with an empty tray slot and nothing else that fits", () => {
@@ -167,6 +182,77 @@ describe("the end of the game", () => {
     for (let row = 0; row < SIZE; row += 1) fillRow(board, row, [row % 2 === 0 ? 0 : 7]);
     assert.equal(anyMoves(board, [null, shape("v2"), null]), false);
     assert.equal(anyMoves(board, [null, shape("dot"), null]), true);
+  });
+});
+
+describe("turning", () => {
+  it("turns a wide line into a tall one", () => {
+    assert.ok(sameShape(rotate(shape("h3")), shape("v3")));
+    assert.equal(rotate(shape("h3")).w, 1);
+    assert.equal(rotate(shape("h3")).h, 3);
+  });
+
+  it("comes back to where it started after four turns", () => {
+    for (const s of SHAPES) {
+      const round = rotate(rotate(rotate(rotate(s))));
+      assert.ok(sameShape(round, s), s.id);
+    }
+  });
+
+  it("keeps a turned piece measured from its top-left corner", () => {
+    for (const s of SHAPES) {
+      const turned = rotate(s);
+      assert.equal(Math.min(...turned.cells.map(([c]) => c)), 0, s.id);
+      assert.equal(Math.min(...turned.cells.map(([, r]) => r)), 0, s.id);
+      assert.equal(Math.max(...turned.cells.map(([c]) => c)) + 1, turned.w, s.id);
+      assert.equal(Math.max(...turned.cells.map(([, r]) => r)) + 1, turned.h, s.id);
+      assert.equal(turned.cells.length, s.cells.length, s.id);
+    }
+  });
+
+  it("counts the ways up a piece really has", () => {
+    assert.equal(turns(shape("sq2")).length, 1);
+    assert.equal(turns(shape("h4")).length, 2);
+    assert.equal(turns(shape("ess-a")).length, 2);
+    assert.equal(turns(shape("ell-a")).length, 4);
+    assert.equal(turns(shape("tee-a")).length, 4);
+  });
+});
+
+describe("the hint", () => {
+  it("points at the spot that finishes a line", () => {
+    const board = emptyBoard();
+    fillRow(board, 7, [2, 3, 4]);
+    const move = bestMove(board, [shape("sq2"), shape("h3"), null]);
+    assert.ok(move);
+    assert.equal(move.slot, 1);
+    assert.deepEqual([move.col, move.row], [2, 7]);
+    assert.equal(move.turned, false);
+  });
+
+  it("turns a piece when that is what finishes the line", () => {
+    const board = emptyBoard();
+    fillRow(board, 7, [2, 3, 4]);
+    const move = bestMove(board, [shape("v3"), null, null]);
+    assert.ok(move);
+    assert.deepEqual([move.col, move.row], [2, 7]);
+    assert.equal(move.turned, true);
+    assert.ok(sameShape(move.shape, shape("h3")));
+  });
+
+  it("only ever points somewhere the piece can go", () => {
+    const board = emptyBoard();
+    for (let row = 0; row < SIZE; row += 1) fillRow(board, row, [row % 2 === 0 ? 1 : 5]);
+    const move = bestMove(board, [shape("sq3"), shape("dot"), shape("h5")]);
+    assert.ok(move);
+    assert.equal(move.slot, 1);
+    assert.ok(canPlace(board, move.shape, move.col, move.row));
+  });
+
+  it("has nothing to say when nothing fits", () => {
+    const board = emptyBoard();
+    for (let row = 0; row < SIZE; row += 1) fillRow(board, row, [row % 2 === 0 ? 1 : 5]);
+    assert.equal(bestMove(board, [shape("sq2"), null, shape("h2")]), null);
   });
 });
 
@@ -183,6 +269,23 @@ describe("dealing", () => {
       const hand = deal(board, 12, sequence(seed));
       assert.ok(anyMoves(board, hand), `seed ${seed} dealt a dead hand`);
     }
+  });
+
+  it("deals a hand where every piece has somewhere to go, when it can", () => {
+    const board = emptyBoard();
+    place(board, shape("sq3"), 0, 0);
+    for (let seed = 1; seed <= 40; seed += 1) {
+      for (const piece of deal(board, 6, sequence(seed))) {
+        assert.ok(fitsTurned(board, piece), `seed ${seed} dealt a ${piece.id} that can't go`);
+      }
+    }
+  });
+
+  it("measures how much of the board is left", () => {
+    const board = emptyBoard();
+    assert.equal(freeShare(board), 1);
+    for (let row = 0; row < 4; row += 1) fillRow(board, row);
+    assert.equal(freeShare(board), 0.5);
   });
 
   it("deals more big pieces and fewer fillers as the level climbs", () => {

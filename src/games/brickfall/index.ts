@@ -206,7 +206,7 @@ export class Brickfall implements GameInstance {
       option(
         "blast",
         "BRICK BLAST",
-        "Nothing falls. Pick from three pieces and drag them onto the board. Fill a row or a column to blast it.",
+        "Nothing falls. Pick from three pieces, tap to turn them, and drag them onto the board. Fill a row or a column to blast it.",
         bests[`${GAME_ID}:${BLAST_BOARD}`] ?? 0,
       ),
     );
@@ -652,9 +652,9 @@ export const brickfallModule: GameModule = {
     "CLASSIC: drag left or right to slide the piece and tap to turn it. The outline shows where it will land.",
     "CLASSIC: drag down to go faster, or tap DROP. A piece that has just landed can still be slid for a moment.",
     "CLASSIC: fill a row to clear it. Four at once scores the most. Each level is faster, and it ends when the stack reaches the top.",
-    "BRICK BLAST: nothing falls. Drag one of the three pieces at the bottom onto the board. Pieces can't be turned.",
+    "BRICK BLAST: nothing falls. Drag one of the three pieces at the bottom onto the board. Tap a piece to turn it.",
     "BRICK BLAST: fill a row or a column to blast it. Several at once scores more, and clears close together build a COMBO.",
-    "BRICK BLAST: three new pieces arrive when all three are placed. The game ends when none of your pieces fit.",
+    "BRICK BLAST: three new pieces arrive when all three are placed. Wait a few seconds and it shows a spot. It ends when no piece fits.",
   ],
   accent: "#8e7bff",
   extraBoard: { id: BLAST_BOARD, label: "BLAST" },

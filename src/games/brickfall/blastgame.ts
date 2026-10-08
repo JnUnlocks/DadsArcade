@@ -2,9 +2,12 @@
  * BRICK BLAST -- Brickfall's second game.
  *
  * Nothing falls. Three pieces wait in a tray under an eight-by-eight board;
- * drag one on, and any row or column it finishes is blasted away. When all
- * three are down, three more arrive. The game ends when nothing in the tray
- * fits anywhere.
+ * tap one to turn it, drag it on, and any row or column it finishes is
+ * blasted away. When all three are down, three more arrive. The game ends
+ * when nothing in the tray fits anywhere, however it is turned.
+ *
+ * This is the children's game. The deal is kind, and a player who has been
+ * looking at the board for a few seconds is shown somewhere a piece could go.
  *
  * It began as Classic with fireworks on top -- the same falling pieces, with
  * shattering rows and a combo. Riley's verdict was that the pieces shouldn't
@@ -20,6 +23,7 @@ import { BlastFx } from "./blast.ts";
 import { PIECE_COLOURS } from "./pieces.ts";
 import {
   anyMoves,
+  bestMove,
   boardClearBonus,
   canPlace,
   clearLines,
@@ -27,7 +31,7 @@ import {
   COMBO_GRACE,
   deal,
   emptyBoard,
-  fitsAnywhere,
+  fitsTurned,
   fullLines,
   isEmpty,
   levelForLines,
@@ -35,10 +39,12 @@ import {
   MAX_LEVEL,
   place,
   placeScore,
+  rotate,
   SIZE,
   type Board,
   type Cleared,
   type Lines,
+  type Move,
   type Shape,
 } from "./puzzle.ts";
 import { drawBlock, PALETTE } from "./render.ts";
@@ -59,6 +65,23 @@ const END_PAUSE = 1.1;
 
 /** Tray pieces are drawn at this share of a board square. */
 const TRAY_SCALE = 0.5;
+
+/**
+ * How far a touch on a tray piece can wander and still be a tap. A tap turns
+ * the piece; anything further picks it up.
+ */
+const TAP_SLOP = 9;
+
+/** How long a turned piece takes to settle after its little jump. */
+const TURN_POP = 0.16;
+
+/**
+ * Seconds without a touch before the game shows somewhere a piece could go.
+ *
+ * Long enough that a player who is thinking gets to finish the thought, and
+ * short enough that a stuck six-year-old is helped before they give up.
+ */
+const HINT_AFTER = 5;
 
 /** What a clear is called, by how many lines went with one piece. */
 const SHOUTS = ["", "NICE!", "GREAT!", "AWESOME!", "BRICK BLAST!"] as const;
@@ -88,6 +111,11 @@ interface Drag {
   /** Where the finger is, in virtual units. */
   x: number;
   y: number;
+  /** Where it first came down. */
+  startX: number;
+  startY: number;
+  /** False until the touch has gone far enough to be a drag and not a tap. */
+  lifted: boolean;
 }
 
 /** A square that has been cleared by the rules and is waiting for the blast to reach it. */
@@ -110,12 +138,17 @@ export class BlastPuzzle {
   private sinceClear = 0;
 
   private drag: Drag | null = null;
+  /** Counts down in a slot whose piece has just been turned. */
+  private readonly turnPop = [0, 0, 0];
+  private clock = 0;
+  private idle = 0;
+  private hint: Move | null = null;
   private dying: Dying[] = [];
   private blastClock = 0;
 
   private glowColour = "#ffffff";
   private glowTimer = 0;
-  private banner = "DRAG A PIECE ONTO THE BOARD";
+  private banner = "DRAG A PIECE ON. TAP IT TO TURN IT.";
   private bannerTimer = 6;
 
   private ending = false;
@@ -158,6 +191,17 @@ export class BlastPuzzle {
     this.fx.update(dt);
     if (this.bannerTimer > 0) this.bannerTimer -= dt;
     if (this.glowTimer > 0) this.glowTimer -= dt;
+    this.clock += dt;
+    for (let slot = 0; slot < this.turnPop.length; slot += 1) {
+      if (this.turnPop[slot]! > 0) this.turnPop[slot]! -= dt;
+    }
+
+    // Left alone for a while, show somewhere a piece could go. Any touch
+    // takes the hint away and starts the wait again.
+    if (!this.drag && !this.ending) {
+      this.idle += dt;
+      if (this.idle >= HINT_AFTER && !this.hint) this.hint = bestMove(this.board, this.tray);
+    }
 
     if (this.dying.length > 0) {
       this.blastClock += dt;
@@ -256,15 +300,21 @@ export class BlastPuzzle {
     const slot = Math.max(0, Math.min(2, Math.floor(x / layout.slotW)));
     if (!this.tray[slot]) return;
 
-    this.drag = { slot, pointerId: event.pointerId, x, y };
+    this.drag = { slot, pointerId: event.pointerId, x, y, startX: x, startY: y, lifted: false };
     this.bannerTimer = 0;
-    this.host.sfx("pieceRotate");
+    this.idle = 0;
+    this.hint = null;
   };
 
   private onPointerMove = (event: PointerEvent): void => {
-    if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-    this.drag.x = this.host.view.toWorldX(event.clientX);
-    this.drag.y = this.host.view.toWorldY(event.clientY);
+    const drag = this.drag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    drag.x = this.host.view.toWorldX(event.clientX);
+    drag.y = this.host.view.toWorldY(event.clientY);
+    if (!drag.lifted && Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > TAP_SLOP) {
+      drag.lifted = true;
+      this.host.sfx("pieceMove");
+    }
   };
 
   private onPointerUp = (event: PointerEvent): void => {
@@ -274,6 +324,17 @@ export class BlastPuzzle {
 
     const shape = this.tray[drag.slot];
     if (!shape) return;
+    this.idle = 0;
+
+    // A touch that never went anywhere is a tap, and a tap turns the piece.
+    if (!drag.lifted) {
+      this.tray[drag.slot] = rotate(shape);
+      this.turnPop[drag.slot] = TURN_POP;
+      this.host.sfx("pieceRotate");
+      this.host.buzz(8);
+      return;
+    }
+
     drag.x = this.host.view.toWorldX(event.clientX);
     drag.y = this.host.view.toWorldY(event.clientY);
     const { col, row } = this.target(this.layout(), shape, drag);
@@ -292,6 +353,8 @@ export class BlastPuzzle {
     const layout = this.layout();
     place(this.board, shape, col, row);
     this.tray[slot] = null;
+    this.idle = 0;
+    this.hint = null;
     this.host.addScore(placeScore(shape));
     this.host.sfx("pieceLand");
     this.host.buzz(10);
@@ -495,13 +558,17 @@ export class BlastPuzzle {
 
     this.fx.renderUnder(ctx);
 
-    const held = this.drag ? this.tray[this.drag.slot] : null;
-    if (this.drag && held) this.drawPreview(ctx, layout, held, this.drag);
+    // A piece is "held" once the touch has become a drag; until then it is
+    // still sitting in the tray, waiting to find out if this is a tap.
+    const drag = this.drag?.lifted ? this.drag : null;
+    const held = drag ? this.tray[drag.slot] : null;
+    if (drag && held) this.drawPreview(ctx, layout, held, drag);
+    else if (this.hint) this.drawHint(ctx, layout, this.hint);
 
     this.drawTray(ctx, layout);
 
-    if (this.drag && held) {
-      const origin = this.heldOrigin(layout, held, this.drag);
+    if (drag && held) {
+      const origin = this.heldOrigin(layout, held, drag);
       ctx.save();
       ctx.shadowColor = "rgba(0,0,0,0.55)";
       ctx.shadowBlur = 10;
@@ -544,15 +611,48 @@ export class BlastPuzzle {
     }
   }
 
+  /**
+   * Somewhere a piece could go: a breathing outline on the board, and the
+   * piece it means bobbing in the tray.
+   *
+   * An outline and not a ghost of the piece, so it reads as a suggestion and
+   * not as something already there. If the piece has to be turned to fit, the
+   * outline shows it the way it needs to be and the status line says to tap.
+   */
+  private drawHint(ctx: CanvasRenderingContext2D, layout: Layout, hint: Move): void {
+    const { x0, y0, cell } = layout;
+    const pulse = 0.5 + 0.5 * Math.sin(this.clock * 4.5);
+    ctx.save();
+    ctx.strokeStyle = PIECE_COLOURS[hint.shape.tone];
+    ctx.fillStyle = PIECE_COLOURS[hint.shape.tone];
+    ctx.lineWidth = Math.max(2, cell * 0.08);
+    for (const [c, r] of hint.shape.cells) {
+      const x = x0 + (hint.col + c) * cell;
+      const y = y0 + (hint.row + r) * cell;
+      ctx.globalAlpha = 0.1 + 0.16 * pulse;
+      ctx.fillRect(x + 3, y + 3, cell - 6, cell - 6);
+      ctx.globalAlpha = 0.45 + 0.5 * pulse;
+      ctx.strokeRect(x + 3, y + 3, cell - 6, cell - 6);
+    }
+    ctx.restore();
+  }
+
   private drawTray(ctx: CanvasRenderingContext2D, layout: Layout): void {
-    const size = layout.cell * TRAY_SCALE;
+    const base = layout.cell * TRAY_SCALE;
     this.tray.forEach((shape, slot) => {
-      if (!shape || this.drag?.slot === slot) return;
+      if (!shape || (this.drag?.lifted && this.drag.slot === slot)) return;
+
+      // A turned piece jumps a little, so the tap visibly did something.
+      const pop = Math.max(0, this.turnPop[slot]! / TURN_POP);
+      const size = base * (1 + 0.22 * pop);
+      const hinted = this.hint?.slot === slot && !this.drag;
+      const bob = hinted && !this.fx.calm ? Math.sin(this.clock * 4.5) * 3 : 0;
+
       const left = layout.slotW * (slot + 0.5) - (shape.w * size) / 2;
-      const top = layout.trayTop + (layout.trayH - shape.h * size) / 2;
-      // A piece with nowhere to go is dimmed, so a tight board shows which
-      // of the three is the problem.
-      const alpha = fitsAnywhere(this.board, shape) ? 1 : 0.3;
+      const top = layout.trayTop + (layout.trayH - shape.h * size) / 2 - bob;
+      // A piece with nowhere to go, however it is turned, is dimmed, so a
+      // tight board shows which of the three is the problem.
+      const alpha = fitsTurned(this.board, shape) ? 1 : 0.3;
       for (const [c, r] of shape.cells) {
         drawBlock(ctx, left + c * size, top + r * size, size, shape.tone, alpha);
       }
@@ -569,11 +669,14 @@ export class BlastPuzzle {
     ctx.save();
     ctx.textBaseline = "alphabetic";
 
-    if (this.bannerTimer > 0 && this.banner) {
+    // The hint's second step, when it has one, takes the line over.
+    const turnHint = this.hint?.turned && !this.drag ? "TAP THE PIECE TO TURN IT" : "";
+    const banner = this.bannerTimer > 0 && this.banner ? this.banner : turnHint;
+    if (banner) {
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffc14d";
       ctx.font = `700 ${13 * scale}px ${FONT}`;
-      ctx.fillText(this.banner, (layout.x0 + right) / 2, y);
+      ctx.fillText(banner, (layout.x0 + right) / 2, y);
       ctx.restore();
       return;
     }

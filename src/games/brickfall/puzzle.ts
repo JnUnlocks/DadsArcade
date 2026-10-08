@@ -34,23 +34,24 @@ export interface Shape {
 }
 
 /**
- * The pieces, drawn as they look. Pieces can't be turned in this game, so
- * every way up that should exist is its own entry.
+ * The pieces, drawn as they look. A piece can be turned in the tray (see
+ * rotate), so the several ways up of one shape here only decide how it
+ * arrives, and how often that shape turns up at all.
  */
 const ART: ReadonlyArray<readonly [id: string, tone: PieceKind, weight: number, rows: string]> = [
-  ["dot", "O", 0.5, "#"],
-  ["h2", "I", 0.8, "##"],
-  ["v2", "I", 0.8, "#/#"],
+  ["dot", "O", 0.8, "#"],
+  ["h2", "I", 1, "##"],
+  ["v2", "I", 1, "#/#"],
   ["h3", "I", 1, "###"],
   ["v3", "I", 1, "#/#/#"],
   ["h4", "I", 1, "####"],
   ["v4", "I", 1, "#/#/#/#"],
-  ["h5", "I", 0.6, "#####"],
-  ["v5", "I", 0.6, "#/#/#/#/#"],
+  ["h5", "I", 0.4, "#####"],
+  ["v5", "I", 0.4, "#/#/#/#/#"],
   ["sq2", "O", 1.2, "##/##"],
-  ["sq3", "O", 0.6, "###/###/###"],
-  ["rect-h", "T", 0.7, "###/###"],
-  ["rect-v", "T", 0.7, "##/##/##"],
+  ["sq3", "O", 0.35, "###/###/###"],
+  ["rect-h", "T", 0.5, "###/###"],
+  ["rect-v", "T", 0.5, "##/##/##"],
   ["corner-a", "L", 0.8, "#./##"],
   ["corner-b", "L", 0.8, ".#/##"],
   ["corner-c", "L", 0.8, "##/#."],
@@ -59,10 +60,10 @@ const ART: ReadonlyArray<readonly [id: string, tone: PieceKind, weight: number, 
   ["ell-b", "L", 0.7, ".#/.#/##"],
   ["ell-c", "L", 0.7, "###/#.."],
   ["ell-d", "L", 0.7, "###/..#"],
-  ["big-a", "J", 0.5, "#../#../###"],
-  ["big-b", "J", 0.5, "..#/..#/###"],
-  ["big-c", "J", 0.5, "###/#../#.."],
-  ["big-d", "J", 0.5, "###/..#/..#"],
+  ["big-a", "J", 0.3, "#../#../###"],
+  ["big-b", "J", 0.3, "..#/..#/###"],
+  ["big-c", "J", 0.3, "###/#../#.."],
+  ["big-d", "J", 0.3, "###/..#/..#"],
   ["tee-a", "T", 0.6, "###/.#."],
   ["tee-b", "T", 0.6, ".#./###"],
   ["tee-c", "T", 0.6, "#./##/#."],
@@ -84,6 +85,41 @@ export const SHAPES: readonly Shape[] = ART.map(([id, tone, weight, art]) => {
   return { id, tone, weight, cells, w: rows[0]!.length, h: rows.length };
 });
 
+/** The same piece, a quarter turn clockwise. */
+export function rotate(shape: Shape): Shape {
+  return {
+    ...shape,
+    cells: shape.cells.map(([c, r]) => [shape.h - 1 - r, c] as const),
+    w: shape.h,
+    h: shape.w,
+  };
+}
+
+const cellsKey = (shape: Shape): string =>
+  shape.cells
+    .map(([c, r]) => `${c},${r}`)
+    .sort()
+    .join(" ");
+
+/** Do two shapes cover the same squares, whatever order they list them in? */
+export function sameShape(a: Shape, b: Shape): boolean {
+  return cellsKey(a) === cellsKey(b);
+}
+
+/**
+ * Every different way up a piece can be turned, starting with the way it is.
+ * A square has one, a straight line two, an L four.
+ */
+export function turns(shape: Shape): Shape[] {
+  const out: Shape[] = [];
+  let next = shape;
+  for (let i = 0; i < 4; i += 1) {
+    if (!out.some((seen) => sameShape(seen, next))) out.push(next);
+    next = rotate(next);
+  }
+  return out;
+}
+
 export function emptyBoard(): Board {
   return Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => null as Tile));
 }
@@ -99,7 +135,7 @@ export function canPlace(board: Board, shape: Shape, col: number, row: number): 
   return true;
 }
 
-/** Is there anywhere at all this shape could go? */
+/** Is there anywhere this shape could go, the way up it is now? */
 export function fitsAnywhere(board: Board, shape: Shape): boolean {
   for (let row = 0; row <= SIZE - shape.h; row += 1) {
     for (let col = 0; col <= SIZE - shape.w; col += 1) {
@@ -109,9 +145,76 @@ export function fitsAnywhere(board: Board, shape: Shape): boolean {
   return false;
 }
 
-/** The game is over when nothing left in the tray can go anywhere. */
+/** Is there anywhere this shape could go if it were turned? */
+export function fitsTurned(board: Board, shape: Shape): boolean {
+  return turns(shape).some((turned) => fitsAnywhere(board, turned));
+}
+
+/**
+ * The game is over when nothing left in the tray can go anywhere -- turned
+ * any way. A piece that would fit on its side is still a move, and ending
+ * the game on it would be the game being wrong, not the player.
+ */
 export function anyMoves(board: Board, tray: ReadonlyArray<Shape | null>): boolean {
-  return tray.some((shape) => shape !== null && fitsAnywhere(board, shape));
+  return tray.some((shape) => shape !== null && fitsTurned(board, shape));
+}
+
+export interface Move {
+  /** Which tray piece. */
+  slot: number;
+  /** The piece, the way up it has to be. */
+  shape: Shape;
+  col: number;
+  row: number;
+  /** True when the piece has to be turned from how it sits in the tray. */
+  turned: boolean;
+}
+
+/**
+ * A good place for one of the tray's pieces: what the hint points at.
+ *
+ * Good, not best. It likes finishing lines most, then a snug fit -- squares
+ * that touch a wall or another piece -- because a piece tucked into a corner
+ * leaves the board tidier than one dropped in the middle. It would sooner
+ * show a spot for a piece as it sits than one that needs turning first, since
+ * a hint with two steps is a harder hint to follow.
+ */
+export function bestMove(board: Board, tray: ReadonlyArray<Shape | null>): Move | null {
+  let best: Move | null = null;
+  let bestScore = -Infinity;
+
+  tray.forEach((piece, slot) => {
+    if (!piece) return;
+    turns(piece).forEach((shape, turn) => {
+      for (let row = 0; row <= SIZE - shape.h; row += 1) {
+        for (let col = 0; col <= SIZE - shape.w; col += 1) {
+          if (!canPlace(board, shape, col, row)) continue;
+
+          const trial = board.map((line) => [...line]);
+          place(trial, shape, col, row);
+          const lines = fullLines(trial);
+
+          let touching = 0;
+          for (const [c, r] of shape.cells) {
+            for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+              const x = col + c + dc;
+              const y = row + r + dr;
+              if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || board[y]![x] !== null) touching += 1;
+            }
+          }
+
+          const score =
+            (lines.rows.length + lines.cols.length) * 100 + touching - (turn > 0 ? 6 : 0);
+          if (score > bestScore) {
+            bestScore = score;
+            best = { slot, shape, col, row, turned: turn > 0 };
+          }
+        }
+      }
+    });
+  });
+
+  return best;
 }
 
 /** Stamp a shape into the board. Mutates. */
@@ -228,21 +331,40 @@ export function linesUntilNextLevel(lines: number): number | null {
  * awkward ones turn up more as the level rises and the one- and two-square
  * fillers that get you out of trouble turn up less. Each level scores more
  * (see clearScore), which is what it pays for the squeeze.
+ *
+ * The slope is gentle on purpose. This is tuned for the children: the big
+ * pieces start out rare and the fillers never drop below two thirds of how
+ * often they began. A harder game for the adults is a separate mode to add,
+ * not a number to turn up here.
  */
 export function shapeWeight(shape: Shape, level: number): number {
   const steps = Math.max(0, Math.min(MAX_LEVEL, level) - 1);
   const size = shape.cells.length;
-  if (size >= 5) return shape.weight * (1 + steps * 0.06);
-  if (size <= 2) return shape.weight * Math.max(0.3, 1 - steps * 0.05);
+  if (size >= 5) return shape.weight * (1 + steps * 0.03);
+  if (size <= 2) return shape.weight * Math.max(0.65, 1 - steps * 0.02);
   return shape.weight;
 }
 
-function pickShape(level: number, random: () => number): Shape {
+/** Below this share of the board empty, the deal starts to help. */
+export const TIGHT_BOARD = 0.4;
+
+/** How much of the board is still empty, 0 to 1. */
+export function freeShare(board: Board): number {
+  const free = board.reduce((n, line) => n + line.filter((tile) => tile === null).length, 0);
+  return free / (SIZE * SIZE);
+}
+
+function pickShape(level: number, random: () => number, tight: boolean): Shape {
+  // On a crowded board the small pieces come twice as often: the moment a
+  // child most needs a way out is the moment to offer one.
+  const weight = (shape: Shape): number =>
+    shapeWeight(shape, level) * (tight && shape.cells.length <= 3 ? 2 : 1);
+
   let total = 0;
-  for (const shape of SHAPES) total += shapeWeight(shape, level);
+  for (const shape of SHAPES) total += weight(shape);
   let roll = random() * total;
   for (const shape of SHAPES) {
-    roll -= shapeWeight(shape, level);
+    roll -= weight(shape);
     if (roll <= 0) return shape;
   }
   return SHAPES[SHAPES.length - 1]!;
@@ -254,19 +376,26 @@ const DEAL_TRIES = 30;
 /**
  * Three pieces for the tray.
  *
- * Never a hand that is dead on arrival: if none of the three fits the board
- * as it stands, deal again. Losing because of what you built is the game;
- * losing because of what you were handed is a grudge. Past that it promises
- * nothing -- the second and third piece are the player's to make room for.
+ * Never a hand that is dead on arrival. Losing because of what you built is
+ * the game; losing because of what you were handed is a grudge. It tries
+ * first for a hand where every piece has somewhere to go right now, and
+ * settles for one where at least one does. Whether all three can go down one
+ * after another is still the player's puzzle.
  */
 export function deal(board: Board, level: number, random: () => number): Shape[] {
+  const tight = freeShare(board) < TIGHT_BOARD;
+  let playable: Shape[] | null = null;
+
   for (let attempt = 0; attempt < DEAL_TRIES; attempt += 1) {
-    const hand = Array.from({ length: TRAY_SIZE }, () => pickShape(level, random));
-    if (anyMoves(board, hand)) return hand;
+    const hand = Array.from({ length: TRAY_SIZE }, () => pickShape(level, random, tight));
+    if (hand.every((shape) => fitsTurned(board, shape))) return hand;
+    if (!playable && anyMoves(board, hand)) playable = hand;
   }
+  if (playable) return playable;
+
   // Thirty dead hands in a row means the board is very nearly full. A single
   // square always fits somewhere: a board with no empty square would be eight
   // full rows, and full rows have already been cleared.
   const dot = SHAPES[0]!;
-  return [dot, pickShape(level, random), pickShape(level, random)];
+  return [dot, pickShape(level, random, tight), pickShape(level, random, tight)];
 }
