@@ -68,17 +68,10 @@ export function drawBlock(
   ctx.restore();
 }
 
-/** A wash of colour on the rim of the well, fading as `alpha` falls. */
-export interface EdgeGlow {
-  colour: string;
-  alpha: number;
-}
-
 /** The empty well: floor, walls, and a faint column guide. */
 export function drawWell(
   ctx: CanvasRenderingContext2D,
   layout: Layout,
-  glow: EdgeGlow | null = null,
 ): void {
   const { x0, y0, cell } = layout;
   const w = cell * COLS;
@@ -102,48 +95,27 @@ export function drawWell(
   ctx.strokeStyle = PALETTE.wellEdge;
   ctx.lineWidth = 2;
   ctx.strokeRect(x0, y0, w, h);
-
-  // The rim lights up for the big moments. One blurred stroke a frame, which
-  // is affordable in a way a glow on every block would not be.
-  if (glow && glow.alpha > 0) {
-    ctx.globalAlpha = Math.min(1, glow.alpha);
-    ctx.strokeStyle = glow.colour;
-    ctx.shadowColor = glow.colour;
-    ctx.shadowBlur = 14;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x0, y0, w, h);
-  }
   ctx.restore();
 }
-
-/**
- * How a settled block is drawn while its row is being cleared: untouched,
- * white-hot because the blast is about to reach it, the plain white of a
- * CLASSIC row's blink, or already gone.
- */
-export type BlockLook = "solid" | "hot" | "white" | "gone";
 
 /** Everything that has settled. */
 export function drawGrid(
   ctx: CanvasRenderingContext2D,
   layout: Layout,
   grid: Grid,
-  look: (col: number, row: number) => BlockLook,
-  /** Rows a row is still short of where it belongs, while the stack falls in. */
-  lift: (row: number) => number,
+  flashRows: ReadonlySet<number>,
+  flashOn: boolean,
 ): void {
   const { x0, y0, cell } = layout;
   for (let row = SPAWN_ROWS; row < grid.length; row += 1) {
-    const y = y0 + (row - SPAWN_ROWS - lift(row)) * cell;
-    if (y < y0 - cell) continue; // lifted above the lip of the well
+    const y = y0 + (row - SPAWN_ROWS) * cell;
     for (let col = 0; col < COLS; col += 1) {
       const kind = grid[row]![col];
       if (!kind) continue;
-      const state = look(col, row);
-      if (state === "gone") continue;
-      if (state === "white") {
-        // Clearing rows go white before they vanish, so four rows at once is
-        // visibly four rows leaving rather than the stack silently jumping.
+      if (flashRows.has(row)) {
+        if (!flashOn) continue;
+        // Clearing rows go white before they vanish, so a Tetris is visibly
+        // four rows leaving rather than the stack silently jumping down.
         ctx.save();
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(x0 + col * cell + 1, y + 1, cell - 2, cell - 2);
@@ -151,14 +123,6 @@ export function drawGrid(
         continue;
       }
       drawBlock(ctx, x0 + col * cell, y, cell, kind);
-      if (state === "hot") {
-        // Rows glow before they break, the blast's version of the blink.
-        ctx.save();
-        ctx.globalAlpha = 0.7;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(x0 + col * cell + 1, y + 1, cell - 2, cell - 2);
-        ctx.restore();
-      }
     }
   }
 }
@@ -217,7 +181,6 @@ export function drawPanel(
   maxLevel: number,
   lines: number,
   toGo: number | null,
-  combo: number,
   largeText: boolean,
 ): void {
   const { panelX, y0, cell } = layout;
@@ -262,12 +225,6 @@ export function drawPanel(
   } else {
     value(`${toGo}`, statsY + 95, "#46e0ff");
     label(toGo === 1 ? "LINE" : "LINES", statsY + 114);
-  }
-
-  // Only while one is running: a permanent "COMBO x1" is noise.
-  if (combo >= 2) {
-    label("COMBO", statsY + 136);
-    value(`x${combo}`, statsY + 147, "#ff5fae");
   }
 
   ctx.restore();

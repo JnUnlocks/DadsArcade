@@ -34,6 +34,20 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.22.0",
+    date: "2026-10-08",
+    title: "BRICK BLAST is now a game of its own",
+    notes: [
+      "Riley said the pieces in BRICK BLAST shouldn't fall from the top: you should be choosing from pieces at the bottom. She was right, so it has been rebuilt.",
+      "BRICK BLAST now has a square board and three pieces waiting underneath it. Drag a piece onto the board and let go. It rides above your finger so you can see where it's going.",
+      "Fill a row or a column, all the way across or all the way down, and it's blasted away. One piece can take several at once, which scores a lot more.",
+      "When all three pieces are down you get three more. Pieces can't be turned. The game is over when none of the pieces you have left will fit.",
+      "Clears close together build a COMBO, an empty board is an ALL CLEAR, and every six lines is a new level that scores more and deals bigger pieces.",
+      "The board lights up the lines you're about to clear before you let go, and a piece that has nowhere to go is shown faded.",
+      "CLASSIC is untouched: pieces still fall, and its high scores are the same as ever.",
+    ],
+  },
+  {
     version: "0.21.0",
     date: "2026-10-08",
     title: "Brickfall gets a second game: BRICK BLAST",

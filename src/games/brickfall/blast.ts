@@ -1,14 +1,13 @@
 /**
  * The brick blast: everything that happens on screen when rows go.
  *
- * Before this a cleared row blinked white twice and the stack jumped down. It
- * was correct and it felt like nothing, and the clear is the one moment in the
- * game that is a reward. So each brick now breaks into pieces of its own
- * colour, the points it earned float up from where it happened, and a big
- * clear gets its name shouted across the well.
+ * The effects for BRICK BLAST (blastgame.ts). A clear is the one moment in the
+ * game that is a reward, so each brick breaks into pieces of its own colour,
+ * the points it earned float up from where it happened, and a big clear gets
+ * its name shouted across the board.
  *
  * All of it is decoration. Nothing here is read by the rules, so an effect
- * that is cut short, or skipped with Reduce motion on, changes no score.
+ * that is cut short, or toned down with Reduce motion on, changes no score.
  */
 
 const FONT = "ui-monospace, Menlo, Consolas, monospace";
@@ -146,7 +145,7 @@ export class BlastFx {
     this.flash(x, y, size);
   }
 
-  /** A bar of light across a row as it goes. */
+  /** A bar of light along a row or a column as it goes. */
   sweep(x: number, y: number, w: number, h: number): void {
     this.sweeps.push({ x, y, w, h, life: 0.3, maxLife: 0.3 });
   }
@@ -246,11 +245,17 @@ export class BlastFx {
 
     for (const s of this.sweeps) {
       const k = s.life / s.maxLife;
-      // Thins toward its middle as it fades, like a bar of light closing.
-      const h = s.h * k;
+      // Thins toward its middle as it fades, like a bar of light closing --
+      // across its narrow side, so a column closes sideways.
       ctx.globalAlpha = 0.8 * k;
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(s.x, s.y + (s.h - h) / 2, s.w, h);
+      if (s.w >= s.h) {
+        const h = s.h * k;
+        ctx.fillRect(s.x, s.y + (s.h - h) / 2, s.w, h);
+      } else {
+        const w = s.w * k;
+        ctx.fillRect(s.x + (s.w - w) / 2, s.y, w, s.h);
+      }
     }
 
     for (const r of this.rings) {
