@@ -19,6 +19,8 @@ export function drawHud(
   hud: HudState,
   settings: Settings,
   module: GameModule | null,
+  /** True while a rolling score is still counting up: it glows until it lands. */
+  scoreClimbing = false,
 ): void {
   const top = view.insetTop + 14;
   const scale = settings.largeText ? 1.2 : 1;
@@ -34,8 +36,8 @@ export function drawHud(
   ctx.textAlign = "left";
   ctx.fillText("SCORE", 14, top);
 
-  ctx.font = `700 ${valueSize}px ${FONT_STACK}`;
-  ctx.fillStyle = settings.highContrast ? "#ffffff" : "#e8f0ff";
+  ctx.font = `700 ${scoreClimbing ? valueSize * 1.12 : valueSize}px ${FONT_STACK}`;
+  ctx.fillStyle = scoreClimbing ? "#ffc14d" : settings.highContrast ? "#ffffff" : "#e8f0ff";
   ctx.fillText(String(score).padStart(6, "0"), 14, top + labelSize + 4);
 
   // Progress, centred -- but nudged left of the 56px pause button.

@@ -9,6 +9,7 @@ import { flushQueue, reportPlay, submitScore } from "./core/api";
 import { AudioEngine, type SoundName } from "./core/audio";
 import type { Track } from "./core/music";
 import type { GameHost, GameInstance, GameModule, RunSummary } from "./core/game";
+import { buzz, type BuzzPattern } from "./core/haptics";
 import { Input } from "./core/input";
 import { GameLoop } from "./core/loop";
 import { dailyKey } from "./core/rng";
@@ -65,6 +66,9 @@ export class Shell implements GameHost {
   private shakeAmount = 0;
   private shakeDecay = 0;
   private hitStopRemaining = 0;
+  /** The score as the HUD is showing it, for games that roll it up. */
+  private shownScore = 0;
+  private shownScoreAt = 0;
   private countdownTimer: number | null = null;
   private elapsedMs = 0;
 
@@ -125,6 +129,11 @@ export class Shell implements GameHost {
   hitStop(seconds: number): void {
     if (this._settings.reducedMotion) return;
     this.hitStopRemaining = Math.max(this.hitStopRemaining, seconds);
+  }
+
+  buzz(pattern: BuzzPattern): void {
+    if (!this._settings.haptics) return;
+    buzz(pattern);
   }
 
   get initials(): string | null {
@@ -269,13 +278,16 @@ export class Shell implements GameHost {
       this.instance.render(ctx, alpha);
       ctx.restore();
 
+      const hud = this.instance.hud();
+      const shown = hud.rollScore ? this.rollScore() : this._score;
       drawHud(
         ctx,
         this.view,
-        this._score,
-        this.instance.hud(),
+        shown,
+        hud,
         this._settings,
         this.module,
+        shown < this._score,
       );
     }
 
@@ -283,6 +295,24 @@ export class Shell implements GameHost {
 
     if (this._settings.crt) drawCrtOverlay(ctx, this.view);
   };
+
+  /**
+   * Step the displayed score toward the real one.
+   *
+   * Closes a fixed share of the gap each frame, so a 40-point single and a
+   * 9,000-point four-row both finish counting in about the same half second
+   * -- long enough to watch, never long enough to still be counting when the
+   * next piece needs attention. Display only: the real score is never behind.
+   */
+  private rollScore(): number {
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - this.shownScoreAt) / 1000);
+    this.shownScoreAt = now;
+    const gap = this._score - this.shownScore;
+    if (gap <= 0) this.shownScore = this._score;
+    else this.shownScore += Math.min(gap, Math.max(1, Math.ceil(gap * dt * 7)));
+    return this.shownScore;
+  }
 
   // ----- Screens -----
 
@@ -530,6 +560,7 @@ export class Shell implements GameHost {
     this.audio.stopMusic();
     this.module = module;
     this._score = 0;
+    this.shownScore = 0;
     this.elapsedMs = 0;
     this.shakeAmount = 0;
     this.hitStopRemaining = 0;

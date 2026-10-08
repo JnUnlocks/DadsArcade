@@ -53,6 +53,9 @@ export type SoundName =
   | "lineClear"
   | "fourLines"
   | "levelUp"
+  | "comboUp"
+  | "comboHot"
+  | "boardClear"
   // JB's Tower Trouble
   | "towerJump"
   | "jumpScore"
@@ -392,6 +395,19 @@ export class AudioEngine {
         break;
       case "levelUp":
         this.arpeggio(t, [659, 880, 1047], 0.07, "sine", 0.2);
+        break;
+      case "comboUp":
+        // Sits on top of the clear, a step higher, so a second clear in a row
+        // sounds like it is going somewhere.
+        this.arpeggio(t + 0.1, [1319, 1760], 0.05, "triangle", 0.16);
+        break;
+      case "comboHot":
+        // Three in a row and beyond.
+        this.arpeggio(t + 0.1, [1568, 1976, 2637], 0.05, "triangle", 0.17);
+        break;
+      case "boardClear":
+        this.arpeggio(t, [523, 784, 1047, 1568, 2093], 0.08, "sine", 0.22);
+        this.burst(t + 0.1, 0.5, 4000, 400, 0.14);
         break;
 
       // ----- JB's Tower Trouble -----

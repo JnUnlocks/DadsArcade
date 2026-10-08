@@ -13,7 +13,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  boardClearBonus,
   clearLines,
+  comboBonus,
+  dropPerRow,
+  emptyAfterClear,
   COLS,
   dropDistance,
   emptyGrid,
@@ -300,5 +304,62 @@ describe("the twenty-five level climb", () => {
 
   it("scales the payout with the level", () => {
     assert.equal(lineScore(1, 4), lineScore(1, 1) * 4);
+  });
+});
+
+describe("the brick blast", () => {
+  it("pays nothing extra for a clear on its own", () => {
+    assert.equal(comboBonus(0, 3), 0);
+    assert.equal(comboBonus(1, 3), 0);
+  });
+
+  it("pays more for every piece in a row that clears, and more at a higher level", () => {
+    assert.ok(comboBonus(2, 1) > 0);
+    assert.ok(comboBonus(3, 1) > comboBonus(2, 1));
+    assert.equal(comboBonus(3, 4), comboBonus(3, 1) * 4);
+  });
+
+  it("keeps the combo smaller than the clear it rides on", () => {
+    // Four rows at once has to stay the biggest thing one piece can do. A
+    // five-piece combo of singles is a very good run and still pays less.
+    let singles = 0;
+    for (let combo = 1; combo <= 5; combo += 1) {
+      singles += lineScore(1, 1) + comboBonus(combo, 1);
+    }
+    assert.ok(singles < lineScore(4, 1));
+  });
+
+  it("knows when a clear will leave the well empty", () => {
+    const grid = emptyGrid();
+    fill(grid, grid.length - 1);
+    fill(grid, grid.length - 2);
+    assert.equal(emptyAfterClear(grid), true);
+
+    grid[grid.length - 3]![4] = "T";
+    assert.equal(emptyAfterClear(grid), false);
+    assert.ok(boardClearBonus(2) > lineScore(4, 2));
+  });
+
+  it("drops each row by the cleared rows that were beneath it", () => {
+    // Rows 3 and 5 of six go. What was row 4 falls one, rows 0-2 fall two.
+    const drops = dropPerRow(6, [3, 5]);
+    assert.deepEqual(drops, [0, 0, 2, 2, 2, 1]);
+  });
+
+  it("agrees with clearLines about where every row ends up", () => {
+    const grid = emptyGrid();
+    const last = grid.length - 1;
+    fill(grid, last);
+    fill(grid, last - 2);
+    grid[last - 1]![0] = "L";
+    grid[last - 3]![7] = "S";
+
+    const { grid: after, cleared } = clearLines(grid);
+    const drops = dropPerRow(grid.length, cleared);
+    for (let row = 0; row < after.length; row += 1) {
+      const from = row - drops[row]!;
+      if (from < 0) continue; // a fresh empty row from above the well
+      assert.deepEqual(after[row], grid[from], `row ${row}`);
+    }
   });
 });

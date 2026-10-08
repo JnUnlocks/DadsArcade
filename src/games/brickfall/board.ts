@@ -191,3 +191,49 @@ export function lineScore(rows: number, level: number): number {
   const base = [0, 40, 120, 360, 1000][Math.min(rows, 4)] ?? 0;
   return base * level;
 }
+
+/**
+ * Extra points for clearing with piece after piece.
+ *
+ * `combo` is how many pieces in a row have each cleared something: 1 for a
+ * clear on its own, which earns nothing extra, and one step more for every
+ * piece after it that clears too. A piece that sets without clearing ends it.
+ *
+ * Deliberately small beside lineScore. A four-row blast is still the biggest
+ * thing a single piece can do; the combo is the reason to line the next one
+ * up instead of putting it anywhere.
+ */
+export const COMBO_STEP = 50;
+
+export function comboBonus(combo: number, level: number): number {
+  return Math.max(0, combo - 1) * COMBO_STEP * level;
+}
+
+/** Points for leaving the well completely empty. Rare, and paid like it. */
+export const BOARD_CLEAR_BONUS = 1500;
+
+export function boardClearBonus(level: number): number {
+  return BOARD_CLEAR_BONUS * level;
+}
+
+/** Would the well be empty once these full rows are gone? */
+export function emptyAfterClear(grid: Grid): boolean {
+  return grid.every(
+    (row) => row.every((cell) => cell === null) || row.every((cell) => cell !== null),
+  );
+}
+
+/**
+ * How far each row drops when the cleared rows go, indexed by where the row
+ * ends up. Lets the stack be drawn falling into place instead of jumping.
+ */
+export function dropPerRow(rowCount: number, cleared: readonly number[]): number[] {
+  const gone = new Set(cleared);
+  const drops = Array.from({ length: rowCount }, () => 0);
+  let below = 0;
+  for (let row = rowCount - 1; row >= 0; row -= 1) {
+    if (gone.has(row)) below += 1;
+    else drops[row + below] = below;
+  }
+  return drops;
+}

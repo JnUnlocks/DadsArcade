@@ -34,6 +34,21 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.21.0",
+    date: "2026-10-08",
+    title: "Brickfall gets a second game: BRICK BLAST",
+    notes: [
+      "Brickfall now asks which game you want when you open it: CLASSIC or BRICK BLAST.",
+      "CLASSIC is Brickfall exactly as it has always been, with the same scoring and the same high scores.",
+      "BRICK BLAST is the same game with a lot more going on. Clear a row and the bricks break into pieces, the points float up from it, and your score counts up to meet them.",
+      "Bigger clears get called out across the well: GREAT! for two rows, AWESOME! for three, and BRICK BLAST! for four.",
+      "BRICK BLAST has combos. Clear rows with one piece after another and each one adds a bonus. The COMBO count shows beside the well, and a piece that clears nothing ends it. Empty the whole well and it's an ALL CLEAR, the biggest bonus in the game.",
+      "In BRICK BLAST your phone buzzes when you score: a tick for one row, a drum roll for four. Android phones do this; iPhones only allow a light tap, and only on newer versions. Vibration, in Settings, turns it off.",
+      "BRICK BLAST keeps its own high scores, under BLAST on the Brickfall high-score screen, because its bonuses make the numbers bigger.",
+      "PLAY AGAIN goes straight back into the game you were playing. CHANGE MODE takes you back to the choice.",
+    ],
+  },
+  {
     version: "0.20.1",
     date: "2026-10-08",
     title: "Forest Dash is out of BETA",

@@ -1,0 +1,92 @@
+/* ---------- Brickfall ---------- */
+
+/* The mode chooser is DOM for the usual reason: real tap targets that grow
+   with the large-text setting. The root itself must not catch touches -- it
+   spans the bottom of the screen, and a drag that starts over it still has to
+   reach the canvas and slide the piece. */
+
+#ui > .brickfall-root {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  pointer-events: none;
+  z-index: 4;
+}
+
+#ui > .brickfall-root > * {
+  pointer-events: auto;
+}
+
+/* Once a game is under way the root holds only the DROP button, which places
+   itself against the screen exactly as it did before there was a chooser. */
+#ui > .brickfall-root.brickfall-root--playing {
+  position: static;
+  padding: 0;
+}
+
+.brickfall-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.brickfall-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: calc(72px * var(--ui-scale));
+  padding: calc(12px * var(--ui-scale)) 16px;
+  border-radius: 14px;
+  border: 2px solid;
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.brickfall-mode:active {
+  transform: scale(0.98);
+}
+
+/* Each button wears its mode: the cabinet's own violet, and the blast's pink. */
+.brickfall-mode--classic {
+  border-color: #8e7bff;
+  background: linear-gradient(135deg, rgba(142, 123, 255, 0.26), rgba(8, 14, 30, 0.94) 70%);
+}
+
+.brickfall-mode--blast {
+  border-color: #ff5fae;
+  background: linear-gradient(135deg, rgba(255, 95, 174, 0.3), rgba(8, 14, 30, 0.94) 70%);
+  box-shadow: 0 0 18px rgba(255, 95, 174, 0.28);
+}
+
+.brickfall-mode__name {
+  font-size: calc(17px * var(--ui-scale));
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.brickfall-mode__pitch {
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
+.brickfall-mode__best {
+  margin-top: 2px;
+  color: var(--accent-warm);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brickfall-mode:active {
+    transform: none;
+  }
+}

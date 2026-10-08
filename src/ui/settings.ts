@@ -73,6 +73,12 @@ export function buildSettingsScreen(
       settings.reducedMotion,
       (v) => onChange({ reducedMotion: v }),
     ),
+    toggle(
+      "Vibration",
+      "The phone buzzes on a big score, on phones that can.",
+      settings.haptics,
+      (v) => onChange({ haptics: v }),
+    ),
   );
 
   screen.append(list);

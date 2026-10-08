@@ -40,6 +40,8 @@ export interface Settings {
    */
   music: boolean;
   reducedMotion: boolean;
+  /** The phone buzzing on a big score. Off for anyone who finds it a nuisance. */
+  haptics: boolean;
   highContrast: boolean;
   largeText: boolean;
   sensitivity: number;
@@ -72,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.7,
   music: true,
   reducedMotion: false,
+  haptics: true,
   highContrast: false,
   largeText: false,
   sensitivity: 1.15,

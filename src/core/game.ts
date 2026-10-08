@@ -10,6 +10,7 @@
 
 import type { InputSnapshot } from "./input";
 import type { SoundName } from "./audio";
+import type { BuzzPattern } from "./haptics";
 import type { Track } from "./music";
 import type { Settings } from "./storage";
 import type { View } from "./view";
@@ -49,6 +50,12 @@ export interface GameHost {
    * cheapest trick for making hits feel like they landed.
    */
   hitStop(seconds: number): void;
+
+  /**
+   * Buzz the phone: on/off milliseconds, as navigator.vibrate takes them. A
+   * no-op where the device can't, or with Vibration switched off in Settings.
+   */
+  buzz(pattern: BuzzPattern): void;
 
   /** End the run. The shell handles scoring, leaderboard submission and UI. */
   gameOver(summary: RunSummary): void;
@@ -121,6 +128,12 @@ export interface HudState {
   lives: number;
   progress: number;
   progressLabel: string;
+  /**
+   * True to have the score count up to its new value instead of jumping, and
+   * glow while it does. For a game whose points arrive in big lumps, where the
+   * climb is half the reward.
+   */
+  rollScore?: boolean;
 }
 
 export interface GameInstance {
