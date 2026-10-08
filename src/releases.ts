@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.20.1",
+    date: "2026-10-08",
+    title: "Forest Dash is out of BETA",
+    notes: [
+      "Forest Dash has lost its BETA tag. Thank you for testing it.",
+      "On its title card, the animal you picked was standing behind the buttons, where you couldn't see it. It now stands on top of the card, however many people there are to race.",
+    ],
+  },
+  {
     version: "0.20.0",
     date: "2026-10-05",
     title: "How to play on every pause screen, and a lot more Forest Dash",

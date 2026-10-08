@@ -577,9 +577,13 @@ export class ForestDash implements GameInstance {
     const { view, settings } = this.host;
     const reduced = settings.reducedMotion;
     const cam = this.cam;
-    // On the title card the forest floor sits higher up, so the animal
-    // you've picked stands above the buttons instead of behind them.
-    cam.floor = view.h * (this.phase === "choosing" ? 0.3 : 0.76);
+    // On the title card the forest floor sits just above the card, so the
+    // animal you've picked stands on top of the buttons, not behind them.
+    const cardFloor = this.phase === "choosing" ? this.floorAboveCard(view.h) : null;
+    cam.floor = cardFloor ?? view.h * 0.76;
+    // A card tall enough to reach the HUD leaves nowhere to stand. The
+    // picked animal is still lit up on the card, so it just isn't drawn.
+    const showRacer = this.phase !== "choosing" || cam.floor >= view.insetTop + 80;
 
     drawSky(ctx, view.w, view.h, cam, this.time, reduced);
     drawCourse(ctx, this.track, cam, view.w, view.h, this.time, this.taken, reduced);
@@ -611,14 +615,16 @@ export class ForestDash implements GameInstance {
       dots.push({ at: (at.x - this.track.startX) / span, color: rival.color });
     }
 
-    drawRacer(
-      ctx,
-      cam.sx(this.fox.x),
-      cam.sy(this.fox.y),
-      poseOf(this.fox),
-      this.fox.stride,
-      this.character,
-    );
+    if (showRacer) {
+      drawRacer(
+        ctx,
+        cam.sx(this.fox.x),
+        cam.sy(this.fox.y),
+        poseOf(this.fox),
+        this.fox.stride,
+        this.character,
+      );
+    }
 
     ctx.save();
     ctx.translate(-cam.x * WORLD_SCALE, cam.floor + cam.y * WORLD_SCALE);
@@ -655,6 +661,26 @@ export class ForestDash implements GameInstance {
 
   hud(): HudState {
     return { lives: 0, progress: this.place(), progressLabel: "Place" };
+  }
+
+  /**
+   * Where the forest floor goes on the title card: a little above the top of
+   * the card, wherever that is.
+   *
+   * It's measured rather than guessed. The card's height depends on the
+   * phone, the large-text setting, the initials box, and how many people
+   * there are to race -- a second row of names pushed it up over the animal
+   * when the floor was a fixed fraction of the screen.
+   */
+  private floorAboveCard(viewH: number): number {
+    // The root is pinned to the bottom of the screen and is exactly as tall
+    // as the card (or as much of it as fits), so its top is the card's.
+    const screen = this.root.parentElement;
+    if (!screen) return viewH * 0.3;
+    const frame = screen.getBoundingClientRect();
+    if (frame.height <= 0) return viewH * 0.3;
+    const top = (this.root.getBoundingClientRect().top - frame.top) / frame.height;
+    return viewH * top - 12;
   }
 
   // ----- Race -----
@@ -817,9 +843,6 @@ export const forestDashModule: GameModule = {
   ],
   accent: "#ff5a6e",
   dailyWithoutBoard: true,
-  // Still in family testing: the daily course is new and nobody has raced a
-  // week of them yet.
-  beta: true,
 
   drawIcon(ctx, size) {
     drawForestDashIcon(ctx, size);
