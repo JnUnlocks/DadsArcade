@@ -118,7 +118,7 @@ export function buildSettingsScreen(
   return screen;
 }
 
-function toggle(
+export function toggle(
   label: string,
   hint: string,
   value: boolean,

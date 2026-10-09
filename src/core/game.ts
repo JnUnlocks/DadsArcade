@@ -169,6 +169,12 @@ export interface GameInstance {
    * update() as state changes (e.g. a shell counter).
    */
   extraControls?(): HTMLElement;
+
+  /**
+   * Extra DOM for the pause screen, laid over the pause menu. Built afresh
+   * each time the game is paused; the game owns it and what it does.
+   */
+  pauseExtras?(): HTMLElement;
 }
 
 export interface GameModule {

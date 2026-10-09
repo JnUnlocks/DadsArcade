@@ -629,6 +629,8 @@ export class Shell implements GameHost {
       screen.append(howTo);
     }
     this.ui.append(screen);
+    const extras = this.instance?.pauseExtras?.();
+    if (extras) this.ui.append(extras);
   }
 
   /**

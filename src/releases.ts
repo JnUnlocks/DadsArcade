@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.24.0",
+    date: "2026-10-09",
+    title: "Something is hidden in STARFIGHTER",
+    notes: [
+      "There is a secret somewhere in STARFIGHTER. We're not saying where, or what it does. Have a look around.",
+      "If you find it and use it, that game stays off the high scores. Fair's fair.",
+    ],
+  },
+  {
     version: "0.23.1",
     date: "2026-10-08",
     title: "BRICK BLAST gets its own place on the high scores",

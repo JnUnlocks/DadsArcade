@@ -43,6 +43,7 @@ import {
   drawScorePopup,
   drawTractorBeam,
 } from "./render";
+import { MAX_SHARK_LIVES, anyCodeOn, buildGameShark, codes } from "./gameshark";
 import type { Bullet, Enemy, EnemyKind, Popup } from "./types";
 
 const PLAYER_KEY_SPEED = 260;
@@ -138,6 +139,8 @@ class Starfighter implements GameInstance {
   private waveBannerTimer = 1.6;
   private nextExtraLife = FIRST_EXTRA_LIFE;
   private gameEnded = false;
+  /** True once a Game Shark code has touched this run; it is then unranked. */
+  private sharked = anyCodeOn();
 
   /** Bonus-stage scoring: how many flew, how many you actually hit. */
   private bonusHits = 0;
@@ -180,9 +183,14 @@ class Starfighter implements GameInstance {
           this.playerAlive = true;
           this.playerX = w / 2;
           this.invulnerable = RESPAWN_INVULN;
+          this.topUpWingman();
         } else if (!this.gameEnded) {
           this.gameEnded = true;
-          this.host.gameOver({ progress: this.wave, progressLabel: "Wave" });
+          this.host.gameOver({
+            progress: this.wave,
+            progressLabel: "Wave",
+            ...(this.sharked ? { ranked: false, headline: "GAME SHARK RUN" } : {}),
+          });
         }
       }
       return;
@@ -226,11 +234,11 @@ class Starfighter implements GameInstance {
   private maxBullets(): number {
     // The two-shot limit is per jet, so the constraint that defines the game
     // still applies -- a triple fighter is more guns, not unlimited fire.
-    return MAX_PLAYER_BULLETS * this.fighters;
+    return MAX_PLAYER_BULLETS * this.fighters * (codes.rapidFire ? 2 : 1);
   }
 
   private firePlayerShot(): void {
-    this.fireCooldown = FIRE_INTERVAL;
+    this.fireCooldown = codes.rapidFire ? FIRE_INTERVAL / 2 : FIRE_INTERVAL;
     for (const offset of this.fighterOffsets()) {
       this.playerBullets.push({
         x: this.playerX + offset,
@@ -512,7 +520,7 @@ class Starfighter implements GameInstance {
       }
     }
 
-    if (!this.playerAlive || this.invulnerable > 0) return;
+    if (!this.playerAlive || this.invulnerable > 0 || codes.shields) return;
 
     // Nothing in a bonus stage can hurt you -- the squadrons are a shooting
     // gallery, and losing a jet to a flyby would make the perfect bonus feel
@@ -683,7 +691,7 @@ class Starfighter implements GameInstance {
   // ----- Capture mechanic -----
 
   private beamHasPlayer(cruiser: Enemy): boolean {
-    if (!this.playerAlive || this.invulnerable > 0) return false;
+    if (!this.playerAlive || this.invulnerable > 0 || codes.shields) return false;
     if (this.playerY < cruiser.y || this.playerY > cruiser.y + BEAM_LENGTH) {
       return false;
     }
@@ -727,6 +735,7 @@ class Starfighter implements GameInstance {
     this.bonusResultTimer = 0;
     this.bonusPerfect = false;
     this.waveBannerTimer = 1.6;
+    this.topUpWingman();
 
     if (this.kind === "bonus") {
       this.buildBonusWave();
@@ -1022,6 +1031,7 @@ class Starfighter implements GameInstance {
           drawPlayer(ctx, this.playerX + offset, this.playerY, this.thrust);
         }
       }
+      if (codes.shields) this.drawShield(ctx);
     }
 
     this.particles.render(ctx);
@@ -1043,6 +1053,37 @@ class Starfighter implements GameInstance {
 
     if (this.bonusResultTimer > 0) this.drawBonusResult(ctx);
     else if (this.waveBannerTimer > 0) this.drawWaveBanner(ctx);
+
+    if (this.sharked) this.drawSharkTag(ctx);
+  }
+
+  /** A bubble round the whole formation, so the shield reads as a thing. */
+  private drawShield(ctx: CanvasRenderingContext2D): void {
+    const radius = 17 + ((this.fighters - 1) * FIGHTER_SPACING) / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.45 + 0.2 * Math.sin(this.time * 5);
+    ctx.strokeStyle = PALETTE.tractor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(this.playerX, this.playerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /**
+   * Says, during the run, that it won't be ranked -- so the game-over screen
+   * is never the first anyone hears of it.
+   */
+  private drawSharkTag(ctx: CanvasRenderingContext2D): void {
+    // Bottom right: the lives pips have the bottom left.
+    const { w, h, insetBottom } = this.host.view;
+    ctx.save();
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = PALETTE.tractor;
+    ctx.font = '10px ui-monospace, "SF Mono", Menlo, monospace';
+    ctx.textAlign = "right";
+    ctx.fillText("GAME SHARK", w - 10, h - insetBottom - 12);
+    ctx.restore();
   }
 
   private drawWaveBanner(ctx: CanvasRenderingContext2D): void {
@@ -1113,6 +1154,30 @@ class Starfighter implements GameInstance {
     // Nothing to restore -- the shell freezes the whole simulation -- but
     // clearing stale enemy fire makes the countdown a genuinely safe re-entry.
     this.enemyBullets.length = 0;
+  }
+
+  // ----- Game Shark -----
+
+  pauseExtras(): HTMLElement {
+    return buildGameShark({
+      codesChanged: () => {
+        if (anyCodeOn()) this.sharked = true;
+        this.topUpWingman();
+      },
+      addShip: () => {
+        if (this.lives >= MAX_SHARK_LIVES) return false;
+        this.lives += 1;
+        this.sharked = true;
+        return true;
+      },
+      lives: () => Math.max(0, this.lives),
+      used: () => this.sharked,
+    });
+  }
+
+  /** DUAL FIGHTERS: never fewer than two jets at the start of a ship or wave. */
+  private topUpWingman(): void {
+    if (codes.dualFighters && this.fighters < 2) this.fighters = 2;
   }
 }
 
