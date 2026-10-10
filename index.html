@@ -16,7 +16,8 @@
     <meta name="description" content="A pocket arcade, built for Dad. Ten machines, no install, plays offline." />
 
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" href="/icon-512.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
 
     <!-- Link preview card. Scrapers (iMessage, WhatsApp, Slack, Facebook) don't
          run JavaScript and won't resolve relative paths, so og:image and og:url
@@ -57,7 +58,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Dad's Arcade" />
-    <link rel="apple-touch-icon" href="/icon-512.png" />
+    <!-- 180px is what an iPhone asks for. Edge to edge, no rounded corners
+         of its own: iOS rounds them, and transparent corners would go black. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   </head>
   <body>
     <div id="app">

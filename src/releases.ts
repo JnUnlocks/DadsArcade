@@ -34,6 +34,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.24.1",
+    date: "2026-10-10",
+    title: "A new icon for the home screen",
+    notes: [
+      "Dad's Arcade has a new icon: a neon arcade cabinet with the name up in lights.",
+      "It's made to fit each phone properly. On an iPhone it fills the whole icon, and on Android the cabinet sits inside whatever shape your phone cuts its icons into.",
+      "If the arcade is already on your home screen, the old icon may stay. To get the new one, remove it from the home screen and add it again from the browser. Your scores and initials stay if you add it back the same way as before.",
+    ],
+  },
+  {
     version: "0.24.0",
     date: "2026-10-09",
     title: "Something is hidden in STARFIGHTER",
