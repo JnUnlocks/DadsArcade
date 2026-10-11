@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.25.1",
+    date: "2026-10-10",
+    title: "A new picture when you share the arcade",
+    notes: [
+      "When you send someone a link to the arcade, or share a puzzle result, the picture that comes with it now says Dad's Arcade and shows the new icon. It used to show the arcade's old name and say it had three games.",
+      "Messages you've already sent keep the old picture. New ones get the new one.",
+    ],
+  },
+  {
     version: "0.25.0",
     date: "2026-10-10",
     title: "Uncle Potato Head Number Game. It's Sudoku!",
