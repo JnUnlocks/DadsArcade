@@ -6,7 +6,7 @@
  */
 
 import { fetchLeaderboard, type LeaderboardRow } from "../core/api";
-import type { GameModule } from "../core/game";
+import type { GameModule, TimeBoardRow } from "../core/game";
 import { dailyKey } from "../core/rng";
 import type { Player } from "../core/storage";
 import {
@@ -16,6 +16,7 @@ import {
   progressText,
   shortTitleOf,
   sliceAfterFilterChange,
+  timeBoardGame,
   todayAvailable,
   type GameFilter,
   type Slice,
@@ -62,6 +63,8 @@ export function buildLeaderboardScreen(
       ? initialFilter
       : null;
   let slice: Slice = "all";
+  /** The board chosen for a game that ranks times: a course of Forest Dash. */
+  let timeBoard = "";
 
   // ----- Game filter -----
   const filters = document.createElement("div");
@@ -102,6 +105,12 @@ export function buildLeaderboardScreen(
   }
   screen.append(tabs);
 
+  // A game that ranks times has a tab per board here instead, built in
+  // render() because one of them is today's and the day can change.
+  const timeTabs = document.createElement("div");
+  timeTabs.className = "tabs tabs--wrap";
+  screen.append(timeTabs);
+
   const body = document.createElement("div");
   body.className = "board";
   screen.append(body);
@@ -135,6 +144,26 @@ export function buildLeaderboardScreen(
     // Keep the chosen chip in view; the row scrolls sideways on a phone.
     filterButtons.get(filter)?.scrollIntoView({ block: "nearest", inline: "nearest" });
 
+    // A game that ranks times swaps the period tabs for its own boards.
+    const timed = timeBoardGame(games, filter)?.timeBoards;
+    tabs.style.display = timed ? "none" : "";
+    timeTabs.style.display = timed ? "" : "none";
+    if (timed) {
+      const boards = timed.list();
+      if (!boards.some((b) => b.id === timeBoard)) timeBoard = boards[0]?.id ?? "";
+      timeTabs.replaceChildren(
+        ...boards.map((b) => {
+          const tab = tabButton(b.label);
+          tab.classList.toggle("is-active", b.id === timeBoard);
+          tab.addEventListener("click", () => {
+            timeBoard = b.id;
+            render();
+          });
+          return tab;
+        }),
+      );
+    }
+
     // Only offer TODAY where a selected game actually has a daily board.
     tabBySlice.today.hidden = !todayAvailable(games, filter);
     // And a game's second board only with that game chosen.
@@ -162,9 +191,10 @@ export function buildLeaderboardScreen(
     body.replaceChildren(message("LOADING…"));
 
     const results = await Promise.allSettled(
-      visible.map((game) => {
+      visible.map(async (game): Promise<HTMLElement[]> => {
+        if (game.timeBoards) return timeRows(game);
         const source = sources.get(game.id) ?? { gameId: game.id, board: "" };
-        return fetchLeaderboard(
+        const rows = await fetchLeaderboard(
           source.gameId,
           period,
           filter === null ? PER_GAME_IN_OVERVIEW : SINGLE_GAME_ROWS,
@@ -172,6 +202,7 @@ export function buildLeaderboardScreen(
           // A tab's board (TODAY, a mode's tab) wins; otherwise the entry's own.
           board || source.board,
         );
+        return rows.map((row, i) => buildRow(row, i, game, slice));
       }),
     );
     if (mine !== requestId) return; // superseded by a newer selection
@@ -189,8 +220,8 @@ export function buildLeaderboardScreen(
       const rows = result?.status === "fulfilled" ? result.value : [];
       const parts: HTMLElement[] = [];
       if (game) parts.push(sectionHeader(game, null));
-      if (rows.length > 0) parts.push(...rows.map((row, i) => buildRow(row, i, game, slice)));
-      else parts.push(message(emptyText(slice)));
+      if (rows.length > 0) parts.push(...rows);
+      else parts.push(message(game?.timeBoards ? EMPTY_TIMES : emptyText(slice)));
       body.replaceChildren(...parts);
       return;
     }
@@ -205,13 +236,48 @@ export function buildLeaderboardScreen(
       if (result.status === "rejected") {
         section.append(message("Couldn't load this one."));
       } else if (result.value.length === 0) {
-        section.append(message(slice === "today" ? "Nobody yet today." : "No scores yet."));
+        section.append(
+          message(
+            game.timeBoards
+              ? "No times yet."
+              : slice === "today"
+                ? "Nobody yet today."
+                : "No scores yet.",
+          ),
+        );
       } else {
-        section.append(...result.value.map((row, n) => buildRow(row, n, game, slice)));
+        section.append(...result.value);
       }
       sections.push(section);
     });
     body.replaceChildren(...sections);
+  }
+
+  /**
+   * The rows for a game that ranks times.
+   *
+   * With the game chosen, that's the board on the selected tab. Under ALL
+   * GAMES there are no tabs for it, so TODAY shows the top of today's board
+   * and the other two show who holds the record on each permanent one --
+   * a time has no "this week", and one board's top three would hide the rest.
+   */
+  async function timeRows(game: GameModule): Promise<HTMLElement[]> {
+    const timed = game.timeBoards!;
+    if (filter !== null) {
+      const rows = await timed.rows(timeBoard);
+      return rows.slice(0, SINGLE_GAME_ROWS).map((row, i) => buildTimeRow(row, i, game));
+    }
+    const boards = timed.list();
+    if (slice === "today") {
+      const today = boards.find((b) => b.daily);
+      const rows = today ? await timed.rows(today.id) : [];
+      return rows.slice(0, PER_GAME_IN_OVERVIEW).map((row, i) => buildTimeRow(row, i, game));
+    }
+    const permanent = boards.filter((b) => !b.daily);
+    const tops = await Promise.all(permanent.map((b) => timed.rows(b.id)));
+    return tops.flatMap((rows, i) =>
+      rows[0] ? [buildTimeRow({ ...rows[0], note: permanent[i]!.label }, 0, game)] : [],
+    );
   }
 
   render();
@@ -242,6 +308,8 @@ function sectionHeader(game: GameModule, onSeeAll: (() => void) | null): HTMLEle
   }
   return head;
 }
+
+const EMPTY_TIMES = "Nobody has finished this one yet. Go set the time.";
 
 function emptyText(slice: Slice): string {
   return slice === "today"
@@ -283,6 +351,28 @@ function buildRow(
   wave.textContent = progressText(game, row.wave, slice);
 
   line.append(rank, initials, score, wave);
+  return line;
+}
+
+/** A score row's shape, with the time where the score goes. */
+function buildTimeRow(row: TimeBoardRow, index: number, game: GameModule): HTMLElement {
+  const line = document.createElement("div");
+  line.className = "board-row board-row--time";
+  line.style.setProperty("--row-accent", game.accent);
+  if (row.isYou) line.classList.add("is-you");
+
+  const cell = (className: string, content: string) => {
+    const span = document.createElement("span");
+    span.className = className;
+    span.textContent = content;
+    return span;
+  };
+  line.append(
+    cell("board-rank", String(index + 1).padStart(2, "0")),
+    cell("board-initials", row.initials),
+    cell("board-score", row.time),
+    cell("board-wave", row.note),
+  );
   return line;
 }
 

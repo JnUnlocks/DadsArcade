@@ -196,6 +196,14 @@ async function getScores(env: Env, url: URL): Promise<Response> {
   // ever sending other players' device ids back to the client.
   const deviceId = url.searchParams.get("device")?.trim() ?? "";
 
+  // A game's main board also counts its daily boards. A daily puzzle files
+  // each day's runs on that day's own board, which is right for TODAY and
+  // left ALL TIME and THIS WEEK empty for a game played mostly as its daily:
+  // the crossword had scores every day and an all-time board with nobody on
+  // it. A game's daily and free-play runs score on the same scale, so a
+  // player's best from either is their best.
+  if (boardId === "global") return json({ scores: await mainBoard(env, gameId, since, limit, deviceId) });
+
   // One row per device: the board should read as a list of players, not the
   // same person's twenty best runs.
   //
@@ -234,6 +242,52 @@ async function getScores(env: Env, url: URL): Promise<Response> {
           .all();
 
   return json({ scores: results ?? [] });
+}
+
+/**
+ * A game's main board with its daily boards folded in: each device's best
+ * run from any of them. `since` of 0 is all time.
+ *
+ * Both queries start from the game (idx_best_game_board, and
+ * idx_scores_game_created), so they read that game's rows and no other's.
+ */
+async function mainBoard(
+  env: Env,
+  gameId: string,
+  since: number,
+  limit: number,
+  deviceId: string,
+): Promise<unknown[]> {
+  // 'daily.' is the first string after every 'daily-…', so the pair is a
+  // range an index can walk, where LIKE 'daily-%' would not be.
+  const boards = `(board_id = 'global' OR (board_id >= 'daily-' AND board_id < 'daily.'))`;
+  const { results } =
+    since === 0
+      ? await env.DB.prepare(
+          // SQLite's bare-column rule: the other columns come from the row
+          // that produced MAX(score).
+          `SELECT initials, MAX(score) AS score, wave, duration_ms, created_at,
+                  (device_id = ?3) AS is_you
+             FROM best_scores
+            WHERE game_id = ?1 AND ${boards}
+            GROUP BY device_id
+            ORDER BY score DESC, created_at ASC
+            LIMIT ?2`,
+        )
+          .bind(gameId, limit, deviceId)
+          .all()
+      : await env.DB.prepare(
+          `SELECT initials, MAX(score) AS score, wave, duration_ms, created_at,
+                  (device_id = ?4) AS is_you
+             FROM scores
+            WHERE game_id = ?1 AND created_at >= ?2 AND ${boards}
+            GROUP BY device_id
+            ORDER BY score DESC, created_at ASC
+            LIMIT ?3`,
+        )
+          .bind(gameId, since, limit, deviceId)
+          .all();
+  return results ?? [];
 }
 
 async function getMyScores(env: Env, url: URL): Promise<Response> {

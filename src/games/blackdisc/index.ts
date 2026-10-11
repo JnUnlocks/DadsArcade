@@ -768,6 +768,7 @@ export const blackDiscModule: GameModule = {
   id: "black-disc",
   title: "BLACK DISC",
   shortTitle: "BLACK DISC",
+  noLeaderboard: true,
   progressShort: "RD",
   blurb: "Pass it, guess it, don't get caught holding it at the buzz.",
   howToPlay: [

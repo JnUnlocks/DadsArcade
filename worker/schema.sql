@@ -40,6 +40,11 @@ CREATE INDEX IF NOT EXISTS idx_scores_device_created
 CREATE INDEX IF NOT EXISTS idx_scores_board_game_created
   ON scores (board_id, game_id, created_at);
 
+-- Serves a game's THIS WEEK board, which counts its main board and every
+-- daily board together: this game's last 7 days, whichever board they're on.
+CREATE INDEX IF NOT EXISTS idx_scores_game_created
+  ON scores (game_id, created_at);
+
 -- Was the all-time board's index. Boards now read best_scores, so this only
 -- cost an extra row write on every run.
 DROP INDEX IF EXISTS idx_scores_board_game_score;
@@ -68,6 +73,11 @@ CREATE TABLE IF NOT EXISTS best_scores (
 -- Serves the all-time board (top N) and the rank lookup (count above me).
 CREATE INDEX IF NOT EXISTS idx_best_board_game_score
   ON best_scores (board_id, game_id, score DESC, created_at ASC);
+
+-- Serves a game's ALL TIME board, which counts its main board and every
+-- daily board together: one game's rows, across boards.
+CREATE INDEX IF NOT EXISTS idx_best_game_board
+  ON best_scores (game_id, board_id);
 
 -- One-time backfill from history. OR IGNORE makes re-runs a no-op for rows
 -- that already exist, so a later, better score written by the Worker is never

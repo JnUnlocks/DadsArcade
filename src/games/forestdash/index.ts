@@ -843,6 +843,29 @@ export const forestDashModule: GameModule = {
   ],
   accent: "#ff5a6e",
   dailyWithoutBoard: true,
+  // The high-score screen's boards: today's course first, then the four that
+  // are always there. Rows come from the same list the title card shows.
+  timeBoards: {
+    list: () =>
+      [dailyCourse(), ...COURSES].map((course) => ({
+        id: course.id,
+        label: course.short,
+        ...(course.id.startsWith("daily-") ? { daily: true } : {}),
+      })),
+    async rows(boardId) {
+      const course = [dailyCourse(), ...COURSES].find((c) => c.id === boardId);
+      if (!course) return [];
+      const key = courseKey(course.id, course.build(), RULES_VERSION);
+      const rows = await fetchTimes(key, loadVisitorId());
+      if (rows === null) throw new Error("times_unavailable");
+      return rows.map((row) => ({
+        initials: row.initials || "---",
+        time: formatTime(row.timeMs / 1000),
+        note: characterById(row.character).name,
+        isYou: row.isYou,
+      }));
+    },
+  },
 
   drawIcon(ctx, size) {
     drawForestDashIcon(ctx, size);

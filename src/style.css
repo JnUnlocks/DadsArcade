@@ -2077,3 +2077,14 @@ body {
     display: none;
   }
 }
+
+/* A game that ranks times has a tab per course: more than fit on one line. */
+.tabs--wrap {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* A time row ends in a word (who they raced as), not a short count. */
+.board-row--time {
+  grid-template-columns: 2.4em 3.6em 1fr 5.4em;
+}

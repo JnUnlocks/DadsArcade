@@ -53,6 +53,8 @@ export function listBoards(games: readonly GameModule[]): BoardListing {
   const sources = new Map<string, BoardSource>();
 
   for (const game of games) {
+    // A cabinet that keeps no scores has no place here.
+    if (game.noLeaderboard) continue;
     const extra = game.extraBoard;
     const own = extra?.standalone;
     sources.set(game.id, { gameId: game.id, board: "" });
@@ -85,9 +87,26 @@ export function listBoards(games: readonly GameModule[]): BoardListing {
   return { games: listed, sources };
 }
 
+/** True for a game with something to show under TODAY. */
+function hasToday(game: GameModule): boolean {
+  return Boolean(game.hasDailyChallenge || game.timeBoards?.list().some((b) => b.daily));
+}
+
 /** TODAY only makes sense where at least one selected game has a daily board. */
 export function todayAvailable(games: readonly GameModule[], filter: GameFilter): boolean {
-  return gamesInView(games, filter).some((g) => g.hasDailyChallenge);
+  return gamesInView(games, filter).some(hasToday);
+}
+
+/**
+ * The game whose time boards take the place of the period tabs, if the one
+ * chosen ranks times. ALL GAMES keeps the period tabs: most of what's on
+ * screen there is scores.
+ */
+export function timeBoardGame(
+  games: readonly GameModule[],
+  filter: GameFilter,
+): GameModule | undefined {
+  return filter === null ? undefined : gamesInView(games, filter).find((g) => g.timeBoards);
 }
 
 /**
@@ -124,7 +143,7 @@ export function gamesInView(
   slice: Slice = "all",
 ): readonly GameModule[] {
   const selected = filter === null ? games : games.filter((g) => g.id === filter);
-  if (slice === "today") return selected.filter((g) => g.hasDailyChallenge);
+  if (slice === "today") return selected.filter(hasToday);
   if (slice === "extra") return selected.filter((g) => g.extraBoard);
   return selected;
 }

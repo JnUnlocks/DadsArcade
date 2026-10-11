@@ -16,6 +16,7 @@ import {
   progressText,
   shortTitleOf,
   sliceAfterFilterChange,
+  timeBoardGame,
   todayAvailable,
 } from "./boardFilter.ts";
 
@@ -59,6 +60,38 @@ describe("high score filter", () => {
     assert.equal(sliceAfterFilterChange(GAMES, "brickfall", "today"), "all");
     assert.equal(sliceAfterFilterChange(GAMES, "riley-slime-shop", "today"), "today");
     assert.equal(sliceAfterFilterChange(GAMES, "brickfall", "week"), "week");
+  });
+});
+
+describe("games that aren't score boards", () => {
+  const dash = game("forest-dash", {
+    timeBoards: {
+      list: () => [
+        { id: "daily-20261010", label: "TODAY", daily: true },
+        { id: "mossy", label: "MOSSY" },
+      ],
+      rows: async () => [],
+    },
+  });
+  const ALL = [...GAMES, dash, game("word-finder", { noLeaderboard: true })];
+
+  it("leaves out a cabinet that keeps no scores", () => {
+    const { games } = listBoards(ALL);
+    assert.ok(!games.some((g) => g.id === "word-finder"));
+    assert.ok(games.some((g) => g.id === "forest-dash"));
+  });
+
+  it("swaps the period tabs for a time game's boards only with it chosen", () => {
+    assert.equal(timeBoardGame(ALL, "forest-dash")?.id, "forest-dash");
+    assert.equal(timeBoardGame(ALL, null), undefined);
+    assert.equal(timeBoardGame(ALL, "brickfall"), undefined);
+  });
+
+  it("counts a time game's daily board as something to show under TODAY", () => {
+    assert.deepEqual(
+      gamesInView(ALL, null, "today").map((g) => g.id),
+      ["riley-slime-shop", "forest-dash"],
+    );
   });
 });
 

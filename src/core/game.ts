@@ -177,6 +177,25 @@ export interface GameInstance {
   pauseExtras?(): HTMLElement;
 }
 
+/** One of a time-ranked game's boards: a course, for Forest Dash. */
+export interface TimeBoard {
+  readonly id: string;
+  /** Short enough for a tab. */
+  readonly label: string;
+  /** True for the one that changes every day, which is what TODAY shows. */
+  readonly daily?: boolean;
+}
+
+/** One row of a time board, already worded for the screen. */
+export interface TimeBoardRow {
+  initials: string;
+  /** The time as the game prints it, e.g. "0:42.3". */
+  time: string;
+  /** A word for the end of the row: who they raced as. */
+  note: string;
+  isYou: boolean;
+}
+
 export interface GameModule {
   /** Stable id -- used as the leaderboard key, so never change it once live. */
   readonly id: string;
@@ -219,6 +238,25 @@ export interface GameModule {
    * and that feedback is wanted. Remove it when the game is finished.
    */
   readonly beta?: boolean;
+  /**
+   * True for a cabinet that keeps no scores on purpose -- Black Disc, played
+   * between two teams in a room, and the Word Finder, which is a tool. The
+   * high-score screen leaves it out, rather than list a board that can only
+   * ever say "no scores yet".
+   */
+  readonly noLeaderboard?: boolean;
+  /**
+   * For a game that ranks times rather than scores -- Forest Dash, where the
+   * fastest run of a course wins. Its place on the high-score screen is then
+   * these boards, one tab each, in place of ALL TIME / THIS WEEK / TODAY,
+   * which are all ways of slicing a score board it doesn't have.
+   */
+  readonly timeBoards?: {
+    /** The boards in tab order. Asked for each time the screen is drawn. */
+    list(): readonly TimeBoard[];
+    /** A board's rows, fastest first. Rejects if the list can't be reached. */
+    rows(boardId: string): Promise<TimeBoardRow[]>;
+  };
   /**
    * A second, permanent board for a mode whose scores aren't on the same scale
    * as the main one -- Snake's CLASSIC, next to its HYPER. Runs reach it by

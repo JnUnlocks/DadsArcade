@@ -50,6 +50,7 @@ export const wordFinderModule: GameModule = {
   id: "word-finder",
   title: "WORD FINDER",
   shortTitle: "FINDER",
+  noLeaderboard: true,
   blurb: "Stuck on a crossword clue? Type C?T and see what fits.",
   howToPlay: [
     "This is a helper for any crossword, not a game. There's no score.",

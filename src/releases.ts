@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.26.0",
+    date: "2026-10-11",
+    title: "High scores that count your daily puzzles",
+    notes: [
+      "ALL TIME and THIS WEEK now count the daily puzzles. They used to show only free-play scores, so a game you play mostly as its daily looked empty there: Mom Mom's Crossword had scores every day and nobody on its all-time board.",
+      "Your place on those boards is now your best score from either a daily puzzle or free play. This covers the crossword, Letter Lock, Plasma Sort, the Slime Shop and Uncle Potato Head Number Game. TODAY is unchanged: it is still just today's puzzle.",
+      "FOREST DASH is on the high scores at last, with race times. Choose FOREST and there is a tab for today's course and one for each of the four courses, fastest first. Under ALL GAMES it shows who holds the record on each course.",
+      "WORD FINDER and BLACK DISC have left the high scores screen. Neither keeps a score, so their boards could only ever be empty.",
+    ],
+  },
+  {
     version: "0.25.0",
     date: "2026-10-10",
     title: "Uncle Potato Head Number Game. It's Sudoku!",
