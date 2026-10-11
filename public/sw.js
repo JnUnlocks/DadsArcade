@@ -8,7 +8,7 @@
  * Bump CACHE_VERSION on any release that changes the shell.
  */
 
-const CACHE_VERSION = "dads-arcade-v25";
+const CACHE_VERSION = "dads-arcade-v26";
 
 /** Enough to boot offline; hashed build assets are cached on first visit. */
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icon-192.png", "/icon-512.png"];

@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.24.2",
+    date: "2026-10-10",
+    title: "A cleaner icon",
+    notes: [
+      "The new icon was a bit busy, so it has been simplified: the cabinet, the name in lights, the joystick and the buttons, and nothing else. It is much easier to read at the size it sits on a home screen.",
+      "If the arcade is already on your home screen, remove it and add it again from the browser to get the new icon.",
+    ],
+  },
+  {
     version: "0.24.1",
     date: "2026-10-10",
     title: "A new icon for the home screen",
