@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.26.1",
+    date: "2026-10-11",
+    title: "Very big Brickfall scores are no longer turned away",
+    notes: [
+      "A long BRICK BLAST or BRICKFALL game that reached level 25 and kept going could finish with \"Scoreboard rejected this run\". The scoreboard judged the score against the level, and the level stops at 25 while the score keeps climbing. It was wrong, and a score over a million was lost to it.",
+      "Scores at the top level are now accepted however high they go.",
+    ],
+  },
+  {
     version: "0.26.0",
     date: "2026-10-11",
     title: "High scores that count your daily puzzles",

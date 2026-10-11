@@ -60,6 +60,14 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_POINTS_PER_SECOND = 3000;
 /** Ceiling on points per wave reached. */
 const MAX_POINTS_PER_WAVE = 15000;
+/**
+ * Games whose level stops climbing while the score doesn't. Both Brickfall
+ * modes top out at level 25 and play on, so from there the per-wave ceiling
+ * says nothing about how long the run was: a 28-minute BRICK BLAST game that
+ * scored 1,059,276 at level 25 was refused for being over 385,000. At a
+ * game's top level only the per-second ceiling applies.
+ */
+const TOP_LEVEL: Readonly<Record<string, number>> = { brickfall: 25 };
 /** Slack so short, early runs aren't judged too harshly. */
 const SCORE_GRACE = 10000;
 
@@ -1265,10 +1273,9 @@ function validate(body: unknown): ScoreSubmission | { error: string } {
     return { error: "duration_out_of_range" };
   }
 
-  const ceiling = Math.min(
-    MAX_POINTS_PER_SECOND * (durationMs / 1000),
-    MAX_POINTS_PER_WAVE * wave,
-  ) + SCORE_GRACE;
+  const top = TOP_LEVEL[gameId];
+  const byWave = top !== undefined && wave >= top ? Infinity : MAX_POINTS_PER_WAVE * wave;
+  const ceiling = Math.min(MAX_POINTS_PER_SECOND * (durationMs / 1000), byWave) + SCORE_GRACE;
   if (score > ceiling) return { error: "implausible_score" };
 
   return { gameId, initials, deviceId, score, wave, durationMs, boardId };
