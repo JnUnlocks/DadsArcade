@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.25.0",
+    date: "2026-10-10",
+    title: "Uncle Potato Head Number Game. It's Sudoku!",
+    notes: [
+      "A new cabinet at the end of the row: UNCLE POTATO HEAD NUMBER GAME. It's Sudoku, run by a potato in a bow tie who has something encouraging to say every day.",
+      "One puzzle a day, the same grid for the whole family, and one go at it. The week climbs like a newspaper's: easy on Monday, the hard one on Sunday. Free play has EASY, MEDIUM, HARD and EXPERT whenever you like.",
+      "Built for one thumb. Tap a number, then every square it goes in. Or tap a square, then its number. Every number has its own colour, on the keys and on the board.",
+      "Nobody loses. A wrong number shows red and adds 30 seconds, and HINT fills in a square for 60. NOTES is your pencil, and AUTO pencils in everything that still fits.",
+      "Every puzzle is saved as you go, and a finished daily can be shared to the family chat without giving anything away.",
+      "It wears a BETA tag while the family tries it out. Tell us which puzzles felt too hard or too easy.",
+    ],
+  },
+  {
     version: "0.24.2",
     date: "2026-10-10",
     title: "A cleaner icon",

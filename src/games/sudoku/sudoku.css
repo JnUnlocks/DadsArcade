@@ -1,0 +1,809 @@
+/* ---------- Uncle Potato Head Number Game (it's Sudoku) ---------- */
+
+/* DOM from edge to edge, covering the canvas, the way the crossword is.
+
+   Built for a phone in one hand: the grid takes the top, and everything to
+   press -- the tools and the number pad -- sits at the bottom under the
+   thumb. On a wide screen held sideways the pad moves beside the grid.
+
+   The look is Uncle Potato Head's study at night: a deep violet room, a
+   bright white board, and a pad of keys in nine colours. Each digit is
+   written on the board in the colour of its key (--sd-d), darkened so it
+   reads on white. Colour is never the only signal: a wrong digit is also
+   struck through, a hint also has a dot, an armed key also lifts. */
+
+.sd-root {
+  --sd-bg: #0d0a2b;
+  --sd-ink: #f3f1ff;
+  --sd-dim: #b3aee0;
+  --sd-line: #c5cbe4;
+  --sd-box: #2a2f6b;
+  --sd-square: #ffffff;
+  --sd-given: #f0f2fc;
+  --sd-near: #e2ebff;
+  --sd-board-ink: #1b1f4a;
+  --sd-note: #6b7396;
+  --sd-accent: #ffc928;
+  --sd-accent-ink: #2a1a05;
+  --sd-glow: #45d6ff;
+  --sd-helped: #f08a00;
+  --sd-wrong: #e01238;
+  --sd-panel: rgba(34, 26, 92, 0.94);
+  --sd-edge: rgba(126, 150, 255, 0.55);
+  /* Rounded where the phone has one, the way the title card is lettered. */
+  --sd-round: ui-rounded, "Arial Rounded MT Bold", "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 10px)
+    calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 10px);
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(255, 138, 42, 0.2), transparent 55%),
+    radial-gradient(ellipse at 90% 10%, rgba(154, 92, 255, 0.3), transparent 60%),
+    linear-gradient(#17104a, var(--sd-bg));
+  color: var(--sd-ink);
+  font-family: var(--font);
+}
+
+/* The colour of each digit's key, and the darker ink it's written in. */
+.sd-root [data-d="1"] {
+  --sd-key: #2f7bff;
+  --sd-d: #1d5fe0;
+}
+
+.sd-root [data-d="2"] {
+  --sd-key: #ff4fa3;
+  --sd-d: #d9247f;
+}
+
+.sd-root [data-d="3"] {
+  --sd-key: #ff8a2a;
+  --sd-d: #d95a00;
+}
+
+.sd-root [data-d="4"] {
+  --sd-key: #ffc928;
+  --sd-d: #a87600;
+}
+
+.sd-root [data-d="5"] {
+  --sd-key: #3fd85a;
+  --sd-d: #158a31;
+}
+
+.sd-root [data-d="6"] {
+  --sd-key: #3cc8f0;
+  --sd-d: #0a84b3;
+}
+
+.sd-root [data-d="7"] {
+  --sd-key: #9a5cff;
+  --sd-d: #6a35d6;
+}
+
+.sd-root [data-d="8"] {
+  --sd-key: #e05cf0;
+  --sd-d: #a82bbd;
+}
+
+.sd-root [data-d="9"] {
+  --sd-key: #8ee03a;
+  --sd-d: #4f8a0c;
+}
+
+.sd-uncle {
+  flex: none;
+  display: block;
+}
+
+/* ----- The chooser ----- */
+
+.sd-root--chooser {
+  align-items: center;
+  justify-content: safe center;
+  gap: calc(16px * var(--ui-scale));
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+.sd-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale));
+  text-align: center;
+  /* Clears the shell's pause button on a narrow phone. */
+  padding: 56px 8px 0;
+}
+
+/* Uncle Potato Head, and what he has to say today. */
+.sd-title-host {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sd-title-say {
+  position: relative;
+  max-width: 11em;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #fff7e0;
+  color: #3a2408;
+  font-family: var(--sd-round);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.sd-title-say::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  margin-top: -6px;
+  border: 6px solid transparent;
+  border-left: 0;
+  border-right: 8px solid #fff7e0;
+}
+
+.sd-title-name {
+  font-family: var(--sd-round);
+  font-weight: 900;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.sd-title-uncle,
+.sd-title-game {
+  font-size: calc(clamp(20px, 6vw, 32px) * var(--ui-scale));
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  text-shadow:
+    0 2px 0 #2440b8,
+    0 4px 0 #101a5c;
+}
+
+.sd-title-potato {
+  font-size: calc(clamp(34px, 11vw, 58px) * var(--ui-scale));
+  letter-spacing: 0.01em;
+  color: var(--sd-accent);
+  text-shadow:
+    0 2px 0 #ff8a2a,
+    0 5px 0 #a8480a,
+    0 8px 14px rgba(0, 0, 0, 0.5);
+}
+
+.sd-title-tag {
+  padding: 5px 14px;
+  border-radius: 8px;
+  background: var(--sd-accent);
+  color: var(--sd-accent-ink);
+  font-family: var(--sd-round);
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  transform: rotate(-3deg);
+}
+
+.sd-title-sub {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.2em;
+  color: var(--sd-dim);
+}
+
+.sd-title-streak {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-warm);
+}
+
+.sd-modes {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 460px;
+}
+
+.sd-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: calc(54px * var(--ui-scale));
+  padding: calc(9px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--sd-edge);
+  background: var(--sd-panel);
+  color: var(--sd-ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sd-mode--daily {
+  border-color: var(--sd-accent);
+  background: color-mix(in srgb, var(--sd-accent) 20%, #1c1552);
+}
+
+.sd-mode:active,
+.sd-mode-new:active {
+  transform: scale(0.98);
+}
+
+.sd-mode-name {
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: pre-wrap;
+}
+
+.sd-mode-hint {
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.35;
+  color: var(--sd-dim);
+}
+
+.sd-mode-row {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.sd-mode-new {
+  flex: 0 0 calc(72px * var(--ui-scale));
+  border-radius: 14px;
+  border: 1.5px solid rgba(44, 232, 138, 0.6);
+  background: color-mix(in srgb, #2ce88a 14%, #1c1552);
+  color: var(--sd-ink);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.sd-modes-note {
+  max-width: 460px;
+  padding: 0 8px 8px;
+  font-size: calc(10px * var(--ui-scale));
+  line-height: 1.5;
+  text-align: center;
+  color: var(--sd-dim);
+}
+
+/* ----- Masthead ----- */
+
+.sd-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  /* The shell's pause button sits in the top right corner. */
+  padding-right: 66px;
+}
+
+.sd-masthead {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sd-name {
+  font-family: var(--sd-round);
+  font-size: calc(clamp(11px, 3.3vw, 18px) * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: var(--sd-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sd-dateline {
+  margin-top: 3px;
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.1em;
+  color: var(--sd-dim);
+  white-space: pre;
+}
+
+.sd-clock {
+  flex: none;
+  min-width: 3.4em;
+  font-size: calc(18px * var(--ui-scale));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ----- Body ----- */
+
+.sd-body {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.sd-board {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.sd-side {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ----- The grid ----- */
+
+.sd-gridwrap {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Its width and height are set in pixels by the game: the biggest square that
+   fits the wrap. --sd-cell is one square's side, for sizing the digits. */
+.sd-grid {
+  --sd-cell: 36px;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  gap: 1px;
+  border: 3px solid var(--sd-box);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--sd-line);
+  box-shadow:
+    0 0 0 2px var(--sd-glow),
+    0 0 22px rgba(69, 214, 255, 0.45);
+}
+
+.sd-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--sd-square);
+  color: var(--sd-d, var(--sd-board-ink));
+  font-family: var(--sd-round);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* The heavier lines between boxes: an outline on the squares either side of
+   them, so no square ends up a different size from its neighbours. */
+.sd-cell:nth-child(9n + 3),
+.sd-cell:nth-child(9n + 6) {
+  box-shadow: 2px 0 0 0 var(--sd-box);
+  z-index: 1;
+}
+
+.sd-cell:nth-child(n + 19):nth-child(-n + 27),
+.sd-cell:nth-child(n + 46):nth-child(-n + 54) {
+  box-shadow: 0 2px 0 0 var(--sd-box);
+  z-index: 1;
+}
+
+.sd-cell:nth-child(9n + 3):nth-child(n + 19):nth-child(-n + 27),
+.sd-cell:nth-child(9n + 6):nth-child(n + 19):nth-child(-n + 27),
+.sd-cell:nth-child(9n + 3):nth-child(n + 46):nth-child(-n + 54),
+.sd-cell:nth-child(9n + 6):nth-child(n + 46):nth-child(-n + 54) {
+  box-shadow:
+    2px 0 0 0 var(--sd-box),
+    0 2px 0 0 var(--sd-box),
+    2px 2px 0 0 var(--sd-box);
+}
+
+.sd-digit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--sd-cell) * 0.66);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sd-cell--given {
+  background: var(--sd-given);
+}
+
+.sd-cell--near {
+  background: var(--sd-near);
+}
+
+/* Every square holding the digit in hand: a wash of that digit's colour. */
+.sd-cell--same {
+  background: color-mix(in srgb, var(--sd-key, var(--sd-glow)) 34%, #ffffff);
+}
+
+/* The ring is an outline, so the box lines' shadows stay where they are. */
+.sd-cell--selected {
+  background: #fff1a8;
+  outline: 3px solid #ffb300;
+  outline-offset: -3px;
+}
+
+/* A digit a hint wrote in: another ink, and a dot in the corner so it reads
+   without telling the two inks apart. */
+.sd-cell--helped {
+  color: var(--sd-helped);
+}
+
+.sd-cell--helped::after {
+  content: "";
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  width: 14%;
+  height: 14%;
+  border-radius: 50%;
+  background: var(--sd-helped);
+}
+
+/* A wrong digit: red, and struck through so it isn't colour alone. */
+.sd-cell--wrong {
+  background: #ffdfe5;
+  color: var(--sd-wrong);
+}
+
+.sd-cell--wrong .sd-digit {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.sd-cell--flash {
+  animation: sd-flash 0.55s ease-out;
+}
+
+@keyframes sd-flash {
+  0% {
+    background: #6df09a;
+  }
+}
+
+/* Pencil marks: a 3x3 of small digits, each in its own place. */
+.sd-notes {
+  position: absolute;
+  inset: 4%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+
+.sd-note {
+  display: grid;
+  place-items: center;
+  font-family: var(--font);
+  font-size: calc(var(--sd-cell) * 0.25);
+  line-height: 1;
+  color: var(--sd-note);
+}
+
+.sd-note--same {
+  font-weight: 700;
+  color: #000000;
+}
+
+/* Paused: the grid goes blank, so the clock can't be stopped to think. */
+.sd-veil {
+  display: none;
+  position: absolute;
+  font-size: calc(14px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--sd-box);
+}
+
+.sd-root--paused .sd-digit,
+.sd-root--paused .sd-notes {
+  visibility: hidden;
+}
+
+.sd-root--paused .sd-veil {
+  display: block;
+}
+
+.sd-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: 92%;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #1b1f4a;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--sd-accent);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sd-toast--on {
+  visibility: visible;
+}
+
+/* ----- Tools ----- */
+
+.sd-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.sd-tool {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: calc(44px * var(--ui-scale));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  border: 1.5px solid var(--sd-edge);
+  background: var(--sd-panel);
+  color: var(--sd-ink);
+  font-family: var(--font);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sd-tool-name {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.sd-tool-sub {
+  font-size: calc(8.5px * var(--ui-scale));
+  letter-spacing: 0.08em;
+  color: var(--sd-dim);
+}
+
+.sd-tool--on {
+  border-color: var(--sd-accent);
+  background: var(--sd-accent);
+  color: var(--sd-accent-ink);
+}
+
+.sd-tool--on .sd-tool-sub {
+  color: var(--sd-accent-ink);
+}
+
+/* ----- The number pad ----- */
+
+.sd-pad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.sd-key {
+  position: relative;
+  min-width: 0;
+  height: calc(56px * var(--ui-scale));
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 2.5px solid transparent;
+  background: var(--sd-key, var(--sd-panel));
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.22);
+  color: #ffffff;
+  font-family: var(--sd-round);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sd-key--erase {
+  border-color: var(--sd-edge);
+}
+
+.sd-key-digit {
+  font-size: calc(28px * var(--ui-scale));
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* How many of this digit are still to place. */
+.sd-key-left {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+/* The key in hand lifts off the pad, with a white rim. */
+.sd-key--armed {
+  border-color: #ffffff;
+  transform: translateY(-5px);
+  box-shadow:
+    inset 0 -4px 0 rgba(0, 0, 0, 0.22),
+    0 0 0 2px var(--sd-box),
+    0 6px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* All nine placed: still there, so the pad doesn't shuffle, but out of the way. */
+.sd-key--spent {
+  opacity: 0.28;
+}
+
+/* In notes mode the pad says so: its digits shrink to pencil size. */
+.sd-root--notes .sd-key-digit {
+  font-size: calc(17px * var(--ui-scale));
+  font-weight: 700;
+}
+
+.sd-key-icon {
+  width: calc(26px * var(--ui-scale));
+  height: calc(26px * var(--ui-scale));
+}
+
+.sd-tool:active,
+.sd-key:not(.sd-key--armed):active,
+.sd-act:active {
+  transform: scale(0.95);
+}
+
+/* ----- Result ----- */
+
+.sd-result {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.sd-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 12px;
+  border-radius: 14px;
+  border: 1.5px solid var(--sd-edge);
+  background: var(--sd-panel);
+  text-align: center;
+}
+
+.sd-card-head {
+  font-family: var(--sd-round);
+  font-size: calc(22px * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--sd-accent);
+}
+
+.sd-card-sub {
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--sd-dim);
+  white-space: pre-wrap;
+}
+
+.sd-card-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: calc(26px * var(--ui-scale));
+  font-weight: 700;
+}
+
+.sd-card-unit {
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  color: var(--sd-dim);
+}
+
+.sd-card-streak {
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-warm);
+}
+
+.sd-actions {
+  display: flex;
+  gap: calc(8px * var(--ui-scale));
+}
+
+.sd-act {
+  flex: 1 1 0;
+  min-height: calc(48px * var(--ui-scale));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1.5px solid var(--sd-edge);
+  background: var(--sd-panel);
+  color: var(--sd-ink);
+  font-family: var(--font);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.sd-share {
+  flex: 1.4 1 0;
+  border-color: #17a35f;
+  background: #17a35f;
+  color: #ffffff;
+}
+
+/* ----- Wide and sideways: the pad beside the grid ----- */
+
+@media (min-width: 900px) and (orientation: landscape) {
+  .sd-body {
+    flex-direction: row;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .sd-side {
+    flex: 0 0 380px;
+    margin: 0;
+  }
+
+  .sd-pad {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .sd-key {
+    height: calc(72px * var(--ui-scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-mode:active,
+  .sd-mode-new:active,
+  .sd-tool:active,
+  .sd-key:active,
+  .sd-act:active {
+    transform: none;
+  }
+
+  .sd-cell--flash {
+    animation: none;
+  }
+
+  .sd-key--armed {
+    transform: none;
+  }
+}
