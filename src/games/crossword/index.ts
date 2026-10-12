@@ -1032,7 +1032,6 @@ export const crosswordModule: GameModule = {
   ],
   accent: "#e9dcb8",
   hasDailyChallenge: true,
-  beta: true,
   drawIcon: drawCrosswordIcon,
   create: (host) => new Crossword(host),
 };

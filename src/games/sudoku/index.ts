@@ -984,7 +984,6 @@ export const sudokuModule: GameModule = {
   ],
   accent: "#ffc928",
   hasDailyChallenge: true,
-  beta: true,
   drawIcon: drawSudokuIcon,
   create: (host) => new Sudoku(host),
 };

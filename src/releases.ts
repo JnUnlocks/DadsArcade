@@ -43,6 +43,7 @@ export const RELEASES: readonly Release[] = [
       "It ends when the cabinet is full. Keep the pile under the glowing line. If a prize stays over it, you get two seconds to bring the pile back down.",
       "The strip along the bottom shows all ten prizes and lights up each one you make. The dotted line shows where your toy will land.",
       "It wears a BETA tag while the family tries it out. Tell us if it feels too easy, too hard, or if the toys ever do something strange.",
+      "MOM MOM'S CROSSWORD and UNCLE POTATO HEAD NUMBER GAME have lost their BETA tags. Thank you for testing them.",
     ],
   },
   {
