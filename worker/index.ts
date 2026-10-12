@@ -66,8 +66,11 @@ const MAX_POINTS_PER_WAVE = 15000;
  * says nothing about how long the run was: a 28-minute BRICK BLAST game that
  * scored 1,059,276 at level 25 was refused for being over 385,000. At a
  * game's top level only the per-second ceiling applies.
+ *
+ * Prize Drop reports the biggest prize made, and there are ten: a run that
+ * has made the Grand Prize Bot keeps scoring with nowhere higher to report.
  */
-const TOP_LEVEL: Readonly<Record<string, number>> = { brickfall: 25 };
+const TOP_LEVEL: Readonly<Record<string, number>> = { brickfall: 25, "prize-drop": 10 };
 /** Slack so short, early runs aren't judged too harshly. */
 const SCORE_GRACE = 10000;
 

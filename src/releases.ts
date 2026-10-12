@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.27.0",
+    date: "2026-10-11",
+    title: "Dad's Prize Drop, a new cabinet full of toys",
+    notes: [
+      "A new cabinet at the end of the row: DAD'S PRIZE DROP. Slide your thumb to aim, lift it to drop a toy into the cabinet, and watch it bounce.",
+      "Two toys the same become a bigger prize. Two Pocket Marbles make a Bouncy Ball, two Bouncy Balls make a Star Ball, and so on up a ladder of ten, past the Lucky Duck and Beep Bot, all the way to the Grand Prize Bot.",
+      "It ends when the cabinet is full. Keep the pile under the glowing line. If a prize stays over it, you get two seconds to bring the pile back down.",
+      "The strip along the bottom shows all ten prizes and lights up each one you make. The dotted line shows where your toy will land.",
+      "It wears a BETA tag while the family tries it out. Tell us if it feels too easy, too hard, or if the toys ever do something strange.",
+    ],
+  },
+  {
     version: "0.26.1",
     date: "2026-10-11",
     title: "Very big Brickfall scores are no longer turned away",

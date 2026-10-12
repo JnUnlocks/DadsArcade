@@ -100,7 +100,21 @@ export type SoundName =
   | "dashBounce"
   | "dashTrip"
   | "dashAcorn"
-  | "dashFinish";
+  | "dashFinish"
+  // Dad's Prize Drop
+  | "dropLetGo"
+  | "dropKnock"
+  | "dropMerge2"
+  | "dropMerge3"
+  | "dropMerge4"
+  | "dropMerge5"
+  | "dropMerge6"
+  | "dropMerge7"
+  | "dropMerge8"
+  | "dropMerge9"
+  | "dropGrand"
+  | "dropWarn"
+  | "dropFull";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -578,6 +592,44 @@ export class AudioEngine {
       case "dashFinish":
         this.arpeggio(t, [392, 523, 659, 784, 1047], 0.08, "triangle", 0.22);
         this.blip(t + 0.42, "sine", 1047, 1047, 0.36, 0.13, 6);
+        break;
+
+      // ----- Dad's Prize Drop -----
+      case "dropLetGo":
+        this.blip(t, "sine", 520, 300, 0.07, 0.1);
+        break;
+      case "dropKnock":
+        // Capsules knocking together. Quiet, because a full tank does it a lot.
+        this.blip(t, "triangle", 210, 130, 0.05, 0.08);
+        break;
+      case "dropMerge2":
+      case "dropMerge3":
+      case "dropMerge4":
+      case "dropMerge5":
+      case "dropMerge6":
+      case "dropMerge7":
+      case "dropMerge8":
+      case "dropMerge9": {
+        // One note up a major scale for each prize up the ladder, so a chain
+        // of merges plays a run and a big prize sounds like one.
+        const step = Number(name.slice(-1)) - 2;
+        const hz = 392 * 2 ** (([0, 2, 4, 5, 7, 9, 11, 12][step] ?? 0) / 12);
+        this.blip(t, "sine", hz * 0.5, hz, 0.05, 0.12);
+        this.blip(t + 0.04, "triangle", hz, hz, 0.2, 0.2);
+        if (step >= 4) this.blip(t + 0.11, "sine", hz * 1.5, hz * 1.5, 0.22, 0.12);
+        break;
+      }
+      case "dropGrand":
+        this.burst(t, 0.07, 3200, 1200, 0.16);
+        this.arpeggio(t + 0.02, [523, 659, 784, 1047, 1319], 0.08, "triangle", 0.2);
+        this.blip(t + 0.44, "sine", 1568, 1568, 0.4, 0.14, 6);
+        break;
+      case "dropWarn":
+        this.blip(t, "triangle", 330, 294, 0.14, 0.12);
+        break;
+      case "dropFull":
+        // The cabinet is full, which is how every game ends. A sigh, not a siren.
+        this.arpeggio(t, [392, 330, 262], 0.17, "sine", 0.16);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

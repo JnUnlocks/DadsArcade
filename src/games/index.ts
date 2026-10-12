@@ -21,6 +21,7 @@ import { forestDashModule } from "./forestdash";
 import { crosswordModule } from "./crossword";
 import { wordFinderModule } from "./wordfinder";
 import { sudokuModule } from "./sudoku";
+import { prizeDropModule } from "./prizedrop";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -44,4 +45,5 @@ export const GAMES: GameModule[] = [
   forestDashModule,
   // The newest cabinet goes on the end, as Snake did when it arrived.
   sudokuModule,
+  prizeDropModule,
 ];
