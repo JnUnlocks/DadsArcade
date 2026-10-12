@@ -308,6 +308,28 @@ describe("too full", () => {
     assert.ok(run.time < NEWBORN_GRACE + OVERFLOW_LIMIT + 0.5, `it took ${run.time.toFixed(1)}s`);
   });
 
+  it("starts a prize on top of a pile that has reached the top", () => {
+    const run = overfull();
+    const top = run.world.bodies[3]!;
+    const body = drop(run, top.x);
+    assert.ok(body);
+    const gap = Math.hypot(body.x - top.x, body.y - top.y) - body.r - top.r;
+    assert.ok(Math.abs(gap) < 0.01, `it started ${gap.toFixed(2)} from the pile`);
+    assert.ok(body.y < RELEASE_Y);
+  });
+
+  it("doesn't throw prizes about when the tank is full", () => {
+    const run = overfull();
+    let fastest = 0;
+    for (let i = 0; i < 120 * 2; i += 1) {
+      drop(run, 20 + ((i * 37) % 320));
+      stepRun(run);
+      for (const b of run.world.bodies) fastest = Math.max(fastest, Math.hypot(b.vx, b.vy));
+    }
+    // Nothing here has room to fall far, so nothing should be going fast.
+    assert.ok(fastest < 450, `something was moving at ${fastest.toFixed(0)}`);
+  });
+
   it("ends every run sooner or later", () => {
     for (const seed of [3, 4, 5]) {
       const run = createRun(seed);

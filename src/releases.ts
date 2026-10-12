@@ -35,7 +35,7 @@ export interface Release {
 export const RELEASES: readonly Release[] = [
   {
     version: "0.27.0",
-    date: "2026-10-11",
+    date: "2026-10-16",
     title: "Dad's Prize Drop, a new cabinet full of toys",
     notes: [
       "A new cabinet at the end of the row: DAD'S PRIZE DROP. Slide your thumb to aim, lift it to drop a toy into the cabinet, and watch it bounce.",

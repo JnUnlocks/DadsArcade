@@ -37,7 +37,7 @@ import {
   roundRect,
   type Layout,
 } from "./render.ts";
-import { canDrop, clampAim, createRun, drop, stepRun, type Run } from "./rules.ts";
+import { canDrop, clampAim, createRun, drop, restHeight, stepRun, type Run } from "./rules.ts";
 
 const GAME_ID = "prize-drop";
 const SEEN_KEY = "hyperdrive.prizedrop.seenHowTo";
@@ -185,16 +185,20 @@ class PrizeDrop implements GameInstance {
     // One finger aims. A second one is ignored, not a second drop.
     if (this.phase !== "play" || this.aimPointer !== null) return;
     const at = this.toTank(event);
-    // The aim has to start on the cabinet: a thumb resting on the ladder or
-    // brushing the edge of the screen isn't a drop.
-    if (at.x < -10 || at.x > TANK_W + 10 || at.y < -40 || at.y > TANK_H + 6) return;
+    // The aim has to start on the cabinet or under it, where a thumb rests.
+    // A touch up by the score, or one brushing the edge of the screen, isn't
+    // a drop.
+    if (at.x < -10 || at.x > TANK_W + 10 || at.y < -40) return;
     this.aimPointer = event.pointerId;
     this.releasePending = false;
     this.aimX = clampAim(this.run, at.x);
   };
 
   private onPointerMove = (event: PointerEvent): void => {
-    if (event.pointerId !== this.aimPointer) return;
+    // A mouse aims just by moving: there is no finger to put down first.
+    const hovering =
+      event.pointerType === "mouse" && this.aimPointer === null && this.phase === "play";
+    if (event.pointerId !== this.aimPointer && !hovering) return;
     this.aimX = clampAim(this.run, this.toTank(event).x);
   };
 
@@ -471,22 +475,9 @@ class PrizeDrop implements GameInstance {
     ctx.restore();
   }
 
-  /** Where the prize in hand would come to rest if it fell straight. */
-  private landing(radius: number): number {
-    let y = TANK_H - radius;
-    for (const body of this.run.world.bodies) {
-      const dx = body.x - this.aimX;
-      const reach = radius + body.r;
-      if (Math.abs(dx) >= reach) continue;
-      const top = body.y - Math.sqrt(reach * reach - dx * dx);
-      if (top < y) y = top;
-    }
-    return Math.max(RELEASE_Y, y);
-  }
-
   private drawGuide(ctx: CanvasRenderingContext2D): void {
     const radius = prize(this.run.current).radius;
-    const land = this.landing(radius);
+    const land = Math.max(RELEASE_Y, restHeight(this.run, this.aimX, radius));
     ctx.save();
     ctx.strokeStyle = "rgba(124,236,255,0.6)";
     ctx.lineWidth = 2;

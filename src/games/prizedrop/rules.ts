@@ -16,6 +16,7 @@ import {
   prize,
   RELEASE_Y,
   SPAWN_WEIGHTS,
+  TANK_H,
   TANK_W,
 } from "./prizes.ts";
 
@@ -95,6 +96,22 @@ export function clampAim(run: Run, x: number): number {
   return Math.min(TANK_W - r, Math.max(r, x));
 }
 
+/**
+ * How far down a prize of this size would get, falling straight at x: the
+ * height of its centre when it first touches something.
+ */
+export function restHeight(run: Run, x: number, radius: number): number {
+  let y = TANK_H - radius;
+  for (const body of run.world.bodies) {
+    const dx = body.x - x;
+    const reach = radius + body.r;
+    if (Math.abs(dx) >= reach) continue;
+    const top = body.y - Math.sqrt(reach * reach - dx * dx);
+    if (top < y) y = top;
+  }
+  return y;
+}
+
 export function canDrop(run: Run): boolean {
   return !run.over && run.cooldown <= 0;
 }
@@ -105,7 +122,12 @@ export function canDrop(run: Run): boolean {
  */
 export function drop(run: Run, x: number): Body | null {
   if (!canDrop(run)) return null;
-  const body = addBody(run.world, run.current, clampAim(run, x), RELEASE_Y);
+  const at = clampAim(run, x);
+  // When the pile has reached the top, the prize starts on it and not in it.
+  // Starting inside another prize would have the two thrown apart, at the
+  // one moment of the game when everything needs to hold still.
+  const height = Math.min(RELEASE_Y, restHeight(run, at, prize(run.current).radius));
+  const body = addBody(run.world, run.current, at, height);
   if (run.current > run.bestTier) run.bestTier = run.current;
   run.current = run.next;
   run.next = run.sequence.next();
