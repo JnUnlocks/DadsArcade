@@ -1,5 +1,8 @@
 /**
- * BLACK DISC -- pass it, guess it, don't get caught holding it.
+ * PASS THE DISC -- pass it, guess it, don't get caught holding it.
+ *
+ * Called BLACK DISC until v0.27.0. The id is still `black-disc`: it keys the
+ * play counts and saved settings, so it never changes.
  *
  * A phone-passing word game for the whole family: one team describes words
  * from a category to their own teammates while the timer runs, tapping GOT IT
@@ -766,8 +769,8 @@ function shuffled(items: readonly string[]): string[] {
 
 export const blackDiscModule: GameModule = {
   id: "black-disc",
-  title: "BLACK DISC",
-  shortTitle: "BLACK DISC",
+  title: "PASS THE DISC",
+  shortTitle: "PASS THE DISC",
   noLeaderboard: true,
   progressShort: "RD",
   blurb: "Pass it, guess it, don't get caught holding it at the buzz.",
