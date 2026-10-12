@@ -236,20 +236,24 @@ describe("too full", () => {
   });
 
   /**
-   * A cabinet that really is full: four Grand Prize Bots wedged between the
-   * walls, the last of them standing over the line. They don't merge and
-   * there is nowhere for them to go.
+   * A cabinet that really is full: Grand Prize Bots wedged between the walls,
+   * one on the next, until the last stands over the line. They don't merge
+   * and there is nowhere for them to go.
    */
   function overfull(): Run {
     const run = createRun(1);
     const r = prize(TOP_TIER).radius;
     const rise = Math.sqrt((2 * r) ** 2 - (TANK_W - 2 * r) ** 2);
-    for (let i = 0; i < 4; i += 1) {
-      addBody(run.world, TOP_TIER, i % 2 === 0 ? r : TANK_W - r, TANK_H - r - rise * i);
+    for (let i = 0; i < 8; i += 1) {
+      const y = TANK_H - r - rise * i;
+      addBody(run.world, TOP_TIER, i % 2 === 0 ? r : TANK_W - r, y);
+      if (y - r < DANGER_Y) break;
     }
-    const top = run.world.bodies[3]!;
-    assert.ok(top.y - top.r < DANGER_Y, "the pile should reach over the line");
     return run;
+  }
+
+  function topOf(run: Run) {
+    return run.world.bodies[run.world.bodies.length - 1]!;
   }
 
   it("gives a prize its first moments free", () => {
@@ -289,7 +293,7 @@ describe("too full", () => {
     wait(run, NEWBORN_GRACE + 1);
     assert.ok(run.danger > 0);
     // Take the top of the pile away, as a merge would.
-    run.world.bodies = run.world.bodies.slice(0, 3);
+    run.world.bodies = run.world.bodies.slice(0, -1);
     wait(run, 0.2);
     assert.equal(run.danger, 0);
     wait(run, OVERFLOW_LIMIT + 1);
@@ -310,7 +314,7 @@ describe("too full", () => {
 
   it("starts a prize on top of a pile that has reached the top", () => {
     const run = overfull();
-    const top = run.world.bodies[3]!;
+    const top = topOf(run);
     const body = drop(run, top.x);
     assert.ok(body);
     const gap = Math.hypot(body.x - top.x, body.y - top.y) - body.r - top.r;
@@ -318,16 +322,20 @@ describe("too full", () => {
     assert.ok(body.y < RELEASE_Y);
   });
 
-  it("doesn't throw prizes about when the tank is full", () => {
+  it("doesn't shove the pile about when prizes land on a full tank", () => {
     const run = overfull();
+    const top = topOf(run);
     let fastest = 0;
     for (let i = 0; i < 120 * 2; i += 1) {
-      drop(run, 20 + ((i * 37) % 320));
+      const dropped = drop(run, top.x - 40 + ((i * 37) % 80));
+      // It starts at rest, on the pile: nothing has been pushed out of anything.
+      if (dropped) assert.equal(Math.hypot(dropped.vx, dropped.vy), 0);
       stepRun(run);
-      for (const b of run.world.bodies) fastest = Math.max(fastest, Math.hypot(b.vx, b.vy));
+      for (const b of run.world.bodies) {
+        if (b.tier === TOP_TIER) fastest = Math.max(fastest, Math.hypot(b.vx, b.vy));
+      }
     }
-    // Nothing here has room to fall far, so nothing should be going fast.
-    assert.ok(fastest < 450, `something was moving at ${fastest.toFixed(0)}`);
+    assert.ok(fastest < 60, `the pile was moving at ${fastest.toFixed(0)}`);
   });
 
   it("ends every run sooner or later", () => {

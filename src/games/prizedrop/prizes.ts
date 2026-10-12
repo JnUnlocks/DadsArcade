@@ -18,17 +18,30 @@ export interface Prize {
   readonly points: number;
 }
 
+/**
+ * The four smallest are the ones you are handed, and each is about a quarter
+ * bigger than the last. From the Lucky Duck up, each is 30% bigger.
+ *
+ * That steeper climb is the difficulty. With an even ladder, tapping anywhere
+ * made the Grand Prize Bot about one run in eight, and a player who aimed
+ * made it most runs: it was a prize for turning up. Sized like this, over
+ * sixty simulated runs each, tapping anywhere made it about one run in
+ * thirty and aiming for matches about one in five. Everyone still reaches
+ * the Slime Star, so a first go is a good one. To make the top easier or
+ * harder, change the 30%, and leave the four you are handed alone: they are
+ * what the first minute feels like.
+ */
 export const PRIZES: readonly Prize[] = [
   { tier: 1, id: "marble", name: "Pocket Marble", radius: 12, color: "#45DDF4", points: 0 },
   { tier: 2, id: "bouncy-ball", name: "Bouncy Ball", radius: 16, color: "#F77CB8", points: 10 },
   { tier: 3, id: "star-ball", name: "Star Ball", radius: 21, color: "#B4E86C", points: 25 },
   { tier: 4, id: "duck", name: "Lucky Duck", radius: 27, color: "#FFD166", points: 50 },
-  { tier: 5, id: "race-car", name: "Pocket Racer", radius: 34, color: "#FF706F", points: 100 },
-  { tier: 6, id: "robot", name: "Beep Bot", radius: 43, color: "#5B9CFF", points: 200 },
-  { tier: 7, id: "frog", name: "Hop Buddy", radius: 54, color: "#44DA92", points: 400 },
-  { tier: 8, id: "slime", name: "Slime Star", radius: 67, color: "#BE86F7", points: 800 },
-  { tier: 9, id: "arcade-bot", name: "Arcade Captain", radius: 82, color: "#FFA94D", points: 1600 },
-  { tier: 10, id: "grand-prize", name: "Grand Prize Bot", radius: 99, color: "#45DDF4", points: 3200 },
+  { tier: 5, id: "race-car", name: "Pocket Racer", radius: 35, color: "#FF706F", points: 100 },
+  { tier: 6, id: "robot", name: "Beep Bot", radius: 46, color: "#5B9CFF", points: 200 },
+  { tier: 7, id: "frog", name: "Hop Buddy", radius: 59, color: "#44DA92", points: 400 },
+  { tier: 8, id: "slime", name: "Slime Star", radius: 77, color: "#BE86F7", points: 800 },
+  { tier: 9, id: "arcade-bot", name: "Arcade Captain", radius: 100, color: "#FFA94D", points: 1600 },
+  { tier: 10, id: "grand-prize", name: "Grand Prize Bot", radius: 130, color: "#45DDF4", points: 3200 },
 ];
 
 /** The top of the ladder. Two of these sit side by side and do not merge. */

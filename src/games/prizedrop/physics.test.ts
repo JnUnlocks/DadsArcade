@@ -127,7 +127,7 @@ describe("staying in the tank", () => {
     addBody(world, 8, r, TANK_H - r);
     addBody(world, 8, r, TANK_H - r * 3 + 1);
     // Something for the new prize to grow into.
-    addBody(world, 6, r * 2 + 44, TANK_H - 43);
+    addBody(world, 6, r * 2 + prize(6).radius + 1, TANK_H - prize(6).radius);
     const merges = run(world, 2);
 
     assert.equal(merges.length, 1);
