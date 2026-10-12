@@ -780,7 +780,41 @@ async function postPlay(request: Request, env: Env): Promise<Response> {
     .bind(utcDay(Date.now()), gameId, deviceId, installed, version)
     .run();
 
+  await recordGeo(request, env, deviceId);
+
   return json({ ok: true });
+}
+
+/**
+ * Roughly where a play came from, for /admin's Geo tab: the country and
+ * state/region Cloudflare derived for this request. The IP is not stored.
+ * Best-effort, like countRejection: a failure here never loses the play.
+ */
+async function recordGeo(request: Request, env: Env, deviceId: string): Promise<void> {
+  const cf = request.cf;
+  const country = typeof cf?.country === "string" ? cf.country.toUpperCase() : "";
+  // XX is Cloudflare's "unknown"; T1 is Tor. Neither says where anyone is.
+  if (!/^[A-Z]{2}$/.test(country) || country === "XX") return;
+  const regionCode =
+    typeof cf?.regionCode === "string" && /^[A-Za-z0-9-]{1,8}$/.test(cf.regionCode)
+      ? cf.regionCode.toUpperCase()
+      : null;
+  const region = typeof cf?.region === "string" ? cf.region.trim().slice(0, 60) || null : null;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO play_geo (day, device_id, country, region_code, region, plays)
+       VALUES (?1, ?2, ?3, ?4, ?5, 1)
+       ON CONFLICT (day, device_id) DO UPDATE SET
+         plays       = play_geo.plays + 1,
+         country     = excluded.country,
+         region_code = excluded.region_code,
+         region      = excluded.region`,
+    )
+      .bind(utcDay(Date.now()), deviceId, country, regionCode, region)
+      .run();
+  } catch (error) {
+    console.error("recordGeo failed", error);
+  }
 }
 
 // ----- Admin overview -----
@@ -863,6 +897,12 @@ async function getAdminOverview(env: Env, url: URL): Promise<Response> {
     feedback,
     dailyBoards,
     tableSizes,
+    newByDay,
+    playsByGameDay,
+    geoCountries,
+    geoRegions,
+    geoSince,
+    feedbackWeek,
   ] = await env.DB.batch([
     env.DB.prepare(
       `SELECT game_id AS gameId,
@@ -1014,6 +1054,53 @@ async function getAdminOverview(env: Env, url: URL): Promise<Response> {
          (SELECT MAX(n) FROM (SELECT COUNT(*) AS n FROM best_scores
                                WHERE board_id = 'global' GROUP BY game_id)) AS largestBoard`,
     ),
+    // Devices by the first day they were ever seen: "new" on that day. This is
+    // what a share on socials should move. Reads all of play_days, which is
+    // one row per device per game per day and small.
+    env.DB.prepare(
+      `SELECT first AS day, COUNT(*) AS devices
+         FROM (SELECT device_id, MIN(day) AS first
+                 FROM play_days
+                WHERE ${notMine}
+                GROUP BY device_id)
+        WHERE first >= ?1
+        GROUP BY first
+        ORDER BY first`,
+    ).bind(day30),
+    // Which games each day's plays went to, for the day-by-day table.
+    env.DB.prepare(
+      `SELECT day, game_id AS gameId, SUM(plays) AS plays
+         FROM play_days
+        WHERE day >= ?1 AND ${notMine}
+        GROUP BY day, game_id`,
+    ).bind(day30),
+    env.DB.prepare(
+      `SELECT country,
+              COUNT(DISTINCT device_id) AS devices30d,
+              COUNT(DISTINCT CASE WHEN day >= ?2 THEN device_id END) AS devices7d,
+              COUNT(DISTINCT CASE WHEN day = ?3 THEN device_id END) AS devicesToday,
+              SUM(plays) AS plays30d
+         FROM play_geo
+        WHERE day >= ?1 AND ${notMine}
+        GROUP BY country
+        ORDER BY devices30d DESC, plays30d DESC`,
+    ).bind(day30, day7, today),
+    env.DB.prepare(
+      `SELECT country,
+              COALESCE(region_code, '') AS regionCode,
+              MAX(region) AS region,
+              COUNT(DISTINCT device_id) AS devices30d,
+              COUNT(DISTINCT CASE WHEN day >= ?2 THEN device_id END) AS devices7d,
+              SUM(plays) AS plays30d
+         FROM play_geo
+        WHERE day >= ?1 AND ${notMine}
+        GROUP BY country, regionCode
+        ORDER BY devices30d DESC, plays30d DESC
+        LIMIT 60`,
+    ).bind(day30, day7),
+    env.DB.prepare(`SELECT MIN(day) AS since FROM play_geo`),
+    // Notes are counted whoever sent them: family feedback is the point.
+    env.DB.prepare(`SELECT COUNT(*) AS n FROM feedback WHERE created_at >= ?1`).bind(weekSince),
   ]);
 
   // Merge the per-game pieces. Games with plays but no leaderboard (Black
@@ -1097,7 +1184,15 @@ async function getAdminOverview(env: Env, url: URL): Promise<Response> {
     rejections: rows(rejections),
     recentScores: rows(recentScores),
     feedback: rows(feedback),
+    feedback7d: rows<{ n: number }>(feedbackWeek)[0]?.n ?? 0,
     dailyBoards: rows(dailyBoards),
+    newByDay: rows(newByDay),
+    playsByGameDay: rows(playsByGameDay),
+    geo: {
+      since: rows<{ since: string | null }>(geoSince)[0]?.since ?? null,
+      countries: rows(geoCountries),
+      regions: rows(geoRegions),
+    },
     capacity: {
       limits: FREE_PLAN,
       tables: rows(tableSizes)[0] ?? {},

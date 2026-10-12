@@ -166,3 +166,18 @@ CREATE INDEX IF NOT EXISTS idx_ghosts_course_time
 -- per-player rollup on /admin.
 CREATE INDEX IF NOT EXISTS idx_best_initials
   ON best_scores (initials);
+
+-- Roughly where plays come from, for /admin's Geo tab: one row per device per
+-- UTC day, holding the country and state/region Cloudflare worked out for the
+-- request. The IP address itself is never stored, and nothing finer than a
+-- region is kept. Its own table rather than columns on play_days so this file
+-- stays safe to re-run (ALTER TABLE ADD COLUMN isn't).
+CREATE TABLE IF NOT EXISTS play_geo (
+  day         TEXT    NOT NULL,  -- YYYY-MM-DD, UTC
+  device_id   TEXT    NOT NULL,
+  country     TEXT    NOT NULL,  -- ISO 3166-1 alpha-2, e.g. 'US'
+  region_code TEXT,              -- e.g. 'NJ'
+  region      TEXT,              -- e.g. 'New Jersey'
+  plays       INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (day, device_id)
+) WITHOUT ROWID;
