@@ -19,6 +19,28 @@ if (import.meta.env.DEV) {
   (window as unknown as { __arcade: Shell }).__arcade = shell;
 }
 
+/*
+ * Say so when this isn't the real arcade.
+ *
+ * A release can be tried on a phone before it goes out, at a preview address
+ * that looks exactly like the live one. Scores saved there are real, and it
+ * is easy to forget which of the two is open, so a preview wears a tag at the
+ * top of every screen. Preview addresses are the live one with a label in
+ * front: 6a996c08-play.hyperdrive-arcade.workers.dev.
+ */
+const host = location.hostname;
+if (
+  host.endsWith("-play.hyperdrive-arcade.workers.dev") ||
+  host === "localhost" ||
+  host === "127.0.0.1"
+) {
+  const tag = document.createElement("div");
+  tag.className = "dev-tag";
+  tag.textContent = "DEV";
+  tag.setAttribute("aria-label", "This is the dev version, not the live arcade.");
+  document.body.append(tag);
+}
+
 // Safari fires a delayed resize after the URL bar settles; without this the
 // playfield can be sized against the pre-collapse viewport height.
 window.addEventListener("load", () => {
