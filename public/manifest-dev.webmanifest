@@ -1,0 +1,32 @@
+{
+  "name": "Dad's Arcade DEV",
+  "short_name": "Arcade DEV",
+  "description": "The family arcade in your pocket. Daily puzzles, arcade classics and a shared high-score board. No install, plays offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192-dev.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-dev.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512-dev.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

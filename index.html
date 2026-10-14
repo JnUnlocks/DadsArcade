@@ -69,6 +69,33 @@
     <!-- 180px is what an iPhone asks for. Edge to edge, no rounded corners
          of its own: iOS rounds them, and transparent corners would go black. -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- A preview of a release, at an address like
+         dev-play.hyperdrive-arcade.workers.dev, gets its own name and a DEV
+         band across its icon, so the copy on a Home Screen can't be taken
+         for the real arcade. It is done here and not in the app because a
+         phone reads these tags as the page loads. The same addresses get
+         the DEV tag on screen, in src/main.ts. -->
+    <script>
+      (function () {
+        var host = location.hostname;
+        var dev =
+          /-play\.hyperdrive-arcade\.workers\.dev$/.test(host) ||
+          host === "localhost" ||
+          host === "127.0.0.1";
+        if (!dev) return;
+        var swap = function (selector, attribute, value) {
+          var nodes = document.querySelectorAll(selector);
+          for (var i = 0; i < nodes.length; i += 1) nodes[i].setAttribute(attribute, value);
+        };
+        swap('link[rel="manifest"]', "href", "/manifest-dev.webmanifest");
+        swap('link[rel="apple-touch-icon"]', "href", "/apple-touch-icon-dev.png");
+        swap('link[rel="icon"][sizes="48x48"]', "href", "/favicon-48-dev.png");
+        swap('link[rel="icon"][sizes="192x192"]', "href", "/icon-192-dev.png");
+        swap('meta[name="apple-mobile-web-app-title"]', "content", "Arcade DEV");
+        document.title = "Dad's Arcade DEV";
+      })();
+    </script>
   </head>
   <body>
     <div id="app">
