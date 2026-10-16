@@ -26,7 +26,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Riley's Slime Shop** | Slime-mixing toys, by way of a diner order queue | Bottles that mix like paint rather than like pixels, so blue and yellow make green — plus prizes you have to physically squish out of the slime, and a daily challenge everyone plays from the same seed |
 | **Plasma Sort** | Colour-sort (water-sort) puzzles | One puzzle a day, the same for everyone, with a par found by search — so the day's board ranks who saw the solution, not who got a kind shuffle |
 | **Letter Lock** | Five-letter word-guessing games | Six tries, three answers per letter — right spot, wrong spot, not in the word — and one word a day that's the same for everyone, so a grid of coloured squares in the family chat means something |
-| **Pass the Disc** (was Black Disc) | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, and Team 1 vs Team 2 scoring with no leaderboard entry at all |
+| **Pass the Disc** (was Black Disc) | Electronic pass-the-disc party games | A category pick, a disc that never shows you the clock — just a bar and a tick that speeds up and gets louder as it closes in — rule breaks that end a round on the spot, two named teams playing to 5, 7 or 10 with no leaderboard entry at all |
 | **JB's Hyper Snake** | The snake on a late-90s phone | Two games on one cabinet. CLASSIC is the original on its green screen: one life, solid walls, a snake that moves a square at a time. HYPER opens the edges so you leave by one side and return by the other, and adds stages, crates, lasers that warn before they fire, and a BOOST that doubles what you eat. Both keep the two things that made it fair — turns are buffered two deep, and you can follow your tail into the square it's leaving |
 | **Mom Mom's Crossword** | The quick crossword in a newspaper | One puzzle a day, the same for everyone, on a lattice grid filled from a hand-written clue bank, so every answer is a word a family knows. Hints cost time and never the solve. With it, the **Word Finder**: a pattern and anagram helper for any crossword |
 | **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't. Four courses and a new one every day built from the date, four animals to race as, and the family's fastest runs (and your own) replayed beside you from their saved button presses |
@@ -167,7 +167,7 @@ Emulators can't tell you how the controls feel. Worth doing once:
       junk coming down a ladder is visible in time.
 - [ ] Brickfall: the music starts, and **Settings → Music** silences it without
       silencing the sound effects. Leaving the game stops it.
-- [ ] Black Disc: pause mid-round and resume — the phrase, timer and score are
+- [ ] Pass the Disc: pause mid-round and resume — the phrase, timer and score are
       exactly where you left them. There's no numeral for time left anywhere
       on screen, only the bar.
 - [ ] Pass the Disc: type both team names, leave and come back — they're
@@ -532,10 +532,10 @@ src/games/wordfinder/
 
 ---
 
-## Black Disc, and skipping the leaderboard on purpose
+## Pass the Disc, and skipping the leaderboard on purpose
 
 Every other cabinet is one player against a machine, so a personal best means
-something. Black Disc is Team 1 vs Team 2 and a clock neither of them can
+something. Pass the Disc is two teams and a clock neither of them can
 see — there's no solo run to rank, and no player identity involved at all. So
 it never calls `gameOver()`: there's no leaderboard entry for a party game,
 only the match itself, which just keeps going — NEXT ROUND, CHANGE SETTINGS,
