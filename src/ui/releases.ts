@@ -19,9 +19,9 @@ export function buildReleaseNotesScreen(
   // release, so leaving meant scrolling past every note the arcade has ever
   // had -- forty of them by v0.27.0.
   const bar = document.createElement("div");
-  bar.className = "releases-bar";
+  bar.className = "screen-bar";
   const back = document.createElement("button");
-  back.className = "btn btn--ghost releases-back";
+  back.className = "btn btn--ghost screen-back";
   back.textContent = "‹ BACK";
   back.addEventListener("click", onBack);
   const title = document.createElement("h2");

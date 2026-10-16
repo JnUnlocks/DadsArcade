@@ -213,6 +213,13 @@ body {
   gap: calc(12px * var(--ui-scale));
 }
 
+/* Only the scores scroll. Everything above them keeps its height: the
+   filter row used to be squeezed to a sliver by a long board, leaving the
+   tops of the chips showing with their names cut off. */
+.screen--board > :not(.board) {
+  flex: none;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -1438,7 +1445,9 @@ body {
   gap: calc(10px * var(--ui-scale));
 }
 
-.releases-bar {
+/* A screen's title with BACK beside it, pinned above whatever scrolls. Used
+   by WHAT'S NEW and HIGH SCORES. */
+.screen-bar {
   position: relative;
   flex: none;
   display: flex;
@@ -1449,18 +1458,24 @@ body {
   min-height: 44px;
 }
 
-.releases-bar h2 {
+.screen-bar h2 {
   margin: 0;
+  /* Room for BACK on the left, and the same on the right to stay centred. */
+  padding: 0 74px;
+  font-size: calc(18px * var(--ui-scale));
+  text-align: center;
 }
 
-.releases-back {
+.screen-back {
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: auto;
   min-width: 0;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: calc(11px * var(--ui-scale));
 }
 
 .releases-scroll {
@@ -1653,6 +1668,9 @@ body {
 }
 
 .board-row {
+  /* The game's colour as a straight bar down the left. With the row's round
+     corners the stripe curled round them like a bracket. */
+  border-radius: 3px 10px 10px 3px;
   box-shadow: inset 3px 0 0 var(--row-accent, transparent);
 }
 

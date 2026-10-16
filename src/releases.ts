@@ -36,10 +36,12 @@ export const RELEASES: readonly Release[] = [
   {
     version: "0.27.1",
     date: "2026-10-16",
-    title: "A quicker way out of What's New, and Prize Drop moves up",
+    title: "Tidier high scores, a quicker way out of What's New, and Pass the Disc",
     notes: [
       "WHAT'S NEW has its BACK button at the top, and it stays there while you scroll. It used to be under the very last note, a long way down.",
       "WHAT'S NEW now opens on what is new to you. Everything older folds away under EARLIER UPDATES, one tap to open.",
+      "HIGH SCORES has its BACK button at the top too. The row of games along the top is in A to Z order, and so are the boards under ALL GAMES. The game names on that row were being squashed down to a sliver on a phone, with only the tops of the buttons showing. They are full size again.",
+      "BLACK DISC is now called PASS THE DISC, which is how it's played. Nothing else about it has changed.",
       "The arcade has a new running order. DAD'S PRIZE DROP is third, after the two daily puzzles, then STARFIGHTER, SNAKE and FOREST DASH, then MOM MOM'S CROSSWORD and the WORD FINDER.",
     ],
   },

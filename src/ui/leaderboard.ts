@@ -49,14 +49,30 @@ export function buildLeaderboardScreen(
 ): HTMLElement {
   // A mode that is a game in its own right (Brickfall's BRICK BLAST) is
   // listed as one. From here on `games` is that list, not the cabinets.
-  const { games, sources } = listBoards(arcadeGames);
+  const listed = listBoards(arcadeGames);
+  const sources = listed.sources;
+  // A to Z, here and in the sections under ALL GAMES, so a game is found by
+  // its name. The menu's order is about what to play next, which isn't what
+  // anyone is doing on this screen.
+  const games = [...listed.games].sort((a, b) =>
+    shortTitleOf(a).localeCompare(shortTitleOf(b)),
+  );
 
   const screen = document.createElement("div");
   screen.className = "screen screen--board";
 
+  // BACK at the top, beside the title, as on WHAT'S NEW: it's where a thumb
+  // looks for the way out, and it never scrolls away.
+  const bar = document.createElement("div");
+  bar.className = "screen-bar";
+  const back = document.createElement("button");
+  back.className = "btn btn--ghost screen-back";
+  back.textContent = "‹ BACK";
+  back.addEventListener("click", onBack);
   const title = document.createElement("h2");
   title.textContent = "HIGH SCORES";
-  screen.append(title);
+  bar.append(back, title);
+  screen.append(bar);
 
   let filter: GameFilter =
     initialFilter !== null && games.some((g) => g.id === initialFilter)
@@ -114,12 +130,6 @@ export function buildLeaderboardScreen(
   const body = document.createElement("div");
   body.className = "board";
   screen.append(body);
-
-  const back = document.createElement("button");
-  back.className = "btn btn--ghost";
-  back.textContent = "BACK";
-  back.addEventListener("click", onBack);
-  screen.append(back);
 
   function select(next: GameFilter): void {
     filter = next;
