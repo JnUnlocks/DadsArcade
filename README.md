@@ -170,6 +170,10 @@ Emulators can't tell you how the controls feel. Worth doing once:
 - [ ] Black Disc: pause mid-round and resume — the phrase, timer and score are
       exactly where you left them. There's no numeral for time left anywhere
       on screen, only the bar.
+- [ ] Pass the Disc: type both team names, leave and come back — they're
+      still there. After **GOT IT** the word stays covered until the card is
+      tapped. A quick tap on **UNDO** does nothing; holding it a second gives
+      the disc back, and it doesn't come back a second time that round.
 - [ ] Letter Lock: every key is easy to hit with a thumb, with **Settings →
       Large text** on as well, and the whole grid and keyboard fit without
       scrolling. Make two guesses in **Today's Word**, quit to the arcade, and

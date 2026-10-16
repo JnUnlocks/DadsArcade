@@ -1990,10 +1990,38 @@ body {
   text-align: left;
 }
 
+.disc-field--wide {
+  grid-column: 1 / -1;
+}
+
 .disc-field-label {
   font-size: calc(10px * var(--ui-scale));
   font-weight: 700;
   color: #dbff73;
+}
+
+.disc-field--b .disc-field-label {
+  color: #ff5fae;
+}
+
+.disc-name-input::placeholder {
+  color: var(--dim);
+  opacity: 0.7;
+}
+
+.disc-name-input:focus {
+  outline: none;
+  border-color: #dbff73;
+}
+
+.disc-field--b .disc-name-input:focus {
+  border-color: #ff5fae;
+}
+
+.disc-team-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .disc-select {
@@ -2068,7 +2096,7 @@ body {
   width: 100%;
   max-width: 340px;
   flex: 1 1 auto;
-  min-height: calc(150px * var(--ui-scale));
+  min-height: calc(130px * var(--ui-scale));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2104,10 +2132,114 @@ body {
   font-weight: 700;
 }
 
+/* After a pass the word hides behind this until the new holder taps. It
+   fills the card in the holder's team colour so it can't be missed. */
+.disc-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  flex: 1 1 auto;
+  border: 2px dashed currentColor;
+  border-radius: 14px;
+  background: transparent;
+  color: #4d6b00;
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+.disc-cover[hidden] {
+  display: none;
+}
+
+.disc-cover.is-team-b {
+  color: #b0115e;
+}
+
+.disc-cover:active {
+  transform: scale(0.98);
+}
+
+.disc-cover-team {
+  font-size: calc(20px * var(--ui-scale));
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.disc-cover-cta {
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #19192b;
+}
+
+.disc-cover-hint {
+  font-size: calc(11px * var(--ui-scale));
+  color: #575765;
+}
+
+.disc-card.is-concealed {
+  padding: 10px;
+}
+
+/* The hint and UNDO share this slot. It's sized for the button, so neither
+   one appearing moves anything above it. */
+.disc-play-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 340px;
+  min-height: calc(44px * var(--ui-scale));
+}
+
 .disc-play-hint {
   font-size: calc(10.5px * var(--ui-scale));
   color: var(--dim);
   max-width: 32ch;
+}
+
+.disc-play-hint[hidden] {
+  display: none;
+}
+
+/* Hold to undo: a fill sweeps across while it's held, and letting go early
+   cancels it. */
+.disc-undo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  min-height: calc(44px * var(--ui-scale));
+  font-size: calc(11.5px * var(--ui-scale));
+  border-style: dashed;
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+}
+
+.disc-undo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(70, 224, 255, 0.28);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.12s ease-out;
+}
+
+.disc-undo.is-holding::before {
+  transform: scaleX(1);
+  transition: transform var(--hold, 1s) linear;
+}
+
+.disc-undo:active {
+  transform: none;
 }
 
 /* ----- Result ----- */

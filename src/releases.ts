@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.28.0",
+    date: "2026-10-16",
+    title: "Pass the Disc: your own team names, pick the winning score, and a fairer handover",
+    notes: [
+      "PASS THE DISC: give your teams their own names. Type them on the start screen and the phone remembers them for next time.",
+      "Pick how long a game lasts with PLAY TO: first to 5, 7 or 10 points. 7 is still the usual.",
+      "After GOT IT the word is covered until the next player has the phone and taps the card, so nobody sees it over a shoulder on the way round.",
+      "Tapped GOT IT by mistake? Hold UNDO for a second to give the disc back. It only works once a round, for a few seconds after the pass, and not when the buzzer is close, so it can't be used to dodge the buzz.",
+      "A quick double tap on GOT IT no longer passes the disc straight back again.",
+      "The phone buzzes when the buzzer goes. The START GAME and GOT IT buttons are bright and easy to see again, and the start screen no longer has buttons sitting on top of each other.",
+    ],
+  },
+  {
     version: "0.27.1",
     date: "2026-10-16",
     title: "Tidier high scores, a quicker way out of What's New, and Pass the Disc",

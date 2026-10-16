@@ -7,7 +7,8 @@
  * A phone-passing word game for the whole family: one team describes words
  * from a category to their own teammates while the timer runs, tapping GOT IT
  * to pass the disc onward with every correct guess. Whoever is holding it
- * when the buzzer goes loses a point to the other team. First to seven wins.
+ * when the buzzer goes loses a point to the other team. First to the target
+ * score (seven unless the family picks another) wins.
  *
  * This is the one cabinet in the arcade with no playfield to simulate -- it's
  * entirely a DOM overlay (see GameInstance.extraControls), because the whole
@@ -24,6 +25,13 @@
  * countdown, and the tick starts slow and quiet-ish and audibly speeds up and
  * gets louder as the buzzer gets close -- close enough to guess, never close
  * enough to count down from.
+ *
+ * The handover is the delicate moment. After GOT IT the word is covered until
+ * the new holder taps the card, so nobody reads it over a shoulder while the
+ * phone changes hands. A mistaken GOT IT can be taken back, but only by
+ * holding a button, only once a round, only for a few seconds after the pass
+ * and never once the buzzer feels close -- otherwise "undo" would be a way to
+ * throw the disc back to the other team just before it goes off.
  */
 
 import type { SoundName } from "../../core/audio.ts";
@@ -32,13 +40,19 @@ import type { InputSnapshot } from "../../core/input.ts";
 import { drawDiscIcon } from "./render.ts";
 import { CATEGORIES, type DiscCategory } from "./words.ts";
 
-/** First team to this many points wins the match. */
-const TARGET_SCORE = 7;
+/** "Play to" choices: first team to this many points wins the match. */
+const TARGETS = [5, 7, 10] as const;
+const DEFAULT_TARGET = 7;
 
 const DURATIONS = [45, 60, 90] as const;
 const DEFAULT_DURATION = 60;
 
 const TEAM_NAMES: readonly [string, string] = ["Team 1", "Team 2"];
+/** Long enough for "The Grandkids", short enough to fit a score card. */
+const TEAM_NAME_MAX = 14;
+
+/** Team names, play-to score and buzzer length, remembered on this device. */
+const PREFS_KEY = "blackdisc.prefs";
 
 /** Tick cadence at the very start of a round, in milliseconds. */
 const TICK_START_MS = 820;
@@ -68,6 +82,11 @@ const SKIP_PENALTY_SECONDS = 4;
  */
 const PASS_LOCKOUT_MS = 450;
 
+/** How long after a GOT IT the pass can still be undone, in game seconds. */
+const UNDO_WINDOW_SECONDS = 5;
+/** How long UNDO has to be held down. A brush of the thumb won't do it. */
+const UNDO_HOLD_SECONDS = 1;
+
 /** How long a flashed caption (e.g. the skip-cost warning) stays up. */
 const CAPTION_FLASH_SECONDS = 1.4;
 
@@ -87,6 +106,7 @@ const TICK_STAGES: ReadonlyArray<{ at: number; sound: SoundName }> = [
 
 interface TeamRefs {
   card: HTMLElement;
+  nameEl: HTMLElement;
   scoreValue: HTMLElement;
   minus: HTMLButtonElement;
   plus: HTMLButtonElement;
@@ -94,8 +114,25 @@ interface TeamRefs {
 
 type Phase = "setup" | "play" | "result";
 
+interface DiscPrefs {
+  names: [string, string];
+  target: number;
+  duration: number;
+}
+
+/** The pass a held UNDO would take back. */
+interface LastPass {
+  /** Who had the disc before GOT IT. */
+  team: 0 | 1;
+  /** The word they had, which goes back to them. */
+  word: string;
+  /** this.time at the pass. */
+  at: number;
+}
+
 export class BlackDisc implements GameInstance {
   private readonly root = document.createElement("div");
+  private readonly bodyEl = document.createElement("div");
   private readonly setupSection: HTMLElement;
   private readonly playSection: HTMLElement;
   private readonly resultSection: HTMLElement;
@@ -105,6 +142,8 @@ export class BlackDisc implements GameInstance {
   private teamRefs!: [TeamRefs, TeamRefs];
   private readonly categoryButtons: HTMLButtonElement[] = [];
   private durationSelect!: HTMLSelectElement;
+  private targetSelect!: HTMLSelectElement;
+  private readonly nameInputs: HTMLInputElement[] = [];
   private starterSelect!: HTMLSelectElement;
   private startButton!: HTMLButtonElement;
 
@@ -114,12 +153,16 @@ export class BlackDisc implements GameInstance {
   private meterFillEl!: HTMLElement;
   private meterCaptionEl!: HTMLElement;
   private cardEl!: HTMLElement;
+  private coverEl!: HTMLButtonElement;
+  private coverLabelEl!: HTMLElement;
   private phraseEl!: HTMLElement;
   private categoryTagEl!: HTMLElement;
   private gotItButton!: HTMLButtonElement;
   private ruleBreakButton!: HTMLButtonElement;
   private skipButton!: HTMLButtonElement;
   private cancelButton!: HTMLButtonElement;
+  private playHintEl!: HTMLElement;
+  private undoButton!: HTMLButtonElement;
 
   private resultLabelEl!: HTMLElement;
   private resultTitleEl!: HTMLElement;
@@ -131,6 +174,8 @@ export class BlackDisc implements GameInstance {
   private phase: Phase = "setup";
   private category = CATEGORIES[0]!.id;
   private durationSeconds: number = DEFAULT_DURATION;
+  private target: number = DEFAULT_TARGET;
+  private names: [string, string] = [TEAM_NAMES[0], TEAM_NAMES[1]];
 
   private scores: [number, number] = [0, 0];
   private team: 0 | 1 = 0;
@@ -147,6 +192,14 @@ export class BlackDisc implements GameInstance {
   private captionFlashTimer = 0;
   /** performance.now() of the last GOT IT, for the double-tap guard. */
   private lastPassAt = -Infinity;
+  /** True while the word is covered, waiting for the new holder's tap. */
+  private concealed = false;
+  /** The pass UNDO would reverse, or null once it can't be. */
+  private lastPass: LastPass | null = null;
+  /** UNDO is once a round. */
+  private undoUsed = false;
+  /** this.time when the UNDO hold began, or null when it isn't held. */
+  private undoHoldStart: number | null = null;
 
   /** Shuffled draw piles, refilled and reshuffled once a category runs dry. */
   private readonly bag: Record<string, string[]> = {};
@@ -154,11 +207,16 @@ export class BlackDisc implements GameInstance {
   constructor(private readonly host: GameHost) {
     this.root.className = "disc-root";
 
+    const prefs = loadPrefs();
+    this.names = prefs.names;
+    this.target = prefs.target;
+    this.durationSeconds = prefs.duration;
+
     this.root.append(this.buildScores());
 
     // Everything under the scoreboard scrolls on its own, so the scores stay
     // put and nothing slides up under the shell's pause button.
-    const body = document.createElement("div");
+    const body = this.bodyEl;
     body.className = "disc-body";
 
     const stage = document.createElement("div");
@@ -205,7 +263,17 @@ export class BlackDisc implements GameInstance {
       this.tickTimer = (TICK_START_MS + (TICK_END_MS - TICK_START_MS) * eased) / 1000;
     }
 
-    if (this.remaining <= 0) this.finish("buzz");
+    if (this.remaining <= 0) {
+      this.finish("buzz");
+      return;
+    }
+
+    // Driven from the game clock rather than a setTimeout, so a pause in the
+    // middle of a hold can't fire it.
+    if (this.undoHoldStart !== null && this.time - this.undoHoldStart >= UNDO_HOLD_SECONDS) {
+      this.undoPass();
+    }
+    this.refreshUndo();
   }
 
   render(_ctx: CanvasRenderingContext2D, _alpha: number): void {
@@ -226,9 +294,14 @@ export class BlackDisc implements GameInstance {
     this.skipsUsed = 0;
     this.captionFlashTimer = 0;
     this.skipButton.textContent = "SKIP";
+    this.lastPass = null;
+    this.undoUsed = false;
+    this.cancelUndoHold();
     this.pickPhrase();
+    // Whoever tapped START or NEXT ROUND is already holding it.
+    this.setConcealed(false);
     this.updateTurnLabel();
-    this.roundLabelEl.textContent = `ROUND ${this.round}`;
+    this.roundLabelEl.textContent = `ROUND ${this.round} · FIRST TO ${this.target}`;
     this.updateMeter();
     this.setControlsEnabled(false);
     this.showSection("play");
@@ -237,9 +310,11 @@ export class BlackDisc implements GameInstance {
 
   private finish(kind: "buzz" | "rule"): void {
     if (this.phase !== "play") return;
+    this.cancelUndoHold();
+    this.lastPass = null;
     const loser = this.team;
     const winner = other(this.team);
-    this.scores[winner] = Math.min(TARGET_SCORE, this.scores[winner] + 1);
+    this.scores[winner] = Math.min(this.target, this.scores[winner] + 1);
     this.round += 1;
     this.renderScores();
     this.setControlsEnabled(true);
@@ -247,7 +322,7 @@ export class BlackDisc implements GameInstance {
     // The disc buzzes in the hand of whoever's holding it.
     this.host.buzz(kind === "rule" ? [60, 50, 60] : [400]);
 
-    if (this.scores[winner] >= TARGET_SCORE) {
+    if (this.scores[winner] >= this.target) {
       this.celebrate(winner);
       return;
     }
@@ -264,8 +339,9 @@ export class BlackDisc implements GameInstance {
   }
 
   private celebrate(winner: 0 | 1): void {
-    this.resultLabelEl.textContent = "FIRST TO SEVEN · CHAMPIONS";
-    this.resultTitleEl.textContent = `${this.teamName(winner)} wins!`;
+    this.resultLabelEl.textContent = `FIRST TO ${this.target} · CHAMPIONS`;
+    // Not "X wins!": with names like "The Kids" that reads wrong.
+    this.resultTitleEl.textContent = `🏆 ${this.teamName(winner)}`;
     this.resultTextEl.textContent =
       `Final score: ${this.teamName(0)} ${this.scores[0]} — ${this.scores[1]} ${this.teamName(1)}. ` +
       "Time for a victory dance!";
@@ -280,6 +356,7 @@ export class BlackDisc implements GameInstance {
   private cancelRound(): void {
     if (this.phase !== "play") return;
     if (!window.confirm("End this round without awarding a point?")) return;
+    this.cancelUndoHold();
     this.setControlsEnabled(true);
     this.starterSelect.value = String(this.team);
     this.showSection("setup");
@@ -292,6 +369,7 @@ export class BlackDisc implements GameInstance {
     this.round = 1;
     this.team = 0;
     this.renderScores();
+    this.refreshTargetOptions();
     this.nextButton.hidden = false;
     this.newGameButton.textContent = "NEW GAME";
     this.setControlsEnabled(true);
@@ -302,10 +380,11 @@ export class BlackDisc implements GameInstance {
 
   private adjustScore(index: 0 | 1, delta: number): void {
     if (this.phase === "play") return;
-    this.scores[index] = Math.max(0, Math.min(TARGET_SCORE, this.scores[index] + delta));
+    this.scores[index] = Math.max(0, Math.min(this.target, this.scores[index] + delta));
     this.renderScores();
+    this.refreshTargetOptions();
     this.host.sfx("uiMove");
-    if (this.scores[index] >= TARGET_SCORE) this.celebrate(index);
+    if (this.scores[index] >= this.target) this.celebrate(index);
   }
 
   // ----- Phrase draw -----
@@ -366,7 +445,114 @@ export class BlackDisc implements GameInstance {
   // ----- Small helpers -----
 
   private teamName(index: 0 | 1): string {
-    return TEAM_NAMES[index];
+    return this.names[index];
+  }
+
+  /** A name typed on the setup screen. Blank goes back to "Team 1"/"Team 2". */
+  private setTeamName(index: 0 | 1, raw: string): void {
+    const name = raw.replace(/\s+/g, " ").trim().slice(0, TEAM_NAME_MAX);
+    this.names[index] = name || TEAM_NAMES[index];
+    this.teamRefs[index].nameEl.textContent = this.names[index];
+    const option = this.starterSelect.options[index];
+    if (option) option.textContent = this.names[index];
+    this.persist();
+  }
+
+  private persist(): void {
+    savePrefs({ names: this.names, target: this.target, duration: this.durationSeconds });
+  }
+
+  /**
+   * A play-to score at or below a score already on the board would end the
+   * game the moment it started, so those are greyed out until NEW GAME.
+   */
+  private refreshTargetOptions(): void {
+    const best = Math.max(this.scores[0], this.scores[1]);
+    for (const option of Array.from(this.targetSelect.options)) {
+      option.disabled = Number(option.value) <= best;
+    }
+  }
+
+  // ----- Handover: cover the word until the new holder taps -----
+
+  private setConcealed(concealed: boolean): void {
+    this.concealed = concealed;
+    this.cardEl.classList.toggle("is-concealed", concealed);
+    this.coverEl.hidden = !concealed;
+    this.phraseEl.hidden = concealed;
+    this.categoryTagEl.hidden = concealed;
+    this.gotItButton.disabled = concealed;
+    this.skipButton.disabled = concealed;
+    if (concealed) {
+      this.coverLabelEl.textContent = this.teamName(this.team);
+      this.coverEl.classList.toggle("is-team-a", this.team === 0);
+      this.coverEl.classList.toggle("is-team-b", this.team === 1);
+    }
+  }
+
+  private reveal(): void {
+    if (this.phase !== "play" || !this.concealed) return;
+    this.setConcealed(false);
+    this.flashCard();
+    this.host.sfx("uiSelect");
+  }
+
+  // ----- Undo: hold to take back the last GOT IT -----
+
+  /** Whether UNDO may be used right now. See the header for why it's so fussy. */
+  private undoAvailable(): boolean {
+    if (this.phase !== "play" || this.undoUsed || !this.lastPass) return false;
+    if (this.time - this.lastPass.at > UNDO_WINDOW_SECONDS) return false;
+    const frac = this.total > 0 ? this.remaining / this.total : 0;
+    return frac > URGENT_FRACTION;
+  }
+
+  /**
+   * Shows UNDO in the hint's place while it can be used. It takes the same
+   * room as the hint, so nothing on screen jumps when it appears.
+   */
+  private refreshUndo(): void {
+    const available = this.undoAvailable();
+    if (!available && this.undoHoldStart !== null) this.cancelUndoHold();
+    this.undoButton.hidden = !available;
+    this.playHintEl.hidden = available;
+    if (available && this.lastPass) {
+      const label = `HOLD TO UNDO · back to ${this.teamName(this.lastPass.team)}`;
+      if (this.undoButton.textContent !== label) this.undoButton.textContent = label;
+    }
+  }
+
+  private startUndoHold(): void {
+    if (!this.undoAvailable() || this.undoHoldStart !== null) return;
+    this.undoHoldStart = this.time;
+    this.undoButton.style.setProperty("--hold", `${UNDO_HOLD_SECONDS}s`);
+    this.undoButton.classList.add("is-holding");
+  }
+
+  private cancelUndoHold(): void {
+    this.undoHoldStart = null;
+    this.undoButton?.classList.remove("is-holding");
+  }
+
+  private undoPass(): void {
+    this.cancelUndoHold();
+    const pass = this.lastPass;
+    if (!pass || !this.undoAvailable()) return;
+
+    // The word just drawn for the other team goes back on the pile unseen.
+    const current = this.phraseEl.textContent ?? "";
+    if (current) this.bag[this.category]?.push(current);
+
+    this.team = pass.team;
+    this.phraseEl.textContent = pass.word;
+    this.lastPass = null;
+    this.undoUsed = true;
+    this.updateTurnLabel();
+    this.setConcealed(true);
+    this.refreshUndo();
+    this.flashCaption(`PASS UNDONE — BACK TO ${this.teamName(pass.team).toUpperCase()}`);
+    this.host.sfx("uiMove");
+    this.host.buzz(30);
   }
 
   private updateTurnLabel(): void {
@@ -392,7 +578,9 @@ export class BlackDisc implements GameInstance {
     this.playSection.hidden = name !== "play";
     this.resultSection.hidden = name !== "result";
     this.rulesDetails.open = false;
+    this.bodyEl.scrollTop = 0;
     this.phase = name;
+    if (name === "setup") this.refreshTargetOptions();
   }
 
   private spawnConfetti(): void {
@@ -458,7 +646,7 @@ export class BlackDisc implements GameInstance {
     row.append(minus, scoreValue, plus);
     card.append(name, row);
 
-    return { card, scoreValue, minus, plus };
+    return { card, nameEl: name, scoreValue, minus, plus };
   }
 
   private buildSetup(): HTMLElement {
@@ -488,6 +676,32 @@ export class BlackDisc implements GameInstance {
     const settingsWrap = document.createElement("div");
     settingsWrap.className = "disc-settings";
 
+    const nameFields = ([0, 1] as const).map((index) => {
+      const field = document.createElement("label");
+      field.className = `disc-field disc-field--${index === 0 ? "a" : "b"}`;
+      const label = document.createElement("span");
+      label.className = "disc-field-label";
+      label.textContent = `Team ${index + 1} name`;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "disc-select disc-name-input";
+      input.maxLength = TEAM_NAME_MAX;
+      input.placeholder = TEAM_NAMES[index];
+      input.autocomplete = "off";
+      input.spellcheck = false;
+      input.enterKeyHint = "done";
+      // Left blank while it's the default, so the placeholder shows through
+      // and there's nothing to delete before typing.
+      input.value = this.names[index] === TEAM_NAMES[index] ? "" : this.names[index];
+      input.addEventListener("input", () => this.setTeamName(index, input.value));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") input.blur();
+      });
+      this.nameInputs.push(input);
+      field.append(label, input);
+      return field;
+    });
+
     const durationField = document.createElement("label");
     durationField.className = "disc-field";
     const durationLabel = document.createElement("span");
@@ -504,11 +718,32 @@ export class BlackDisc implements GameInstance {
     }
     this.durationSelect.addEventListener("change", () => {
       this.durationSeconds = Number(this.durationSelect.value);
+      this.persist();
     });
     durationField.append(durationLabel, this.durationSelect);
 
+    const targetField = document.createElement("label");
+    targetField.className = "disc-field";
+    const targetLabel = document.createElement("span");
+    targetLabel.className = "disc-field-label";
+    targetLabel.textContent = "Play to";
+    this.targetSelect = document.createElement("select");
+    this.targetSelect.className = "disc-select";
+    for (const points of TARGETS) {
+      const option = document.createElement("option");
+      option.value = String(points);
+      option.textContent = `${points} points`;
+      option.selected = points === this.target;
+      this.targetSelect.append(option);
+    }
+    this.targetSelect.addEventListener("change", () => {
+      this.target = Number(this.targetSelect.value);
+      this.persist();
+    });
+    targetField.append(targetLabel, this.targetSelect);
+
     const starterField = document.createElement("label");
-    starterField.className = "disc-field";
+    starterField.className = "disc-field disc-field--wide";
     const starterLabel = document.createElement("span");
     starterLabel.className = "disc-field-label";
     starterLabel.textContent = "Starts with";
@@ -522,7 +757,7 @@ export class BlackDisc implements GameInstance {
     }
     starterField.append(starterLabel, this.starterSelect);
 
-    settingsWrap.append(durationField, starterField);
+    settingsWrap.append(...nameFields, durationField, targetField, starterField);
 
     this.startButton = document.createElement("button");
     this.startButton.type = "button";
@@ -610,21 +845,43 @@ export class BlackDisc implements GameInstance {
     this.phraseEl.className = "disc-phrase";
     this.categoryTagEl = document.createElement("span");
     this.categoryTagEl.className = "disc-phrase-tag";
-    card.append(this.phraseEl, this.categoryTagEl);
+
+    // Fills the card after a pass. The whole card is the button, so the new
+    // holder can't miss it.
+    this.coverEl = document.createElement("button");
+    this.coverEl.type = "button";
+    this.coverEl.className = "disc-cover";
+    this.coverEl.hidden = true;
+    this.coverLabelEl = document.createElement("strong");
+    this.coverLabelEl.className = "disc-cover-team";
+    const coverCta = document.createElement("span");
+    coverCta.className = "disc-cover-cta";
+    coverCta.textContent = "TAP TO SEE YOUR WORD";
+    const coverHint = document.createElement("small");
+    coverHint.className = "disc-cover-hint";
+    coverHint.textContent = "Got the phone? Tap here.";
+    this.coverEl.append(this.coverLabelEl, coverCta, coverHint);
+    this.coverEl.addEventListener("click", () => this.reveal());
+
+    card.append(this.phraseEl, this.categoryTagEl, this.coverEl);
 
     this.gotItButton = document.createElement("button");
     this.gotItButton.type = "button";
     this.gotItButton.className = "disc-btn disc-btn--primary";
     this.gotItButton.textContent = "GOT IT! · Pass it on";
     this.gotItButton.addEventListener("click", () => {
-      if (this.phase !== "play") return;
+      if (this.phase !== "play" || this.concealed) return;
       const now = performance.now();
       if (now - this.lastPassAt < PASS_LOCKOUT_MS) return;
       this.lastPassAt = now;
+      this.cancelUndoHold();
+      this.lastPass = { team: this.team, word: this.phraseEl.textContent ?? "", at: this.time };
       this.team = other(this.team);
       this.pickPhrase();
       this.updateTurnLabel();
-      this.flashCard();
+      // Covered until the next holder has the phone and taps the card.
+      this.setConcealed(true);
+      this.refreshUndo();
       this.host.sfx("discPass");
     });
 
@@ -642,7 +899,7 @@ export class BlackDisc implements GameInstance {
     this.skipButton.className = "disc-btn disc-btn--ghost";
     this.skipButton.textContent = "SKIP";
     this.skipButton.addEventListener("click", () => {
-      if (this.phase !== "play") return;
+      if (this.phase !== "play" || this.concealed) return;
       this.skipsUsed += 1;
 
       if (this.skipsUsed === 1) {
@@ -673,9 +930,36 @@ export class BlackDisc implements GameInstance {
 
     row.append(this.skipButton, this.cancelButton);
 
-    const hint = document.createElement("p");
-    hint.className = "disc-play-hint";
-    hint.textContent = "Clue-giver only — keep this screen hidden from your team.";
+    const footer = document.createElement("div");
+    footer.className = "disc-play-footer";
+
+    this.playHintEl = document.createElement("p");
+    this.playHintEl.className = "disc-play-hint";
+    this.playHintEl.textContent = "Clue-giver only — keep this screen hidden from your team.";
+
+    this.undoButton = document.createElement("button");
+    this.undoButton.type = "button";
+    this.undoButton.className = "disc-btn disc-btn--ghost disc-undo";
+    this.undoButton.hidden = true;
+    this.undoButton.addEventListener("pointerdown", (e) => {
+      this.undoButton.setPointerCapture?.(e.pointerId);
+      this.startUndoHold();
+    });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"] as const) {
+      this.undoButton.addEventListener(type, () => this.cancelUndoHold());
+    }
+    this.undoButton.addEventListener("keydown", (e) => {
+      if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+        e.preventDefault();
+        this.startUndoHold();
+      }
+    });
+    this.undoButton.addEventListener("keyup", () => this.cancelUndoHold());
+    this.undoButton.addEventListener("blur", () => this.cancelUndoHold());
+    // A long press would otherwise pop the phone's copy/lookup menu.
+    this.undoButton.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    footer.append(this.playHintEl, this.undoButton);
 
     panel.append(
       this.roundLabelEl,
@@ -686,7 +970,7 @@ export class BlackDisc implements GameInstance {
       this.gotItButton,
       this.ruleBreakButton,
       row,
-      hint,
+      footer,
     );
     return panel;
   }
@@ -755,7 +1039,8 @@ export class BlackDisc implements GameInstance {
       "Split into two teams and sit in alternating order.",
       "Describe the word or phrase to your team — no saying part of it, spelling it, or “rhymes with” clues.",
       "They guess it, you tap GOT IT and pass immediately. The disc keeps going.",
-      "Holding it when it buzzes? The other team gets a point. First to seven wins.",
+      "Got the phone? Tap the card to see your word.",
+      "Holding it when it buzzes? The other team gets a point. First to the PLAY TO score wins (7 unless you pick another).",
     ];
     for (const step of steps) {
       const li = document.createElement("li");
@@ -768,7 +1053,9 @@ export class BlackDisc implements GameInstance {
     note.textContent =
       "Said the word, or broke another rule? Tap RULE BREAK to end the round on the spot. " +
       `SKIP keeps the disc with your team -- the first one's free, then each one after ` +
-      `costs ${SKIP_PENALTY_SECONDS} seconds off the clock. There's no on-screen timer on ` +
+      `costs ${SKIP_PENALTY_SECONDS} seconds off the clock. Tapped GOT IT by mistake? ` +
+      `Hold UNDO to give the disc back — once a round, within ${UNDO_WINDOW_SECONDS} seconds ` +
+      "of the pass, and not once the buzzer feels close. There's no on-screen timer on " +
       "purpose — just listen for the tick and watch the bar.";
     details.append(note);
 
@@ -784,6 +1071,42 @@ function findCategory(id: string): DiscCategory {
   const found = CATEGORIES.find((c) => c.id === id);
   if (!found) throw new Error(`Unknown Black Disc category: ${id}`);
   return found;
+}
+
+function loadPrefs(): DiscPrefs {
+  const prefs: DiscPrefs = {
+    names: [TEAM_NAMES[0], TEAM_NAMES[1]],
+    target: DEFAULT_TARGET,
+    duration: DEFAULT_DURATION,
+  };
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return prefs;
+    const saved = JSON.parse(raw) as Partial<DiscPrefs>;
+    for (const index of [0, 1] as const) {
+      const name = saved.names?.[index];
+      if (typeof name === "string" && name.trim()) {
+        prefs.names[index] = name.trim().slice(0, TEAM_NAME_MAX);
+      }
+    }
+    if ((TARGETS as readonly number[]).includes(saved.target as number)) {
+      prefs.target = saved.target as number;
+    }
+    if ((DURATIONS as readonly number[]).includes(saved.duration as number)) {
+      prefs.duration = saved.duration as number;
+    }
+  } catch {
+    // Unreadable or storage disabled -- start from the defaults.
+  }
+  return prefs;
+}
+
+function savePrefs(prefs: DiscPrefs): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // Storage disabled -- the names just won't be remembered.
+  }
 }
 
 function shuffled(items: readonly string[]): string[] {
@@ -806,11 +1129,11 @@ export const blackDiscModule: GameModule = {
   progressShort: "RD",
   blurb: "Pass it, guess it, don't get caught holding it at the buzz.",
   howToPlay: [
-    "One phone, two teams. Sit in alternating order.",
-    "Describe the word or phrase to your team. No saying part of it, spelling it, or \"rhymes with\" clues.",
-    "When they guess it, tap GOT IT and pass the phone on straight away.",
-    "Whoever is holding it when it buzzes gives the other team a point. First to seven wins.",
-    "The first SKIP in a round is free. Every one after that takes time off the clock.",
+    "Name your teams and pick PLAY TO (5, 7 or 10 points). Sit in alternating order.",
+    "Describe the word to your team. No saying part of it, spelling it, or \"rhymes with\" clues.",
+    "When they guess it, tap GOT IT and pass. The next player taps the card to see their word.",
+    "Holding it when it buzzes gives the other team a point. First to the PLAY TO score wins.",
+    "The first SKIP in a round is free; later ones cost time. Hold UNDO to take back a mistaken GOT IT, once a round.",
     "Said the word, or broke another rule? Tap RULE BREAK to end the round on the spot.",
   ],
   accent: "#dbff73",
