@@ -1686,7 +1686,11 @@ body {
 /* Entirely DOM: there's no playfield to simulate, just a phone getting
    passed around a table. The root covers the whole screen -- opaque, so the
    canvas HUD underneath (score, round) never peeks through -- and everything
-   else lives in here: teams, categories, the phrase card. */
+   else lives in here: teams, categories, the phrase card.
+
+   The root itself never scrolls: the scoreboard stays pinned under the
+   pause button's row and only .disc-body below it scrolls. When the whole
+   root scrolled, the team cards slid up underneath the pause button. */
 .disc-root {
   position: absolute;
   inset: 0;
@@ -1699,10 +1703,20 @@ body {
   background:
     radial-gradient(ellipse 70% 45% at 50% 26%, rgba(219, 255, 115, 0.14), transparent 70%),
     var(--bg);
+  overflow: hidden;
+  text-align: center;
+}
+
+.disc-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
   overflow-y: auto;
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-  text-align: center;
 }
 
 /* ----- Scoreboard: always visible, teams name themselves right here ----- */
@@ -1785,9 +1799,10 @@ body {
 
 /* ----- Shared panel/button chrome ----- */
 
+/* Grows to fill the screen but never shrinks below its content: shrinking
+   let the setup list spill out over "How to play" instead of scrolling. */
 .disc-stage {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
 }
@@ -1797,8 +1812,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: calc(10px * var(--ui-scale));
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 0 auto;
   padding: 4px 2px;
 }
 
@@ -1836,10 +1850,13 @@ body {
   transform: scale(0.97);
 }
 
+/* Solid lime with dark ink. The old 20% tint put near-black text on a
+   near-black fill, so START GAME read as a disabled button. */
 .disc-btn--primary {
   border-color: #dbff73;
-  background: rgba(219, 255, 115, 0.2);
+  background: #dbff73;
   color: #1a2405;
+  font-weight: 800;
 }
 
 .disc-btn--danger {
@@ -2051,7 +2068,7 @@ body {
   width: 100%;
   max-width: 340px;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: calc(150px * var(--ui-scale));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2061,6 +2078,17 @@ body {
   border-radius: 20px;
   padding: 18px 14px;
   gap: 6px;
+}
+
+.disc-card.is-new {
+  animation: disc-card-pop 0.28s ease-out;
+}
+
+@keyframes disc-card-pop {
+  from {
+    transform: scale(0.94);
+    opacity: 0.4;
+  }
 }
 
 .disc-phrase {

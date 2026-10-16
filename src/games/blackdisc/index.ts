@@ -61,6 +61,13 @@ const URGENT_FRACTION = 0.16;
  */
 const SKIP_PENALTY_SECONDS = 4;
 
+/**
+ * After a GOT IT, further taps are ignored for this long. In the scramble a
+ * double tap is easy, and the second one passed the disc straight back to
+ * the team that just guessed it.
+ */
+const PASS_LOCKOUT_MS = 450;
+
 /** How long a flashed caption (e.g. the skip-cost warning) stays up. */
 const CAPTION_FLASH_SECONDS = 1.4;
 
@@ -106,6 +113,7 @@ export class BlackDisc implements GameInstance {
   private meterWrapEl!: HTMLElement;
   private meterFillEl!: HTMLElement;
   private meterCaptionEl!: HTMLElement;
+  private cardEl!: HTMLElement;
   private phraseEl!: HTMLElement;
   private categoryTagEl!: HTMLElement;
   private gotItButton!: HTMLButtonElement;
@@ -137,6 +145,8 @@ export class BlackDisc implements GameInstance {
   private skipsUsed = 0;
   /** Counts down while a flashed caption (e.g. the skip warning) is showing. */
   private captionFlashTimer = 0;
+  /** performance.now() of the last GOT IT, for the double-tap guard. */
+  private lastPassAt = -Infinity;
 
   /** Shuffled draw piles, refilled and reshuffled once a category runs dry. */
   private readonly bag: Record<string, string[]> = {};
@@ -146,6 +156,11 @@ export class BlackDisc implements GameInstance {
 
     this.root.append(this.buildScores());
 
+    // Everything under the scoreboard scrolls on its own, so the scores stay
+    // put and nothing slides up under the shell's pause button.
+    const body = document.createElement("div");
+    body.className = "disc-body";
+
     const stage = document.createElement("div");
     stage.className = "disc-stage";
     this.setupSection = this.buildSetup();
@@ -154,10 +169,10 @@ export class BlackDisc implements GameInstance {
     this.playSection.hidden = true;
     this.resultSection.hidden = true;
     stage.append(this.setupSection, this.playSection, this.resultSection);
-    this.root.append(stage);
 
     this.rulesDetails = this.buildRules();
-    this.root.append(this.rulesDetails);
+    body.append(stage, this.rulesDetails);
+    this.root.append(body);
 
     this.celebrationEl = document.createElement("div");
     this.celebrationEl.className = "disc-celebration";
@@ -229,6 +244,8 @@ export class BlackDisc implements GameInstance {
     this.renderScores();
     this.setControlsEnabled(true);
     this.host.sfx(kind === "rule" ? "discRuleBreak" : "discBuzz");
+    // The disc buzzes in the hand of whoever's holding it.
+    this.host.buzz(kind === "rule" ? [60, 50, 60] : [400]);
 
     if (this.scores[winner] >= TARGET_SCORE) {
       this.celebrate(winner);
@@ -257,7 +274,7 @@ export class BlackDisc implements GameInstance {
     this.showSection("result");
     this.spawnConfetti();
     this.host.sfx("discWin");
-    navigator.vibrate?.([100, 60, 100, 60, 350]);
+    this.host.buzz([100, 60, 100, 60, 350]);
   }
 
   private cancelRound(): void {
@@ -329,6 +346,14 @@ export class BlackDisc implements GameInstance {
     this.meterCaptionEl.textContent = urgent
       ? "FEELS CLOSE — BETTER HURRY"
       : "PASS IT ON — NO PEEKING AT THE CLOCK";
+  }
+
+  /** A quick pop on the phrase card so the next holder sees it's a new word. */
+  private flashCard(): void {
+    if (this.host.settings.reducedMotion) return;
+    this.cardEl.classList.remove("is-new");
+    void this.cardEl.offsetWidth; // restart the animation
+    this.cardEl.classList.add("is-new");
   }
 
   /** Briefly replace the meter caption, e.g. to call out a skip's cost. */
@@ -580,6 +605,7 @@ export class BlackDisc implements GameInstance {
 
     const card = document.createElement("div");
     card.className = "disc-card";
+    this.cardEl = card;
     this.phraseEl = document.createElement("h1");
     this.phraseEl.className = "disc-phrase";
     this.categoryTagEl = document.createElement("span");
@@ -592,9 +618,13 @@ export class BlackDisc implements GameInstance {
     this.gotItButton.textContent = "GOT IT! · Pass it on";
     this.gotItButton.addEventListener("click", () => {
       if (this.phase !== "play") return;
+      const now = performance.now();
+      if (now - this.lastPassAt < PASS_LOCKOUT_MS) return;
+      this.lastPassAt = now;
       this.team = other(this.team);
       this.pickPhrase();
       this.updateTurnLabel();
+      this.flashCard();
       this.host.sfx("discPass");
     });
 
@@ -632,6 +662,7 @@ export class BlackDisc implements GameInstance {
       }
 
       this.pickPhrase();
+      this.flashCard();
     });
 
     this.cancelButton = document.createElement("button");
