@@ -1433,6 +1433,74 @@ body {
 
 .screen--releases {
   justify-content: flex-start;
+  /* The notes scroll inside .releases-scroll, so the bar above them stays put. */
+  overflow: hidden;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.releases-bar {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 440px;
+  min-height: 44px;
+}
+
+.releases-bar h2 {
+  margin: 0;
+}
+
+.releases-back {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  min-width: 0;
+  padding: 8px 12px;
+}
+
+.releases-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(12px * var(--ui-scale));
+  padding-bottom: 8px;
+}
+
+.release-older {
+  width: 100%;
+  max-width: 440px;
+}
+
+.release-older > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: calc(10px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--edge);
+  color: var(--accent);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.release-older > summary::-webkit-details-marker {
+  display: none;
+}
+
+.release-older[open] > summary {
+  margin-bottom: calc(12px * var(--ui-scale));
 }
 
 .release-list {

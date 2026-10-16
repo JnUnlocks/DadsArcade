@@ -34,6 +34,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.27.1",
+    date: "2026-10-16",
+    title: "A quicker way out of What's New, and Prize Drop moves up",
+    notes: [
+      "WHAT'S NEW has its BACK button at the top, and it stays there while you scroll. It used to be under the very last note, a long way down.",
+      "WHAT'S NEW now opens on what is new to you. Everything older folds away under EARLIER UPDATES, one tap to open.",
+      "The arcade has a new running order. DAD'S PRIZE DROP is third, after the two daily puzzles, then STARFIGHTER, SNAKE and FOREST DASH, then MOM MOM'S CROSSWORD and the WORD FINDER.",
+    ],
+  },
+  {
     version: "0.27.0",
     date: "2026-10-16",
     title: "Dad's Prize Drop, a new cabinet full of toys",

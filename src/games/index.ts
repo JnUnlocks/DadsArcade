@@ -28,11 +28,13 @@ export const GAMES: GameModule[] = [
   // arcade today, and the cabinets a shared result links to.
   plasmaSortModule,
   letterLockModule,
+  // The newest cabinet, up where it's seen, then the straight arcade games.
+  // Order chosen by Justin on 2026-10-16.
+  prizeDropModule,
   starfighterModule,
-  // Snake sits beside Starfighter: the two straight arcade games, together.
   snakeModule,
-  // Mom Mom's Crossword, the third daily puzzle, and the Word Finder that
-  // helps with it, side by side in the row under the first two.
+  forestDashModule,
+  // Mom Mom's Crossword and the Word Finder that helps with it, side by side.
   crosswordModule,
   wordFinderModule,
   mallardModule,
@@ -42,8 +44,5 @@ export const GAMES: GameModule[] = [
   brickfallModule,
   slimeShopModule,
   blackDiscModule,
-  forestDashModule,
-  // The newest cabinet goes on the end, as Snake did when it arrived.
   sudokuModule,
-  prizeDropModule,
 ];
