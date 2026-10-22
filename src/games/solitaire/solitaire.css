@@ -1,0 +1,361 @@
+/*
+ * Solitaire's chrome: the score and buttons beside the table, the title
+ * panel, and the sideways turn for a phone that won't rotate.
+ *
+ * The table itself is one canvas (index.ts). These sit over it.
+ */
+
+/* The cabinet lays out its own pause button; the shared one sits where the
+   foundations go. */
+#ui:has(> .sol-root) > .pause-btn {
+  display: none;
+}
+
+/* The whole of #ui turned a quarter, so the pause and game-over screens turn
+   with the table. index.ts sets the size and the transform in px. */
+#ui.sol-sideways {
+  inset: auto;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.sol-root {
+  --sol-l: 0px;
+  --sol-r: 0px;
+  --sol-t: 0px;
+  --sol-b: 0px;
+  --sol-ink: #f4fff4;
+  --sol-dim: #b9e6c0;
+  --sol-gold: #ffd52a;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  background: #075c1f;
+  color: var(--sol-ink);
+  font-family: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.sol-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  touch-action: none;
+}
+
+.sol-root button {
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sol-root :focus-visible {
+  outline: 3px solid var(--sol-gold);
+  outline-offset: 2px;
+}
+
+/* ---------- Rails ---------- */
+
+.sol-rail {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.sol-rail > * {
+  pointer-events: auto;
+}
+
+/* Wide: a column down each side of the table. */
+.sol-wide .sol-rail {
+  top: calc(var(--sol-t) + 8px);
+  bottom: calc(var(--sol-b) + 8px);
+  flex-direction: column;
+  width: 60px;
+}
+
+.sol-wide .sol-rail--left {
+  left: calc(var(--sol-l) + 6px);
+}
+
+.sol-wide .sol-rail--right {
+  right: calc(var(--sol-r) + 6px);
+}
+
+/* Tall: one bar across the top. */
+.sol-tall .sol-rail {
+  top: calc(var(--sol-t) + 8px);
+  height: 46px;
+  align-items: center;
+}
+
+.sol-tall .sol-rail--left {
+  left: calc(var(--sol-l) + 8px);
+}
+
+.sol-tall .sol-rail--right {
+  right: calc(var(--sol-r) + 8px);
+  gap: 6px;
+}
+
+.sol-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 52px;
+  line-height: 1.1;
+}
+
+.sol-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sol-dim);
+}
+
+.sol-stat-value {
+  font-size: 19px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.sol-draw {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--sol-dim);
+}
+
+.sol-tall .sol-draw {
+  display: none;
+}
+
+.sol-btn {
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 40, 10, 0.45);
+  color: var(--sol-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.sol-wide .sol-btn {
+  width: 60px;
+  min-height: 48px;
+}
+
+.sol-tall .sol-btn {
+  min-width: 48px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.sol-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sol-btn:disabled {
+  opacity: 0.4;
+}
+
+.sol-btn--pause {
+  display: grid;
+  place-items: center;
+}
+
+.sol-btn--pause svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.sol-finish {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--sol-b) + 14px);
+  transform: translateX(-50%);
+  min-width: 150px;
+  min-height: 50px;
+  border-radius: 999px;
+  border: 2px solid var(--sol-gold);
+  background: rgba(40, 30, 0, 0.75);
+  color: var(--sol-gold);
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.sol-finish[hidden] {
+  display: none;
+}
+
+/* The bouncing cards get the whole table. */
+.sol-cascading .sol-rail,
+.sol-cascading .sol-finish {
+  visibility: hidden;
+}
+
+/* ---------- Title / game panel ---------- */
+
+.sol-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: safe center;
+  justify-content: center;
+  padding: calc(var(--sol-t) + 12px) calc(var(--sol-r) + 12px) calc(var(--sol-b) + 12px)
+    calc(var(--sol-l) + 12px);
+  overflow-y: auto;
+  background: rgba(2, 30, 8, 0.55);
+}
+
+.sol-panel-box {
+  width: min(440px, 100%);
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: #0d3d1a;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.sol-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #fff;
+  text-shadow: 0 2px 0 #075c1f, 0 0 18px rgba(120, 255, 150, 0.35);
+}
+
+.sol-sub,
+.sol-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sol-dim);
+}
+
+.sol-note {
+  font-size: 12px;
+}
+
+.sol-choice {
+  display: flex;
+  gap: 10px;
+}
+
+.sol-pill {
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: var(--sol-ink);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.sol-pill[aria-pressed="true"] {
+  border-color: var(--sol-gold);
+  background: rgba(255, 213, 42, 0.16);
+  color: var(--sol-gold);
+}
+
+.sol-backs {
+  display: flex;
+  gap: 12px;
+}
+
+.sol-back {
+  padding: 4px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: transparent;
+  line-height: 0;
+}
+
+.sol-back[aria-pressed="true"] {
+  border-color: var(--sol-gold);
+}
+
+.sol-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  font-size: 13px;
+  color: var(--sol-dim);
+  text-align: left;
+}
+
+.sol-toggle input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--sol-gold);
+}
+
+.sol-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.sol-big {
+  min-width: 150px;
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--sol-gold);
+  color: #1d1600;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.sol-big--ghost {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  color: var(--sol-ink);
+}
+
+.sol-link {
+  flex-basis: 100%;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--sol-dim);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* A short landscape phone: tighten the panel so DEAL stays on screen. */
+@media (max-height: 430px) {
+  .sol-panel-box {
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .sol-title {
+    font-size: 24px;
+  }
+}

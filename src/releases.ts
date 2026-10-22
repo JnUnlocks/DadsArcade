@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.30.0",
+    date: "2026-10-22",
+    title: "Solitaire, like the old office computer (BETA)",
+    notes: [
+      "NEW CABINET: SOLITAIRE, at the bottom of the arcade with a BETA badge while the family tries it out. Tell us what you think with SEND A NOTE. It's the card game from the old office PC: seven columns on green felt, build each suit from ace to king, and when you win the cards bounce off the table just like they used to.",
+      "Made for the phone on its side. If your phone won't turn the screen round, the table turns itself: hold the phone sideways with the top to the left. You can switch that off under GAME.",
+      "Tap a card and it goes where it fits, or drag it yourself. Tap the deck to turn over more. UNDO takes back as many moves as you like.",
+      "Pick DRAW ONE or DRAW THREE, and a card back: blue, red, or one in the arcade's own colours. Each draw has its own high scores, and only won games go on the board.",
+      "Scored like the PC: points for every good move, two off every ten seconds, and a big bonus for a quick win. Once every card is face up, FINISH plays the rest out for you.",
+    ],
+  },
+  {
     version: "0.29.0",
     date: "2026-10-21",
     title: "Word Voltage: connect letters, charge up (BETA)",

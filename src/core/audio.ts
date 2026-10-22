@@ -129,7 +129,15 @@ export type SoundName =
   | "voltAgain"
   | "voltShuffle"
   | "voltHint"
-  | "voltWin";
+  | "voltWin"
+  // Solitaire
+  | "cardDeal"
+  | "cardFlick"
+  | "cardPlace"
+  | "cardHome"
+  | "cardDeny"
+  | "cardUndo"
+  | "cardWin";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -694,6 +702,35 @@ export class AudioEngine {
         // Powered up: a run to the top and a held note. Under a second.
         this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.07, "square", 0.13);
         this.blip(t + 0.36, "sine", 1568, 1568, 0.5, 0.13, 6);
+        break;
+      // ----- Solitaire -----
+      // Paper, not chiptune, for the cards themselves: a flick of filtered
+      // noise. Only a card going home gets a note, so a game played by ear
+      // sounds like a table until it starts to come out.
+      case "cardDeal":
+        for (let i = 0; i < 7; i += 1) this.burst(t + i * 0.07, 0.05, 3800, 1400, 0.06);
+        break;
+      case "cardFlick":
+        this.burst(t, 0.05, 4200, 1500, 0.08);
+        break;
+      case "cardPlace":
+        this.burst(t, 0.06, 1800, 400, 0.11);
+        this.blip(t, "triangle", 230, 170, 0.05, 0.05);
+        break;
+      case "cardHome":
+        this.burst(t, 0.04, 3000, 1200, 0.06);
+        this.blip(t + 0.02, "sine", 988, 1319, 0.1, 0.08);
+        break;
+      case "cardDeny":
+        this.blip(t, "triangle", 200, 175, 0.06, 0.12);
+        this.blip(t + 0.08, "triangle", 180, 160, 0.07, 0.1);
+        break;
+      case "cardUndo":
+        this.blip(t, "sine", 700, 420, 0.1, 0.07);
+        break;
+      case "cardWin":
+        this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.12);
+        this.blip(t + 0.42, "sine", 1568, 1568, 0.55, 0.12, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

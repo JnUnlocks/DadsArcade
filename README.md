@@ -33,6 +33,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Uncle Potato Head Number Game** | The number puzzle in a newspaper | It's Sudoku, with a potato in a bow tie to cheer you on. One puzzle a day, the same for everyone, one play of it, and a week that climbs from easy on Monday to the hard one on Sunday. Difficulty is graded by the technique a puzzle needs, not by how many squares are given. Built for one thumb: tap a number, then every square it goes in |
 | **Dad's Prize Drop** | Drop-and-merge games | Slide to aim, let go to drop. Two toys the same become the next prize up a ladder of ten, and the run ends when the pile won't stay under the line. The physics is written by hand and every prize is a circle, whatever toy is drawn inside it, so a pile sits still and a merge is never a surprise |
 | **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. A hundred levels on each of two paths, a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
+| **Solitaire** | Klondike, the one on every office PC around 2001 | Draw one or draw three, the PC's standard scoring (points per move, two off every ten seconds, a bonus for a fast win), unlimited undo, and the cards bouncing off the table when you win. Laid out for a phone on its side, and a phone that won't rotate gets the table turned for it |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
@@ -622,6 +623,34 @@ src/games/wordfinder/
 
 ---
 
+## Solitaire, and a table that turns itself sideways
+
+Solitaire wants a wide screen: seven columns of cards are too narrow on an
+upright phone. The arcade's manifest asks for portrait, and an iPhone with
+rotation lock on won't turn the page whatever the game wants, so the cabinet
+doesn't rely on the phone rotating.
+
+- On a phone held upright it turns **all of `#ui`** a quarter turn
+  (`.sol-sideways`, sized and transformed in px from `index.ts`), so the
+  pause screen and the game-over screen turn with the table. Hold the phone
+  with its top to the left. **GAME → Turn the table sideways** switches it
+  off, and it's never used without a touch screen, so a narrow desktop
+  window isn't turned on its side.
+- Where the browser allows it (an installed Android app) it also asks for
+  landscape with `screen.orientation.lock`, and lets go when you leave.
+- The table is its own canvas over the whole cabinet. The shared pause
+  button would sit on the foundations, so the cabinet hides it and draws its
+  own in the right-hand rail, which calls the new optional
+  `GameHost.pause()`.
+
+Only won games are scored. A run sends the final score (moves, clock and
+bonus together) once the cards have finished bouncing; tap to skip them.
+Draw One files on its own board (`solitaire-draw1`), because it is the
+easier game. The rules and scoring are in `rules.ts`, tested by
+`rules.test.ts`.
+
+---
+
 ## Pass the Disc, and skipping the leaderboard on purpose
 
 Every other cabinet is one player against a machine, so a personal best means
@@ -780,6 +809,8 @@ A few optional hooks, all of which default to the old behaviour:
   with the large-text setting.
 - `RunSummary.ranked: false` marks a run as practice, so the shell skips
   submission and the personal best instead of posting a zero.
+- `GameHost.pause()` opens the pause screen, for a cabinet that hides the
+  shared pause button to put its own somewhere else (Solitaire).
 - `GameHost.exitToArcade()` and `GameHost.updateSettings()` are for a DOM
   cabinet with its own menus (Word Voltage): a BACK TO ARCADE button that
   doesn't go through the pause screen, and the arcade-wide sound and

@@ -23,6 +23,7 @@ import { wordFinderModule } from "./wordfinder";
 import { sudokuModule } from "./sudoku";
 import { prizeDropModule } from "./prizedrop";
 import { wordVoltageModule } from "./wordvoltage";
+import { solitaireModule } from "./solitaire";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -49,4 +50,6 @@ export const GAMES: GameModule[] = [
   // At the bottom while the family tries it out (BETA), by Justin's choice on
   // 2026-10-21.
   wordVoltageModule,
+  // Brand new and in BETA (2026-10-22): last, after Word Voltage.
+  solitaireModule,
 ];

@@ -78,6 +78,13 @@ export interface GameHost {
   exitToArcade?(): void;
 
   /**
+   * Open the pause screen, the same as the shared pause button. For a cabinet
+   * that hides that button to lay out its own (Solitaire, whose cards fill
+   * the corner it sits in).
+   */
+  pause?(): void;
+
+  /**
    * Change one of the arcade's own settings from inside a game, for a game
    * whose settings panel offers the arcade-wide ones too (sound, vibration).
    * Saved and applied exactly as the Settings screen does it.
