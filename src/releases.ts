@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.29.0",
+    date: "2026-10-21",
+    title: "Word Voltage: connect letters, charge up (BETA)",
+    notes: [
+      "NEW CABINET: WORD VOLTAGE, at the bottom of the arcade with a BETA badge while the family tries it out. Tell us what you think with SEND A NOTE. Drag across a wheel of letters to spell a word, and it fills its place on a little crossword. Crossing words share a square, so every word helps with the next. Fill the board and it's Powered Up!",
+      "Two paths of 100 levels each. FAMILY starts with four letters and three words; CHALLENGE runs to seven letters and ten words. Each is five circuits of 20, from Starter Circuit to Voltage Vault, and keeps its own progress.",
+      "DAILY CHARGE: one new board a day on each path, the same for the whole family. It changes at midnight New York time, so everyone gets the same puzzle wherever they are. SHARE sends your stars, never the words.",
+      "No timer and no way to lose. Wrong words cost nothing, and HINT is free and never runs out. Stars only say how many hints a finish took: three with none.",
+      "Real words that aren't on the board are bonus words. Every five you find on a puzzle earns a bolt, and finishing circuits earns badges and new wheel styles. They're for show; nothing needs them.",
+      "Prefer tapping? Switch the wheel to TAP. On a keyboard, just type the letters and press Enter. A practice board shows how it works the first time, and HOW TO PLAY has the rest.",
+    ],
+  },
+  {
     version: "0.28.0",
     date: "2026-10-16",
     title: "Pass the Disc: your own team names, pick the winning score, and a fairer handover",

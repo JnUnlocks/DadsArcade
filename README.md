@@ -32,6 +32,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't. Four courses and a new one every day built from the date, four animals to race as, and the family's fastest runs (and your own) replayed beside you from their saved button presses |
 | **Uncle Potato Head Number Game** | The number puzzle in a newspaper | It's Sudoku, with a potato in a bow tie to cheer you on. One puzzle a day, the same for everyone, one play of it, and a week that climbs from easy on Monday to the hard one on Sunday. Difficulty is graded by the technique a puzzle needs, not by how many squares are given. Built for one thumb: tap a number, then every square it goes in |
 | **Dad's Prize Drop** | Drop-and-merge games | Slide to aim, let go to drop. Two toys the same become the next prize up a ladder of ten, and the run ends when the pile won't stay under the line. The physics is written by hand and every prize is a circle, whatever toy is drawn inside it, so a pile sits still and a merge is never a surprise |
+| **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. A hundred levels on each of two paths, a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
 safe to share with anyone. All art is vector paths drawn at runtime and every
@@ -66,6 +67,8 @@ npm run typecheck    # app + worker
 npm test             # pause/resume, reef maze, slime colour + daily seeding,
                      # crossing solvability + hop rules, brickfall board + music
                      # snake turn queue + stages with no dead ends
+                     # Word Voltage: the validator, every shipped puzzle,
+                     # the wheel, saves and rewards, Daily Charge dates
 npm run build        # typecheck, then production bundle into dist/
 ```
 
@@ -188,6 +191,21 @@ Emulators can't tell you how the controls feel. Worth doing once:
       flickering line before it fires; and losing a life keeps the apples
       already eaten. Finish a run in each and confirm they land on different
       boards — **HIGH SCORES → SNAKE** has a **CLASSIC** tab.
+- [ ] Word Voltage: a swipe round the wheel with one thumb picks up every
+      letter it crosses, even fast, and going back one letter takes it off.
+      Lift off outside the wheel and the word still goes in. A second finger
+      on the wheel mid-swipe does nothing. Switch the wheel to **TAP** and the
+      ⌫ and ✓ buttons appear. With **Settings → Large text** on, nothing is
+      cut off on the smallest phone in the family.
+- [ ] Word Voltage: solve two words in a level, close the app completely,
+      reopen it: **CONTINUE** goes back to that level with the same words,
+      hints and wheel order. Finish it and the bolt is counted once, however
+      many times you tap.
+- [ ] Word Voltage: play **DAILY CHARGE** on two phones in different time
+      zones (or one phone with its clock zone changed) and confirm both show
+      the same date and board. **SHARE** sends stars, hints and bonus count,
+      never a word. Then turn on airplane mode, reload, and play a level and
+      the Daily Charge.
 
 ---
 
@@ -459,6 +477,78 @@ nothing at all.
 
 ---
 
+## Word Voltage, and puzzles that are checked before they ship
+
+Drag from letter to letter round a wheel, let go, and the word fills its
+place on a small crossword. Crossing words share a square, so every word
+gives you letters of the next. Fill every word and the level is Powered Up.
+
+- **Two paths, independent saves.** FAMILY is four to six letters and three
+  to seven words on boards up to 8x8; CHALLENGE is five to seven letters and
+  five to ten words, up to 10x10. Each is 100 levels in five circuits of 20
+  (Starter Circuit, Neon Alley, Pixel Power, Turbo Terminal, Voltage Vault).
+  Levels open one at a time, and any finished one can be replayed.
+- **Nobody loses.** There's no timer and no failure. A wrong word says "Try
+  another word" and costs nothing. HINT lights up one square, is free and
+  never runs out, and stars only count hints: three with none, two with one
+  or two, one with three or more. Every finish unlocks the next level.
+- **Bonus words** are real words that aren't on the board. Each puzzle's list
+  is worked out from the lexicon when the pack is made, so "7 of 23 found" is
+  a real count. Every five found on a puzzle earns a bolt, once.
+- **Daily Charge** is one board a day on each path, the same for everyone,
+  dated by the **New York** calendar rather than the phone's own. That's
+  deliberate and different from every other daily here: the family is spread
+  across time zones and the point is the same board on the same day. The
+  pack covers 100 days from 2026-10-21; once a date has no puzzle the card
+  says so rather than repeating an old one.
+- **No leaderboard.** There's no score to rank, so it's `noLeaderboard` like
+  Pass the Disc. Progress, stars, bolts, badges and wheel styles are kept on
+  the phone in `hyperdrive.wordvoltage`.
+
+### Where the puzzles come from
+
+Not from a seed on the phone. `npm run wv:generate` makes all 401 puzzles
+(a practice board, 100 + 100 levels, and 100 days x 2 dailies) offline, from
+the arcade's own family word lists for the board words and the public-domain
+ENABLE list for bonus words, and writes them to
+`public/word-voltage/pack-v1.json`. It's deterministic, and it won't write a
+pack the validator rejects. The service worker caches that file when the
+arcade installs, so every level and every daily plays with no signal, even
+if Word Voltage was never opened while online.
+
+The validator (`validate.ts`) is the rule, for generated and hand-made boards
+alike: every target spellable from the wheel's letters, counting repeats;
+crossings that agree and only cross at right angles; every run of two or
+more letters, across or down, exactly a declared word, so nothing touches by
+accident; one connected board, trimmed, within its path's size and not a thin
+strip; no two puzzles the same board or the same wheel; no neighbouring
+levels too alike; and a daily calendar with no gaps. `pack.test.ts` runs it
+over the whole shipped pack on every `npm test`.
+
+A released pack is never regenerated: saves are keyed on its puzzle ids. The
+next one is `pack-v2.json`, carrying v1's puzzles over unchanged. Sources,
+licences, filters and limits are in
+[`scripts/word-voltage/LEXICON.md`](scripts/word-voltage/LEXICON.md).
+
+```
+src/games/wordvoltage/
+  types.ts letters.ts board.ts   the puzzle model: wheels, placements, squares
+  validate.ts                    the strict validator
+  play.ts                        a level's rules as a pure reducer
+  wheel.ts                       token paths, hit testing, keyboard, shuffle
+  rewards.ts                     circuits, badges, bolts, wheel styles, the ledger
+  save.ts                        the versioned save, merging tabs, idempotent rewards
+  daily.ts                       Daily Charge's New York date, the share text
+  pack.ts                        reading the pack
+  levelview.ts                   a level on screen: board, wheel, swipe/tap/keys
+  index.ts                       the cabinet's screens
+  art.ts  wordvoltage.css        marquee, icons, badges; the neon look
+scripts/word-voltage/
+  generate.ts lexicon.ts         the offline generator and its word lists
+  data/                          extra target words, the deny list
+  generation-report.txt          what the last run made and rejected
+```
+
 ## Mom Mom's Crossword, and the Word Finder
 
 Made for Mom Mom Stec. A crossword a day, the same grid for everyone, printed
@@ -690,6 +780,11 @@ A few optional hooks, all of which default to the old behaviour:
   with the large-text setting.
 - `RunSummary.ranked: false` marks a run as practice, so the shell skips
   submission and the personal best instead of posting a zero.
+- `GameHost.exitToArcade()` and `GameHost.updateSettings()` are for a DOM
+  cabinet with its own menus (Word Voltage): a BACK TO ARCADE button that
+  doesn't go through the pause screen, and the arcade-wide sound and
+  vibration switches inside its own settings. Both are optional on the
+  interface, so no other game had to change.
 - `RunSummary.boardId` files a run on a specific board (see the daily board
   above); `RunSummary.headline` replaces "GAME OVER" for modes where losing
   isn't a concept.

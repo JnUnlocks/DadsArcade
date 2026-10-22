@@ -22,6 +22,7 @@ import { crosswordModule } from "./crossword";
 import { wordFinderModule } from "./wordfinder";
 import { sudokuModule } from "./sudoku";
 import { prizeDropModule } from "./prizedrop";
+import { wordVoltageModule } from "./wordvoltage";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
@@ -45,4 +46,7 @@ export const GAMES: GameModule[] = [
   slimeShopModule,
   blackDiscModule,
   sudokuModule,
+  // At the bottom while the family tries it out (BETA), by Justin's choice on
+  // 2026-10-21.
+  wordVoltageModule,
 ];

@@ -1,0 +1,43 @@
+Word Voltage pack v1
+
+family: 100 campaign levels
+  circuit 1: 4/5 letters, 3-5 words, boards up to 6 squares
+  circuit 2: 5 letters, 5-5 words, boards up to 7 squares
+  circuit 3: 5 letters, 5-6 words, boards up to 7 squares
+  circuit 4: 6 letters, 5-6 words, boards up to 8 squares
+  circuit 5: 6 letters, 7-7 words, boards up to 8 squares
+challenge: 100 campaign levels
+  circuit 1: 5/6 letters, 5-6 words, boards up to 8 squares
+  circuit 2: 6 letters, 6-7 words, boards up to 10 squares
+  circuit 3: 7 letters, 7-8 words, boards up to 10 squares
+  circuit 4: 6 letters, 8-8 words, boards up to 10 squares
+  circuit 5: 7 letters, 9-10 words, boards up to 10 squares
+
+daily: 100 dates, 2026-10-21 to 2027-01-28, both paths
+
+first ten levels of each path (wheel: targets):
+  f-001  ILTE: TILE LIE LIT  (+6 bonus)
+  f-002  TEAS: EATS TEA SEAT  (+15 bonus)
+  f-003  NEAM: MEAN MANE NAME  (+8 bonus)
+  f-004  FRAT: RAFT RAT FAR TAR  (+5 bonus)
+  f-005  NDOE: DONE NOD END DOE  (+6 bonus)
+  f-006  APRT: TRAP TAP PART PAT  (+8 bonus)
+  f-007  EAHT: HEAT EAT HATE ATE  (+11 bonus)
+  f-008  TIPN: PINT PIT NIP TIP  (+3 bonus)
+  f-009  TIASN: SAINT SATIN STAIN ANTS  (+27 bonus)
+  f-010  IGTSH: SIGHT THIS SIGH HIS  (+12 bonus)
+  c-001  GIRND: GRIND GRID RING DIG RIG  (+9 bonus)
+  c-002  TEYFL: LEFTY FELT LEFT YET LET  (+11 bonus)
+  c-003  NCKSA: SNACK SCAN CANS SACK SANK  (+6 bonus)
+  c-004  DRTFA: DRAFT DART TAR RAT ART  (+13 bonus)
+  c-005  ERALP: PEARL PALE PEAR REAL ERA  (+23 bonus)
+  c-006  PIHCN: PINCH INCH NIP CHIP CHIN  (+8 bonus)
+  c-007  AHCRT: CHART CHAT ARCH ARC CAT  (+14 bonus)
+  c-008  BAREC: BRACE BEAR RACE ACRE CARE  (+17 bonus)
+  c-009  WONBR: BROWN BORN WORN WON ORB BOW  (+7 bonus)
+  c-010  UOTER: OUTER ROUTE TOUR TORE TRUE OUT  (+15 bonus)
+
+candidates rejected on the way (a base word can be tried by many levels):
+  19184  too few common words in the wheel
+  1  every seating of the wheel reads as one of its words
+  1  too like a neighbouring level

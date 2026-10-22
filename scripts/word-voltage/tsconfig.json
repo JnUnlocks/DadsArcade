@@ -1,0 +1,5 @@
+{
+  // Typechecks the offline content tools, which nothing in src/ imports.
+  "extends": "../../tsconfig.json",
+  "include": ["*.ts"]
+}

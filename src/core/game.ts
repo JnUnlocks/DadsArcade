@@ -69,6 +69,20 @@ export interface GameHost {
    * initials everywhere, exactly as the game-over prompt does.
    */
   initialsPrompt(buttonLabel: string, onSaved: (initials: string) => void): HTMLElement;
+
+  /**
+   * Leave for the arcade floor, the same as QUIT TO ARCADE on the pause
+   * screen. For a cabinet with its own BACK TO ARCADE button (Word Voltage),
+   * so the way out doesn't have to go through a pause.
+   */
+  exitToArcade?(): void;
+
+  /**
+   * Change one of the arcade's own settings from inside a game, for a game
+   * whose settings panel offers the arcade-wide ones too (sound, vibration).
+   * Saved and applied exactly as the Settings screen does it.
+   */
+  updateSettings?(patch: Partial<Settings>): void;
 }
 
 /** How a game is being started. */

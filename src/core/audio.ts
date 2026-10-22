@@ -114,7 +114,22 @@ export type SoundName =
   | "dropMerge9"
   | "dropGrand"
   | "dropWarn"
-  | "dropFull";
+  | "dropFull"
+  // Word Voltage
+  | "voltTick1"
+  | "voltTick2"
+  | "voltTick3"
+  | "voltTick4"
+  | "voltTick5"
+  | "voltTick6"
+  | "voltTick7"
+  | "voltWord"
+  | "voltBonus"
+  | "voltCharge"
+  | "voltAgain"
+  | "voltShuffle"
+  | "voltHint"
+  | "voltWin";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -630,6 +645,55 @@ export class AudioEngine {
       case "dropFull":
         // The cabinet is full, which is how every game ends. A sigh, not a siren.
         this.arpeggio(t, [392, 330, 262], 0.17, "sine", 0.16);
+        break;
+
+      // ----- Word Voltage -----
+      // One note per letter picked up, climbing a major scale, so a long
+      // word sounds like it's charging. Short and quiet: a fast swipe plays
+      // several in a row.
+      case "voltTick1":
+      case "voltTick2":
+      case "voltTick3":
+      case "voltTick4":
+      case "voltTick5":
+      case "voltTick6":
+      case "voltTick7": {
+        const hz = [523, 587, 659, 698, 784, 880, 988][Number(name.slice(-1)) - 1] ?? 523;
+        this.blip(t, "triangle", hz, hz * 1.01, 0.07, 0.11);
+        break;
+      }
+      case "voltWord":
+        // The board taking the word: a quick bright chime.
+        this.arpeggio(t, [784, 1047, 1319], 0.055, "sine", 0.17);
+        this.blip(t + 0.17, "triangle", 1568, 1568, 0.16, 0.08);
+        break;
+      case "voltBonus":
+        // A chirp of its own, so a bonus never sounds like a board word.
+        this.blip(t, "square", 1175, 1760, 0.07, 0.08);
+        this.blip(t + 0.08, "square", 1397, 2093, 0.08, 0.07);
+        break;
+      case "voltCharge":
+        // Five bonus words: the meter tipping over into a bolt.
+        this.blip(t, "sawtooth", 220, 880, 0.18, 0.08);
+        this.arpeggio(t + 0.16, [880, 1175, 1568], 0.06, "square", 0.1);
+        break;
+      case "voltAgain":
+        // Already found. A soft double tap, never a buzzer.
+        this.blip(t, "sine", 660, 640, 0.05, 0.08);
+        this.blip(t + 0.07, "sine", 660, 640, 0.05, 0.06);
+        break;
+      case "voltShuffle":
+        this.burst(t, 0.12, 1800, 600, 0.07);
+        this.blip(t, "triangle", 440, 620, 0.12, 0.06);
+        break;
+      case "voltHint":
+        // A ping, for one square lighting up.
+        this.blip(t, "sine", 1319, 1319, 0.22, 0.12, 5);
+        break;
+      case "voltWin":
+        // Powered up: a run to the top and a held note. Under a second.
+        this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.07, "square", 0.13);
+        this.blip(t + 0.36, "sine", 1568, 1568, 0.5, 0.13, 6);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

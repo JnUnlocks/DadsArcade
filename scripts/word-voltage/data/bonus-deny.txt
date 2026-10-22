@@ -1,0 +1,49 @@
+# Word Voltage: words the game won't accept, even as a bonus.
+#
+# The bonus lexicon is ENABLE as the arcade already ships it
+# (public/crossword-words.txt), which has had its swears and slurs taken out
+# by scripts/build-wordlist.mjs. This list takes out more, for a game a child
+# plays by dragging across letters and seeing what lights up: more slurs,
+# bodies, drinking, drugs, and violence. Exact words only; nothing is
+# derived, so add each form that should go.
+#
+# Targets are checked against this too, so nothing here can ever fill a board.
+
+# Slurs and insults.
+chink chinks dago dagos darkey darkie darkies darky gook gooks gyp gyps gypped honkey honkie
+honky jap japs kikes nigger niggers redskin redskins retard retards spaz spazz squaw squaws
+tranny wetback wetbacks wog wogs idiot idiots moron morons dumb dork dorks loser losers nerd
+nerds twit twits wimp wimps freak freaks lesbo dyke dykes fag fags fags homo homos
+
+# Bodies and rude words.
+anal anus arse arses ass asses bra bras breast breasts bum bums butt butts crotch
+dong dongs fanny groin groins hooter hooters naked nipple nipples nude nudes pee
+pees peed poo poop poos puke pukes puked rump rumps scrotum sperm teat teats testes tit tits
+titties tush turd turds udder udders willy womb wombs barf barfs fart farts snot
+booby boob boobs boobies sexy sex sexed sexes sexing horny lust lusts lusted stripper
+pimp pimps whore whores slut sluts hussy harlot
+
+# Drinking, smoking and drugs.
+ale ales beer beers booze boozed boozer boozes bourbon brandy cider ciders drunk drunks gin gins
+grog keg kegs lager lagers liquor mead meads rum rums tipsy vodka
+whisky wine wines winery cigar cigars smoke smokes smoked smoker smoking toke tokes stoned
+dope dopes drug drugs druggie hash opium weed weeds reefer bong
+bongs meth narc narcs
+
+# Violence, weapons and death.
+kill kills killed killer killers die died dies dead death deaths gun guns gunned gunner shoot
+stab stabs stabbed slay slays slain murder murders bomb bombs bombed rifle
+rifles knife knives blade blades sword swords spear spears bullet bullets wound wounds wounded
+war wars warrior warriors fight fights fought punch punches gore gory blood bloody corpse
+coffin coffins grave graves hanged noose nooses torture execute choke chokes
+strangle drown drowns drowned suicide poison poisons poisoned assault rape raped raper
+
+# Other things a child shouldn't see light up.
+hell hells damn damned devil devils demon demons satan sin sins sinful nazi nazis slave slaves
+rob robs robbed robber robbers steal steals stole thief thieves crook crooks prison prisons
+
+# The words scripts/build-wordlist.mjs already strips from ENABLE, listed
+# again so the wheel-order check (generate.ts) can't read one round a circle.
+arse ass bastard bitch bitches bollock bugger buggers clit clits cock cocks coon coons crap craps
+cunt cunts dick dicks dildo dildos fuck fucks jism kike penis pisser piss porn porno prick pricks
+pussy queer queers semen shit shits spic spics twat twats vagina wank wanks wop wops

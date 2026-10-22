@@ -154,6 +154,10 @@ export class Shell implements GameHost {
     }, buttonLabel);
   }
 
+  exitToArcade(): void {
+    this.showMenu();
+  }
+
   gameOver(summary: RunSummary): void {
     if (this.screen === "gameover") return;
     this.screen = "gameover";
