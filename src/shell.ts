@@ -17,19 +17,23 @@ import {
   countPlay,
   createDeviceId,
   loadDailySeen,
+  loadDayLog,
   loadPlayCounts,
   loadPlayer,
   loadSeenVersion,
   loadSettings,
+  loadStreakCheered,
   recordBest,
   savePlayer,
   saveSeenVersion,
   saveSettings,
+  saveStreakCheered,
   type Player,
   type QueuedScore,
   type Settings,
 } from "./core/storage";
 import { View } from "./core/view";
+import { streakState } from "./core/streak";
 import { WakeLock } from "./core/wakelock";
 import { drawCrtOverlay, drawHud } from "./ui/hud";
 import { buildAboutScreen } from "./ui/about";
@@ -40,6 +44,7 @@ import { standaloneKey } from "./ui/boardFilter";
 import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
+import { buildStreakScreen, buildStreakStrip } from "./ui/streak";
 
 type ScreenName = "menu" | "playing" | "paused" | "resuming" | "gameover";
 
@@ -335,9 +340,23 @@ export class Shell implements GameHost {
     this.clearUi();
 
     const screen = el("div", "screen");
+    // The streak strip stands where "Pick your machine." used to, so the menu
+    // is no taller for it. It cheers once, the first time the menu is seen
+    // after the day's second daily.
+    const today = dailyKey();
+    const streak = streakState(loadDayLog(), today);
+    const cheer = streak.litToday && loadStreakCheered() !== today;
+    if (cheer) {
+      saveStreakCheered(today);
+      this.audio.play("voltCharge");
+    }
     screen.append(
       el("h1", "", "DAD'S ARCADE"),
-      el("p", "", "Pick your machine."),
+      buildStreakStrip(streak, cheer && !this._settings.reducedMotion, () => {
+        this.audio.unlock();
+        this.audio.play("uiSelect");
+        this.showStreak();
+      }),
     );
 
     // A grid of cabinets rather than a column of full-width buttons. Each
@@ -488,6 +507,29 @@ export class Shell implements GameHost {
       this.startGame(game);
     });
     return button;
+  }
+
+  /** The daily streak screen, reached from the strip on the menu. */
+  showStreak(): void {
+    this.clearUi();
+    const log = loadDayLog();
+    const dailies = this.games.filter(
+      (game) => game.hasDailyChallenge === true || game.dailyWithoutBoard === true,
+    );
+    this.ui.append(
+      buildStreakScreen(
+        streakState(log),
+        log,
+        dailies,
+        (game) => {
+          this.audio.unlock();
+          this.audio.play("uiSelect");
+          countPlay(game.id);
+          this.startGame(game);
+        },
+        () => this.showMenu(),
+      ),
+    );
   }
 
   /** Release notes. Marks the latest as seen once they've been shown. */

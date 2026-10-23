@@ -34,7 +34,7 @@ import type { GameHost, GameInstance, GameModule, HudState } from "../../core/ga
 import type { InputSnapshot } from "../../core/input";
 import { dailyKey, dailySeed, previousDailyKey } from "../../core/rng";
 import { playLink } from "../../core/share";
-import { loadDailySeen, markDailySeen } from "../../core/storage";
+import { loadDailySeen, markDailyDone, markDailySeen } from "../../core/storage";
 import { shareButton } from "../../ui/shareButton";
 import { buildFinder } from "./finder";
 import {
@@ -541,6 +541,7 @@ export class Crossword implements GameInstance {
       const next = advanceStreak(loadStreak(), this.dateKey, previousDailyKey(this.dateKey));
       saveStreak(next);
       this.streak = next.count;
+      markDailyDone(crosswordModule.id, this.dateKey);
     } else {
       clearGame(this.slot);
     }
@@ -1027,7 +1028,7 @@ export const crosswordModule: GameModule = {
     "The clue you're on is shown with the grid. On a phone, CLUES swaps the keyboard for the full list.",
     "Stuck? CHECK shows which letters of a word are wrong, LETTER fills in one square, WORD fills in the whole word.",
     "Each hint adds a little time to your clock. Nobody ever has to give up.",
-    "The day's board ranks the fastest time, hints included.",
+    "The day's board ranks the fastest time, hints included. It counts toward the arcade's daily streak.",
     "Every puzzle is saved as you go, so you can put it down and come back.",
   ],
   accent: "#e9dcb8",

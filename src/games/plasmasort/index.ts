@@ -41,7 +41,7 @@ import type { InputSnapshot } from "../../core/input";
 import { Particles } from "../../core/particles";
 import { playLink } from "../../core/share";
 import { dailyKey, dailySeed } from "../../core/rng";
-import { loadDailySeen, markDailySeen } from "../../core/storage";
+import { loadDailySeen, markDailyDone, markDailySeen } from "../../core/storage";
 import { shareButton } from "../../ui/shareButton";
 import {
   advanceStreak,
@@ -583,6 +583,7 @@ export class PlasmaSort implements GameInstance {
       const next = advanceStreak(loadStreak(), this.dateKey, yesterdayKey());
       saveStreak(next);
       this.streak = next.count;
+      markDailyDone(plasmaSortModule.id, this.dateKey);
       this.offerShare = true;
       this.buildResultControls();
     }
@@ -1127,6 +1128,7 @@ export const plasmaSortModule: GameModule = {
     "Sort every tube down to a single colour and the puzzle's done.",
     "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose, only not finish yet.",
     "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour.",
+    "Today's puzzle counts toward the arcade's daily streak: finish any two dailies a day.",
   ],
   accent: "#d96bff",
   hasDailyChallenge: true,

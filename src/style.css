@@ -2352,3 +2352,229 @@ body {
   /* Never in the way of a tap. */
   pointer-events: none;
 }
+
+/* ----- Daily streak (ui/streak.ts) -----
+   The strip stands in for the menu's old "Pick your machine." line, so it is
+   kept to one short line: no taller than that paragraph plus its tap area. */
+.streak-strip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: calc(36px * var(--ui-scale));
+  max-width: 100%;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 193, 77, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 193, 77, 0.07);
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.streak-strip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.streak-strip--risk {
+  color: var(--ink);
+}
+
+.streak-strip--lit {
+  color: var(--accent-warm);
+  border-color: rgba(255, 193, 77, 0.7);
+  background: rgba(255, 193, 77, 0.14);
+}
+
+.streak-strip-shields {
+  letter-spacing: 0;
+}
+
+.streak-strip--cheer {
+  animation: streak-cheer 900ms ease-out 2;
+}
+
+@keyframes streak-cheer {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 193, 77, 0); }
+  35% { transform: scale(1.08); box-shadow: 0 0 22px rgba(255, 193, 77, 0.65); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 193, 77, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-strip--cheer { animation: none; }
+}
+
+.screen--streak {
+  justify-content: flex-start;
+  gap: calc(10px * var(--ui-scale));
+}
+
+.streak-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.streak-flame {
+  font-size: calc(30px * var(--ui-scale));
+}
+
+.streak-count {
+  font-size: calc(52px * var(--ui-scale));
+  font-weight: 700;
+  color: var(--accent-warm);
+  text-shadow: 0 0 18px rgba(255, 193, 77, 0.45);
+  line-height: 1;
+}
+
+.streak-unit {
+  font-size: calc(14px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+}
+
+.screen .streak-status {
+  color: var(--ink);
+}
+
+.screen .streak-best {
+  margin-top: -6px;
+  font-size: calc(12px * var(--ui-scale));
+}
+
+.streak-heading {
+  margin-top: 8px;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+
+.streak-dailies {
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.streak-daily {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: calc(48px * var(--ui-scale));
+  padding: 6px 10px;
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--cabinet-accent, var(--accent));
+  border-radius: 8px;
+  background: rgba(70, 224, 255, 0.05);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.streak-daily-mark {
+  flex: none;
+  width: calc(20px * var(--ui-scale));
+  height: calc(20px * var(--ui-scale));
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--dim);
+  border-radius: 50%;
+  color: #120b1f;
+  font-size: calc(12px * var(--ui-scale));
+}
+
+.streak-daily--done {
+  background: rgba(255, 193, 77, 0.1);
+}
+
+.streak-daily--done .streak-daily-mark {
+  border: none;
+  background: var(--accent-warm);
+}
+
+.screen .streak-shields {
+  max-width: 40ch;
+}
+
+.streak-shield-icons {
+  color: var(--accent);
+  letter-spacing: 0.2em;
+}
+
+.streak-calendar {
+  width: 100%;
+  max-width: 320px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.streak-day {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(142, 163, 200, 0.08);
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+}
+
+.streak-day--lit {
+  background: rgba(255, 193, 77, 0.16);
+}
+
+.streak-day--shield {
+  background: rgba(70, 224, 255, 0.14);
+}
+
+.streak-day--today {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.streak-trophies {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.streak-trophy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: calc(36px * var(--ui-scale));
+  padding: 4px 2px;
+  border-radius: 8px;
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  opacity: 0.55;
+}
+
+.streak-trophy--earned {
+  color: var(--accent-warm);
+  opacity: 1;
+}
+
+.streak-trophy-icon {
+  font-size: calc(18px * var(--ui-scale));
+}
+
+.screen .streak-rules {
+  font-size: calc(11px * var(--ui-scale));
+  max-width: 40ch;
+}

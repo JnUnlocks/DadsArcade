@@ -34,7 +34,7 @@ import type {
 import type { InputSnapshot } from "../../core/input.ts";
 import { Particles } from "../../core/particles.ts";
 import { dailyKey } from "../../core/rng.ts";
-import { loadVisitorId, markDailySeen } from "../../core/storage.ts";
+import { loadVisitorId, markDailyDone, markDailySeen } from "../../core/storage.ts";
 import { CAST, characterById, type Character } from "./cast.ts";
 import { dailyCourse } from "./daily.ts";
 import {
@@ -139,6 +139,8 @@ export class ForestDash implements GameInstance {
   /** Today's course first, then the four that are always there. */
   private readonly courses: readonly Course[];
   private readonly daily: Course;
+  /** The day `daily` was built for, which is the day a finish of it counts for. */
+  private readonly dailyDate = dailyKey();
 
   private character: Character;
   private opponents: Opponents;
@@ -563,6 +565,7 @@ export class ForestDash implements GameInstance {
       this.host.sfx(this.place() === 1 ? "dashFinish" : "lockMiss");
       this.burst(this.track.finishX, 60, PALETTE.finish, 28, 120);
       this.keepRun();
+      if (this.course === this.daily) markDailyDone(GAME_ID, this.dailyDate);
     }
 
     if (this.phase === "finished") {
@@ -834,7 +837,7 @@ export const forestDashModule: GameModule = {
   progressShort: "PL",
   blurb: "Race Pip and the family through the mushroom forest. Tap to jump, hold to glide.",
   howToPlay: [
-    "Your animal runs on its own. Tap to jump.",
+    "Your animal runs on its own. Tap to jump. Finishing the daily course counts toward the arcade's daily streak.",
     "Keep holding after a jump to glide over wide gaps.",
     "Land on a big mushroom to bounce high.",
     "Hold in the glowing spores to float up.",

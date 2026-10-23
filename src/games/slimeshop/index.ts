@@ -44,7 +44,7 @@ import type {
 import type { InputSnapshot } from "../../core/input";
 import { Particles } from "../../core/particles";
 import { dailyKey, dailySeed, Rng } from "../../core/rng";
-import { loadDailySeen, markDailySeen } from "../../core/storage";
+import { loadDailySeen, markDailyDone, markDailySeen } from "../../core/storage";
 import {
   colourMatch,
   colourName,
@@ -804,6 +804,10 @@ export class SlimeShop implements GameInstance {
   private closeShop(): void {
     this.phase = "closed";
     this.host.sfx("shopClose");
+    // The board id carries the day the shop opened, so that's the day it counts for.
+    if (this.boardId?.startsWith("daily-")) {
+      markDailyDone(slimeShopModule.id, this.boardId.slice("daily-".length));
+    }
     this.root.replaceChildren();
     this.host.gameOver({
       progress: ORDERS_PER_DAY,
@@ -1260,7 +1264,7 @@ export const slimeShopModule: GameModule = {
     "Match the texture and the mix-ins on the order too. Getting the colour close is worth the most.",
     "You can't lose. A slime that's a bit off still gets served, it just scores less.",
     "Being quick adds a bonus. Taking your time costs nothing else.",
-    "The daily challenge is the same six orders for everyone that day. SLIME LAB is free play with no score.",
+    "TODAY'S SPECIAL is the same six orders for everyone and counts toward the daily streak. SLIME LAB is free play.",
     "Squish the slime to dig out the prizes buried in it.",
   ],
   accent: "#ff5fae",

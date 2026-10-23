@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.31.0",
+    date: "2026-10-22",
+    title: "The daily streak",
+    notes: [
+      "NEW: THE DAILY STREAK, at the top of the arcade. Finish any two of the daily puzzles in a day and the day lights up. Keep lighting days in a row and the flame grows.",
+      "Only the dailies count: Letter Lock, Plasma Sort, the Crossword, the Number Game, Word Voltage's Daily Charge, Today's Special in the Slime Shop and Forest Dash's daily course. Won or lost doesn't matter. Turning up is what counts.",
+      "Shields: every seven days in a row earns one, and you can hold two. Miss a day and a shield is used by itself, so one busy day doesn't cost you the streak.",
+      "Tap the streak to see which dailies you've done today, the last four weeks, and trophies at 3, 7, 14 and 30 days and on up to a whole year.",
+      "Each game still keeps its own streak as well. The daily streak is kept on your phone, and it starts today.",
+    ],
+  },
+  {
     version: "0.30.0",
     date: "2026-10-22",
     title: "Solitaire, like the old office computer (BETA)",

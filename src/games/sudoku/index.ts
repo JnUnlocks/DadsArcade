@@ -35,7 +35,7 @@ import { buzz } from "../../core/haptics";
 import type { InputSnapshot } from "../../core/input";
 import { dailyKey, dailySeed, previousDailyKey, shortDate } from "../../core/rng";
 import { playLink } from "../../core/share";
-import { loadDailySeen, markDailySeen } from "../../core/storage";
+import { loadDailySeen, markDailyDone, markDailySeen } from "../../core/storage";
 import { shareButton } from "../../ui/shareButton";
 import {
   CELLS,
@@ -523,6 +523,7 @@ export class Sudoku implements GameInstance {
       const next = advanceStreak(loadStreak(), this.dateKey, previousDailyKey(this.dateKey));
       saveStreak(next);
       this.streak = next.count;
+      markDailyDone(sudokuModule.id, this.dateKey);
     } else {
       clearGame(this.slot);
     }
@@ -979,7 +980,7 @@ export const sudokuModule: GameModule = {
     "Tap a number, then every square it goes in. Or tap a square, then its number.",
     "NOTES pencils small numbers into a square. AUTO pencils in every one that still fits.",
     "A wrong number shows red and adds 30 seconds. HINT fills in a square and adds 60. Nobody loses.",
-    "Today's puzzle is the same for everyone, with one go at it. Easy on Monday, hardest on Sunday.",
+    "Today's puzzle is the same for everyone, with one go at it. Easy on Monday, hardest on Sunday. It counts toward the arcade's daily streak.",
     "Every puzzle is saved as you go, so you can put it down and come back.",
   ],
   accent: "#ffc928",

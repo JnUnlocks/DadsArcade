@@ -208,7 +208,41 @@ Emulators can't tell you how the controls feel. Worth doing once:
       never a word. Then turn on airplane mode, reload, and play a level and
       the Daily Charge.
 
+- [ ] Daily streak: finish one daily and the menu strip says **1 OF 2
+      TODAY**; finish a second, different one (a lost Letter Lock counts) and
+      it lights, celebrates once, and stays lit after a reload. Tap it: both
+      games are ticked and today glows on the calendar.
+
 ---
+
+## The daily streak
+
+Every daily game kept a streak of its own, and none of them could see the
+others. The daily streak sits above them and asks for less than all of them:
+**any two different dailies, won or lost**, lights the day
+([`core/streak.ts`](src/core/streak.ts)).
+
+- **Only the dailies count.** They're the same puzzle for everyone that day,
+  which is what makes a streak mean something in the family chat.
+- **Turning up is what counts.** A lost Letter Lock lights the day just as a
+  solved one does; it still ends Letter Lock's own streak.
+- **Shields, earned and never bought.** Every seventh day in a row earns one,
+  up to two, and a missed day spends one by itself. A covered day keeps the
+  streak but doesn't add to it.
+- **Worked out, not counted.** The phone keeps a log of which dailies were
+  finished on which day (`hyperdrive.streak.days`, about 20 KB a year) and the
+  streak is recomputed from it every time. A puzzle started at 23:58 and
+  finished at 00:03 is filed under the day it started, so it can complete a
+  day that has already gone, and a shield spent on that day comes back.
+- **Finished, not opened.** Each game calls `markDailyDone()` at the moment
+  its daily ends. `markDailySeen()` couldn't be reused: it's written on the way
+  in, to clear the TODAY badge, and opening a puzzle isn't playing it.
+- **On the menu without making it taller.** The strip replaces the old "Pick
+  your machine." line. It cheers once, the first time the menu is seen after
+  the day's second daily. Everything else is on the screen behind it.
+- **Kept on the phone.** A phone and a tablet keep separate streaks. History
+  before this release isn't known to it, so everyone started from the day it
+  shipped.
 
 ## Riley's Slime Shop, and the daily board
 

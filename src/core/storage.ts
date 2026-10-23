@@ -6,6 +6,8 @@
  * localStorage access, and a thrown error here should never stop the game.
  */
 
+import { addFinish, type DayLog, parseDayLog } from "./streak.ts";
+
 const KEY_PLAYER = "hyperdrive.player";
 const KEY_SETTINGS = "hyperdrive.settings";
 const KEY_BESTS = "hyperdrive.bests";
@@ -13,6 +15,8 @@ const KEY_QUEUE = "hyperdrive.queue";
 const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
 const KEY_DAILY_SEEN = "hyperdrive.dailySeen";
 const KEY_PLAYS = "hyperdrive.plays";
+const KEY_STREAK_DAYS = "hyperdrive.streak.days";
+const KEY_STREAK_CHEERED = "hyperdrive.streak.cheered";
 /** Anonymous id for play counts, made before the player ever enters initials. */
 const KEY_VISITOR = "hyperdrive.visitor";
 
@@ -253,6 +257,38 @@ export function markDailySeen(gameId: string, dateKey: string): void {
   const seen = loadDailySeen();
   seen[gameId] = dateKey;
   write(KEY_DAILY_SEEN, seen);
+}
+
+/**
+ * Which dailies were finished on which day, for the arcade's daily streak
+ * (core/streak.ts works the streak out from it).
+ *
+ * Called at the moment a daily is *finished* -- won or lost -- with the day
+ * that daily was started on, which is why it can't share markDailySeen: that
+ * one is written on the way in, and opening a puzzle isn't playing it.
+ */
+export function loadDayLog(): DayLog {
+  try {
+    const raw = localStorage.getItem(KEY_STREAK_DAYS);
+    return parseDayLog(raw ? JSON.parse(raw) : null);
+  } catch {
+    return {};
+  }
+}
+
+export function markDailyDone(gameId: string, dateKey: string): void {
+  const log = loadDayLog();
+  const next = addFinish(log, gameId, dateKey);
+  if (next !== log) write(KEY_STREAK_DAYS, next);
+}
+
+/** The last day the menu cheered for the streak being lit, so it cheers once. */
+export function loadStreakCheered(): string {
+  return read<{ day: string }>(KEY_STREAK_CHEERED, { day: "" }).day;
+}
+
+export function saveStreakCheered(dateKey: string): void {
+  write(KEY_STREAK_CHEERED, { day: dateKey });
 }
 
 /**

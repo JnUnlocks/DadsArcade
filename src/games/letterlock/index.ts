@@ -43,7 +43,7 @@ import type { InputSnapshot } from "../../core/input";
 import { Particles } from "../../core/particles";
 import { dailyKey, dailySeed, previousDailyKey, shortDate } from "../../core/rng";
 import { playLink } from "../../core/share";
-import { loadDailySeen, markDailySeen } from "../../core/storage";
+import { loadDailySeen, markDailyDone, markDailySeen } from "../../core/storage";
 import { shareButton } from "../../ui/shareButton";
 import {
   advanceStreak,
@@ -479,6 +479,8 @@ export class LetterLock implements GameInstance {
         : breakStreak(this.dateKey);
       saveStreak(next);
       this.streak = next.count;
+      // A miss still counts toward the arcade's streak: it's for turning up.
+      markDailyDone(letterLockModule.id, this.dateKey);
       this.offerShare = true;
     }
 
@@ -938,7 +940,7 @@ export const letterLockModule: GameModule = {
     "Each tile then tells you one of three things: the letter is locked in the right place, it's in the word but somewhere else, or it isn't in the word.",
     "TODAY's word is the same for everyone, and only your first go at it counts.",
     "FREE PLAY and PRACTICE give you a random word whenever you like.",
-    "Run out of tries and the word is shown. The only thing a miss costs is your streak.",
+    "Run out of tries and the word is shown. A miss ends this game's streak but still counts for the arcade's.",
   ],
   accent: MINT,
   hasDailyChallenge: true,

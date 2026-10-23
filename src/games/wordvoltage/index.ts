@@ -31,7 +31,7 @@ import type { GameHost, GameInstance, GameModule, HudState, StartOptions } from 
 import type { InputSnapshot } from "../../core/input";
 import { dailyKey } from "../../core/rng";
 import { playLink, shareText as sendText } from "../../core/share";
-import { markDailySeen } from "../../core/storage";
+import { markDailyDone, markDailySeen } from "../../core/storage";
 import { ICONS, badgeSvg, boltSvg, drawWordVoltageIcon } from "./art";
 import { dailyDate, dailyPuzzleId, lastDailyDate, longDate, shareText } from "./daily";
 import { button, div, text } from "./dom";
@@ -114,6 +114,8 @@ class WordVoltage implements GameInstance {
   private pack: Pack | null = null;
   private view: LevelView | null = null;
   private screen: "loading" | "home" | "level" | "other" = "loading";
+  /** Local `dailyKey()` the open level was opened on. */
+  private openedOn = dailyKey();
   private homeDate = "";
   private dateCheck = 0;
 
@@ -476,6 +478,9 @@ class WordVoltage implements GameInstance {
     lastLevel = ref;
     this.screen = "level";
     if (ref.mode === "daily") markDailySeen(GAME_ID, dailyKey());
+    // The arcade's streak runs on the phone's own day, not New York's, and a
+    // charge finished after midnight counts for the day it was opened.
+    this.openedOn = dailyKey();
 
     const key = attemptKey(ref.mode, ref.difficulty, puzzle.id, pack.version, ref.date);
     let record = this.save.attempts[key];
@@ -600,6 +605,8 @@ class WordVoltage implements GameInstance {
     let save = structuredClone(this.save);
     const key = attemptKey(ref.mode, ref.difficulty, puzzle.id, pack.version, ref.date);
     const existing = save.attempts[key];
+    // Only the moment it's finished: reopening a finished charge shows this card too.
+    if (ref.mode === "daily" && !existing?.completed) markDailyDone(GAME_ID, this.openedOn);
     save.attempts[key] = {
       ...(existing ?? {
         puzzleId: puzzle.id,
@@ -1114,7 +1121,7 @@ export const wordVoltageModule: GameModule = {
     "SHUFFLE moves the letters round. HINT lights one square; tap a square first to pick the word.",
     "Hints are free and never run out. Stars only count hints: three with none, two with one or two.",
     "Prefer tapping? Switch the wheel to TAP. On a keyboard, type the letters and press Enter.",
-    "Daily Charge is one board a day for everyone, changing at midnight New York time.",
+    "Daily Charge is one board a day for everyone, changing at midnight New York time. It counts toward the arcade's daily streak.",
   ],
   accent: "#ffd52a",
   noLeaderboard: true,
