@@ -19,6 +19,7 @@ import { canSpell } from "./letters.ts";
 import { decodePack, PACK_URL } from "./pack.ts";
 import { FRESH_ATTEMPT, makeLevel, useHint } from "./play.ts";
 import { buildBoard } from "./board.ts";
+import { LEVELS_PER_CIRCUIT, PATH_CIRCUITS } from "./rewards.ts";
 import { validatePack } from "./validate.ts";
 
 const pack = decodePack(
@@ -36,9 +37,12 @@ describe("the content pack", () => {
     assert.deepEqual(errors.slice(0, 20), []);
   });
 
-  it("has a hundred levels on each path", () => {
+  it("has 100 Family levels and 200 Challenge, a circuit of 20 at a time", () => {
     assert.equal(pack.campaign.family.length, 100);
-    assert.equal(pack.campaign.challenge.length, 100);
+    assert.equal(pack.campaign.challenge.length, 200);
+    for (const difficulty of ["family", "challenge"] as const) {
+      assert.equal(pack.campaign[difficulty].length, PATH_CIRCUITS[difficulty] * LEVELS_PER_CIRCUIT);
+    }
   });
 
   it("covers at least ninety days of Daily Charge from release", () => {
@@ -54,7 +58,7 @@ describe("the content pack", () => {
   it("keeps each path inside its letter and word ranges", () => {
     for (const [difficulty, range] of [
       ["family", { letters: [4, 6], words: [3, 7], side: 8 }],
-      ["challenge", { letters: [5, 7], words: [5, 10], side: 10 }],
+      ["challenge", { letters: [5, 7], words: [5, 12], side: 10 }],
     ] as const) {
       for (const id of [...pack.campaign[difficulty], ...Object.values(pack.daily).map((d) => d[difficulty])]) {
         const p = pack.puzzles[id]!;
@@ -114,6 +118,32 @@ describe("the content pack", () => {
       let attempt = FRESH_ATTEMPT;
       for (let i = 0; i < 200 && !attempt.completed; i += 1) attempt = useHint(level, attempt).attempt;
       assert.ok(attempt.completed, puzzle.id);
+    }
+  });
+
+  it("keeps every puzzle, level and daily of the pack already on phones", () => {
+    // Saves, stars and rewards are keyed on these ids: a released pack's
+    // content must come through every later pack exactly as it was.
+    const v1 = decodePack(
+      JSON.parse(readFileSync(new URL("../../../public/word-voltage/pack-v1.json", import.meta.url), "utf8")),
+    );
+    for (const [id, puzzle] of Object.entries(v1.puzzles)) {
+      assert.deepEqual(pack.puzzles[id], puzzle, id);
+    }
+    for (const difficulty of ["family", "challenge"] as const) {
+      assert.deepEqual(pack.campaign[difficulty].slice(0, v1.campaign[difficulty].length), v1.campaign[difficulty]);
+    }
+    for (const [date, entry] of Object.entries(v1.daily)) assert.deepEqual(pack.daily[date], entry, date);
+    assert.equal(pack.tutorial, v1.tutorial);
+  });
+
+  it("gets harder past level 100 on Challenge", () => {
+    for (const [index, id] of pack.campaign.challenge.entries()) {
+      if (index < 100) continue;
+      const puzzle = pack.puzzles[id]!;
+      assert.equal(puzzle.letters.length, 7, id);
+      assert.ok(puzzle.words.length >= 9, id);
+      if (index >= 140) assert.ok(puzzle.words.every((p) => p.word.length >= 4), `${id} has a three-letter word`);
     }
   });
 

@@ -1,4 +1,4 @@
-Word Voltage pack v1
+Word Voltage pack v2
 
 family: 100 campaign levels
   circuit 1: 4/5 letters, 3-5 words, boards up to 6 squares
@@ -6,12 +6,17 @@ family: 100 campaign levels
   circuit 3: 5 letters, 5-6 words, boards up to 7 squares
   circuit 4: 6 letters, 5-6 words, boards up to 8 squares
   circuit 5: 6 letters, 7-7 words, boards up to 8 squares
-challenge: 100 campaign levels
+challenge: 200 campaign levels
   circuit 1: 5/6 letters, 5-6 words, boards up to 8 squares
   circuit 2: 6 letters, 6-7 words, boards up to 10 squares
   circuit 3: 7 letters, 7-8 words, boards up to 10 squares
   circuit 4: 6 letters, 8-8 words, boards up to 10 squares
   circuit 5: 7 letters, 9-10 words, boards up to 10 squares
+  circuit 6: 7 letters, 9-9 words, boards up to 10 squares
+  circuit 7: 7 letters, 10-10 words, boards up to 10 squares
+  circuit 8: 7 letters, 10-10 words, boards up to 10 squares
+  circuit 9: 7 letters, 11-11 words, boards up to 10 squares
+  circuit 10: 7 letters, 12-12 words, boards up to 10 squares
 
 daily: 100 dates, 2026-10-21 to 2027-01-28, both paths
 
@@ -37,7 +42,18 @@ first ten levels of each path (wheel: targets):
   c-009  WONBR: BROWN BORN WORN WON ORB BOW  (+7 bonus)
   c-010  UOTER: OUTER ROUTE TOUR TORE TRUE OUT  (+15 bonus)
 
+new in v2: 100 puzzles on top of v1's 401, kept unchanged
+every tenth new level (wheel: targets):
+  c-101  JEIALNV: JAVELIN NAIVE LINE ALIVE ALIEN NAIL LEAN LIVE VEIL  (+62 bonus)
+  c-111  EAONLTB: NOTABLE BATON TALON TABLE NOBLE ALONE LATE BLOT LEAN  (+111 bonus)
+  c-121  IOSMPER: PROMISE SORE PIES PRIME SOME PRISM PORE ORE SIR PIE  (+134 bonus)
+  c-131  IGNARSI: RAISING RISING RAISIN GRAINS GRAIN RANG GRIN SIGN SANG SING  (+62 bonus)
+  c-141  SRNIEVO: VERSION SENIOR NOISE SNORE RINSE VISOR IRON REIN RISE OVEN  (+101 bonus)
+  c-151  TRENOMS: MENTORS MONSTER MENTOR STORM SNORT STORE STERN NOTES SNORE TORN  (+136 bonus)
+  c-161  DLUORBE: BOULDER DOUBLE BLUR BORED RULE ROLE RUDE BOLD LURE ROBE LOUD  (+87 bonus)
+  c-171  SGHELIN: SHINGLE SINGLE SLING SHINE LENS HINGE SIGN SING HENS LINE LEGS  (+67 bonus)
+  c-181  TENRGSI: STINGER RESTING SINGER INSERT STING SIREN RINSE TIGER REIGN STERN REST GRIN  (+137 bonus)
+  c-191  NRTIKEH: THINKER HIKER THINK TRIKE KNIT THEN HINT TIRE HIKE HIRE KITE RENT  (+65 bonus)
+
 candidates rejected on the way (a base word can be tried by many levels):
-  19184  too few common words in the wheel
-  1  every seating of the wheel reads as one of its words
-  1  too like a neighbouring level
+  4863  too few common words in the wheel

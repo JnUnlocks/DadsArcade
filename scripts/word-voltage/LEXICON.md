@@ -38,6 +38,13 @@ Nothing was taken from another word game's dictionary, levels or art.
 At the last build: 3,796 target words (343 three-letter, 1,039 four, 1,230
 five, 652 six, 532 seven) and 51,428 bonus words.
 
+## Packs
+
+`pack-v1.json` (v0.29.0, Oct 21, 2026) was built from scratch: 401 puzzles.
+`pack-v2.json` (v0.32.0, Oct 24, 2026) is v1 unchanged plus Challenge levels
+101-200, with the same word lists: seven-letter wheels, 9 to 12 words, and
+four letters or more for every board word from level 141.
+
 ## How a puzzle's words are chosen (`generate.ts`)
 
 A base word from the target list gives the wheel its letters. Every target

@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.32.0",
+    date: "2026-10-24",
+    title: "Word Voltage: 100 more Challenge levels",
+    notes: [
+      "WORD VOLTAGE has 100 new CHALLENGE levels, 101 to 200, for anyone who has finished the first hundred. They pick up straight after level 100.",
+      "They get harder as they go: every wheel has seven letters, boards grow from 9 words to 12, and from level 141 there are no three-letter words at all.",
+      "Five new circuits to work through: Laser Lanes, Hyper Grid, Thunder Core, Overdrive and Max Voltage. Each one finished earns its own badge and a new wheel style.",
+      "Everything you've already done is kept: levels finished, stars, bolts, badges, and any board you were halfway through.",
+    ],
+  },
+  {
     version: "0.31.0",
     date: "2026-10-22",
     title: "The daily streak",

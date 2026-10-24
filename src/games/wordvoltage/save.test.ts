@@ -14,6 +14,7 @@ import {
   attemptKey,
   bonusIdentity,
   creditBonus,
+  findAttempt,
   freshSave,
   mergeSaves,
   recordFinish,
@@ -216,6 +217,49 @@ describe("two tabs", () => {
     assert.ok(written.campaign.family["f-002"]);
     const reloaded = new SaveStore(storage).current;
     assert.equal(boltsIn(reloaded.ledger), 2);
+  });
+});
+
+describe("a new pack", () => {
+  it("carries on an attempt begun under the old one", () => {
+    const save = freshSave();
+    save.attempts[attemptKey("campaign", "challenge", "c-042", "1")] = attempt(["STAR"], 10);
+    assert.deepEqual(findAttempt(save, "campaign", "challenge", "c-042")?.solved, ["STAR"]);
+    // Once it's saved again under the new pack, that copy is the one used.
+    save.attempts[attemptKey("campaign", "challenge", "c-042", "2")] = attempt(["STAR", "TAR"], 20);
+    assert.deepEqual(findAttempt(save, "campaign", "challenge", "c-042")?.solved, ["STAR", "TAR"]);
+    assert.equal(findAttempt(save, "campaign", "challenge", "c-04"), undefined);
+    assert.equal(findAttempt(save, "campaign", "family", "c-042"), undefined);
+  });
+
+  it("keeps a daily's attempt to its own date", () => {
+    const save = freshSave();
+    save.attempts[attemptKey("daily", "family", "fd-004", "1", "2026-10-24")] = attempt(["CAT"], 5);
+    assert.ok(findAttempt(save, "daily", "family", "fd-004", "2026-10-24"));
+    assert.equal(findAttempt(save, "daily", "family", "fd-004", "2026-10-25"), undefined);
+  });
+
+  it("has badges for Challenge's new circuits and none Family can't earn", () => {
+    assert.ok(BADGES.some((b) => b.id === "challenge-max"));
+    assert.ok(!BADGES.some((b) => b.id === "family-max"));
+    let save = freshSave();
+    const ids = Array.from({ length: 200 }, (_, i) => `c-${String(i + 1).padStart(3, "0")}`);
+    for (const id of ids.slice(100, 120)) {
+      save = recordFinish(save, {
+        mode: "campaign",
+        difficulty: "challenge",
+        puzzleId: id,
+        stars: 3,
+        hints: 0,
+        bonus: 0,
+        campaignIds: ids,
+        now: NOW,
+      }).save;
+    }
+    const ledger = new Set(save.ledger);
+    assert.ok(ledger.has(circuitLine("challenge", 5)));
+    assert.ok(BADGES.find((b) => b.id === "challenge-laser")!.earned(ledger));
+    assert.ok(COSMETICS.find((c) => c.id === "laser")!.unlocked(ledger));
   });
 });
 

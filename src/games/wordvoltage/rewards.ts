@@ -23,7 +23,17 @@ export const CIRCUITS: readonly Circuit[] = [
   { id: "pixel", name: "Pixel Power", colors: ["#ffd52a", "#7748ff"] },
   { id: "turbo", name: "Turbo Terminal", colors: ["#3d8bff", "#ff8a2a"] },
   { id: "vault", name: "Voltage Vault", colors: ["#ffd52a", "#19dfff"] },
+  // Challenge levels 101-200, added in pack v2 for players who'd finished
+  // the first hundred.
+  { id: "laser", name: "Laser Lanes", colors: ["#ff4f7b", "#19dfff"] },
+  { id: "grid", name: "Hyper Grid", colors: ["#7cff4f", "#7748ff"] },
+  { id: "thunder", name: "Thunder Core", colors: ["#ffb020", "#3d8bff"] },
+  { id: "overdrive", name: "Overdrive", colors: ["#ff3bd4", "#ffd52a"] },
+  { id: "max", name: "Max Voltage", colors: ["#f8fbff", "#19dfff"] },
 ];
+
+/** How many circuits each path has: the pack test holds the pack to this. */
+export const PATH_CIRCUITS: Readonly<Record<Difficulty, number>> = { family: 5, challenge: 10 };
 
 /** 0-based level index to 0-based circuit index. */
 export function circuitOf(levelIndex: number): number {
@@ -66,7 +76,18 @@ export interface Badge {
   readonly color: string;
 }
 
-const CIRCUIT_BADGE_NAMES = ["Circuit Starter", "Neon Navigator", "Pixel Pro", "Turbo Charger", "Voltage Legend"];
+const CIRCUIT_BADGE_NAMES = [
+  "Circuit Starter",
+  "Neon Navigator",
+  "Pixel Pro",
+  "Turbo Charger",
+  "Voltage Legend",
+  "Laser Ace",
+  "Grid Runner",
+  "Thunder Maker",
+  "Overdrive Hero",
+  "Max Voltage Master",
+];
 
 export const BADGES: readonly Badge[] = [
   {
@@ -77,7 +98,7 @@ export const BADGES: readonly Badge[] = [
     color: "#19dfff",
   },
   ...(["family", "challenge"] as const).flatMap((difficulty) =>
-    CIRCUITS.map(
+    CIRCUITS.slice(0, PATH_CIRCUITS[difficulty]).map(
       (circuit, index): Badge => ({
         id: `${difficulty}-${circuit.id}`,
         name: CIRCUIT_BADGE_NAMES[index]!,
@@ -108,6 +129,11 @@ const STYLE_COLORS: ReadonlyArray<{ tile: string; rim: string; trail: string }> 
   { tile: "#ffd52a", rim: "#ff3bd4", trail: "#7748ff" },
   { tile: "#3d8bff", rim: "#ff8a2a", trail: "#ff8a2a" },
   { tile: "#f8fbff", rim: "#ffd52a", trail: "#19dfff" },
+  { tile: "#ff4f7b", rim: "#19dfff", trail: "#f8fbff" },
+  { tile: "#7cff4f", rim: "#7748ff", trail: "#ff3bd4" },
+  { tile: "#ffb020", rim: "#3d8bff", trail: "#ffd52a" },
+  { tile: "#ff3bd4", rim: "#ffd52a", trail: "#ffd52a" },
+  { tile: "#f8fbff", rim: "#19dfff", trail: "#ff3bd4" },
 ];
 
 export const COSMETICS: readonly Cosmetic[] = [
@@ -124,7 +150,10 @@ export const COSMETICS: readonly Cosmetic[] = [
     (circuit, index): Cosmetic => ({
       id: circuit.id,
       name: `${circuit.name} wheel`,
-      says: `Finish ${circuit.name} on either path`,
+      says:
+        index < PATH_CIRCUITS.family
+          ? `Finish ${circuit.name} on either path`
+          : `Finish ${circuit.name} on Challenge`,
       ...STYLE_COLORS[index]!,
       unlocked: (ledger) =>
         ledger.has(circuitLine("family", index)) || ledger.has(circuitLine("challenge", index)),

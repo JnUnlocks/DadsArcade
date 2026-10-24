@@ -55,6 +55,7 @@ import {
   browserStorage,
   creditBonus,
   dailyKeyOf,
+  findAttempt,
   recordFinish,
   SaveStore,
   type AttemptRecord,
@@ -257,7 +258,7 @@ class WordVoltage implements GameInstance {
   }
 
   private attemptFor(ref: LevelRef): AttemptRecord | undefined {
-    return this.save.attempts[attemptKey(ref.mode, ref.difficulty, ref.puzzleId, this.pack!.version, ref.date)];
+    return findAttempt(this.save, ref.mode, ref.difficulty, ref.puzzleId, ref.date);
   }
 
   // ----- Home -----
@@ -429,7 +430,7 @@ class WordVoltage implements GameInstance {
     // An older daily left half done, still waiting to be finished.
     const older = Object.values(this.save.attempts)
       .filter((a) => a.mode === "daily" && a.difficulty === difficulty && !a.completed && a.date && a.date < date)
-      .filter((a) => a.solved.length > 0 && pack.puzzles[a.puzzleId] && a.pack === pack.version)
+      .filter((a) => a.solved.length > 0 && pack.puzzles[a.puzzleId])
       .filter((a) => !this.save.daily[dailyKeyOf(a.date!, difficulty)])
       .sort((a, b) => (a.date! < b.date! ? 1 : -1))[0];
     if (older) {
@@ -482,8 +483,7 @@ class WordVoltage implements GameInstance {
     // charge finished after midnight counts for the day it was opened.
     this.openedOn = dailyKey();
 
-    const key = attemptKey(ref.mode, ref.difficulty, puzzle.id, pack.version, ref.date);
-    let record = this.save.attempts[key];
+    let record = this.attemptFor(ref);
     // A finished campaign level opens as a replay. A finished daily opens on
     // its finished board, with the result, until REPLAY is asked for.
     if (fresh || (record?.completed && ref.mode !== "daily")) record = undefined;
@@ -604,7 +604,7 @@ class WordVoltage implements GameInstance {
     const stars = starsFor(attempt.hints);
     let save = structuredClone(this.save);
     const key = attemptKey(ref.mode, ref.difficulty, puzzle.id, pack.version, ref.date);
-    const existing = save.attempts[key];
+    const existing = findAttempt(save, ref.mode, ref.difficulty, puzzle.id, ref.date);
     // Only the moment it's finished: reopening a finished charge shows this card too.
     if (ref.mode === "daily" && !existing?.completed) markDailyDone(GAME_ID, this.openedOn);
     save.attempts[key] = {
@@ -704,7 +704,7 @@ class WordVoltage implements GameInstance {
         go.dataset.autofocus = "";
         actions.append(go);
       } else {
-        inner.append(text("wv-result-best", `That's every ${PATH_NAMES[ref.difficulty]} level. Voltage Legend!`));
+        inner.append(text("wv-result-best", `That's every ${PATH_NAMES[ref.difficulty]} level. More are on the way!`));
         const home = button("wv-btn wv-btn--primary", "BACK TO WORD VOLTAGE", this.go(() => this.showHome()));
         home.dataset.autofocus = "";
         actions.append(home);

@@ -114,6 +114,27 @@ export function attemptKey(
     : `${mode}:${difficulty}:${puzzleId}@${pack}`;
 }
 
+/**
+ * A puzzle's saved attempt, from whichever pack it was begun under. A puzzle
+ * id means the same board in every pack, so a level half-done under v1
+ * carries on under v2. If more than one pack has a copy, the newest wins.
+ */
+export function findAttempt(
+  save: Save,
+  mode: Mode,
+  difficulty: Difficulty,
+  puzzleId: string,
+  date?: string,
+): AttemptRecord | undefined {
+  // The key with no pack version: everything up to and including the "@".
+  const prefix = attemptKey(mode, difficulty, puzzleId, "", date);
+  let newest: AttemptRecord | undefined;
+  for (const [key, record] of Object.entries(save.attempts)) {
+    if (key.startsWith(prefix) && (!newest || record.updatedAt > newest.updatedAt)) newest = record;
+  }
+  return newest;
+}
+
 /** Which puzzle a bonus word is credited against. Dailies carry their date. */
 export function bonusIdentity(mode: Mode, puzzleId: string, date?: string): string {
   return mode === "daily" ? `daily:${date}:${puzzleId}` : puzzleId;
