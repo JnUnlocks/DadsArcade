@@ -74,6 +74,8 @@ export interface LevelOptions {
   /** Bonus words already credited on this puzzle, from every attempt. */
   credited: readonly string[];
   coach?: { steps: readonly CoachStep[]; dismissed: readonly string[] };
+  /** Themed levels: the board words that belong to the theme, which glow. */
+  themeWords?: readonly string[];
   hooks: LevelHooks;
 }
 
@@ -100,6 +102,7 @@ export class LevelView {
   private inputMode: InputMode;
   private calm: boolean;
   private credited: string[];
+  private readonly themeWords: ReadonlySet<string>;
 
   private path: Path = [];
   private gesture: Gesture | null = null;
@@ -155,6 +158,7 @@ export class LevelView {
     this.inputMode = options.inputMode;
     this.calm = options.calm;
     this.credited = [...options.credited];
+    this.themeWords = new Set(options.themeWords ?? []);
     this.coachSteps = options.coach?.steps ?? [];
     this.coachDismissed = new Set(options.coach?.dismissed ?? []);
     this.finished = this.attempt.completed;
@@ -621,7 +625,9 @@ export class LevelView {
         this.host.buzz(12);
         this.flashPill("good", word);
         const extra = outcome.words.length - 1;
-        this.say(extra > 0 ? `Powered! +${extra} more` : "Powered!", `${outcome.words.join(", ")} solved`);
+        const themed = outcome.words.some((w) => this.themeWords.has(w));
+        const cheer = themed ? "Theme word!" : "Powered!";
+        this.say(extra > 0 ? `${cheer} +${extra} more` : cheer, `${outcome.words.join(", ")} solved`);
         this.afterBoardChange(outcome.words);
         break;
       }
@@ -750,9 +756,14 @@ export class LevelView {
   private paintBoard(): void {
     const known = knownCells(this.level, this.attempt);
     const solvedCells = new Set<CellKey>();
+    const themeCells = new Set<CellKey>();
     for (const word of this.attempt.solved) {
       const index = this.level.targetIndex.get(word);
-      if (index !== undefined) for (const key of this.level.board.slotCells[index]!) solvedCells.add(key);
+      if (index === undefined) continue;
+      for (const key of this.level.board.slotCells[index]!) {
+        solvedCells.add(key);
+        if (this.themeWords.has(word)) themeCells.add(key);
+      }
     }
     const focusCells = new Set(this.focus !== null ? this.level.board.slotCells[this.focus] : []);
     for (const [key, el] of this.cellEls) {
@@ -760,6 +771,7 @@ export class LevelView {
       const solved = solvedCells.has(key);
       const shown = known.has(key);
       el.classList.toggle("wv-cell--solved", solved);
+      el.classList.toggle("wv-cell--theme", themeCells.has(key));
       el.classList.toggle("wv-cell--revealed", shown && !solved);
       el.classList.toggle("wv-cell--focus", focusCells.has(key) && !this.finished);
       el.firstElementChild!.textContent = shown ? cell.letter : "";

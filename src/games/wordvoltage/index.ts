@@ -48,6 +48,8 @@ import {
   describeNew,
   LEVELS_PER_CIRCUIT,
   PATH_NAMES,
+  THEMES,
+  themeById,
 } from "./rewards";
 import {
   attemptKey,
@@ -78,6 +80,8 @@ interface LevelRef {
   index?: number;
   /** Daily: the date the attempt belongs to. */
   date?: string;
+  /** Theme: which theme (index is then its 0-based level). */
+  themeId?: string;
 }
 
 let lastLevel: LevelRef | null = null;
@@ -311,11 +315,11 @@ class WordVoltage implements GameInstance {
       pick.setAttribute("aria-checked", on ? "true" : "false");
       pick.setAttribute(
         "aria-label",
-        `${PATH_NAMES[d]} path, ${d === "family" ? "4 to 6" : "5 to 7"} letters, ${done} of ${total} levels done`,
+        `${PATH_NAMES[d]} path, ${d === "family" ? "4 to 6" : "5 to 8"} letters, ${done} of ${total} levels done`,
       );
       pick.append(
         text("wv-path-name", PATH_NAMES[d].toUpperCase(), "span"),
-        text("wv-path-sub", d === "family" ? "4-6 letters" : "5-7 letters", "span"),
+        text("wv-path-sub", d === "family" ? "4-6 letters" : "5-8 letters", "span"),
         text("wv-path-prog", `${done} of ${total} done`, "span"),
       );
       paths.append(pick);
@@ -348,7 +352,7 @@ class WordVoltage implements GameInstance {
     play.setAttribute("aria-label", `${playLabel.replace("·", "")}. ${playSub}`);
     play.append(text("wv-play-label", playLabel, "span"), text("wv-play-sub", playSub, "span"));
 
-    const panel = div("wv-home-panel", paths, play, this.dailyCard(difficulty));
+    const panel = div("wv-home-panel", paths, play, this.dailyCard(difficulty), this.themesCard());
 
     const grid = div("wv-home-grid");
     const bolts = boltsIn(this.save.ledger);
@@ -508,6 +512,7 @@ class WordVoltage implements GameInstance {
       cosmetic: cosmeticById(this.save.prefs.cosmetic),
       calm: this.isCalm(),
       credited,
+      ...(puzzle.theme ? { themeWords: puzzle.theme } : {}),
       ...(ref.mode === "tutorial"
         ? { coach: { steps: TUTORIAL_STEPS, dismissed: this.save.tutorial.dismissed } }
         : {}),
@@ -517,7 +522,7 @@ class WordVoltage implements GameInstance {
         complete: (finished) => this.complete(ref, puzzle, finished),
         setInputMode: (mode: InputMode) => this.prefs({ inputMode: mode }),
         menu: () => this.showSettings(ref),
-        back: () => this.showHome(),
+        back: () => (ref.themeId ? this.showTheme(ref.themeId) : this.showHome()),
         firstHint: () => {
           if (this.save.notes.includes("hints-free")) return false;
           const save = structuredClone(this.save);
@@ -549,6 +554,14 @@ class WordVoltage implements GameInstance {
   private describe(ref: LevelRef): { heading: string; subheading: string; colors: readonly [string, string] } {
     if (ref.mode === "tutorial") {
       return { heading: "PRACTICE", subheading: "Your first charge", colors: CIRCUITS[0]!.colors };
+    }
+    if (ref.mode === "theme") {
+      const theme = themeById(ref.themeId ?? "");
+      return {
+        heading: `${theme?.short ?? "THEME"} · ${(ref.index ?? 0) + 1}`,
+        subheading: this.pack?.puzzles[ref.puzzleId]?.title ?? "",
+        colors: theme?.colors ?? CIRCUITS[0]!.colors,
+      };
     }
     if (ref.mode === "daily") {
       return {
@@ -633,6 +646,9 @@ class WordVoltage implements GameInstance {
       bonus: attempt.bonus.length,
       ...(ref.date ? { date: ref.date } : {}),
       ...(ref.mode === "campaign" ? { campaignIds: pack.campaign[ref.difficulty] } : {}),
+      ...(ref.mode === "theme" && ref.themeId
+        ? { themeId: ref.themeId, themeIds: pack.themes[ref.themeId] ?? [] }
+        : {}),
       now: new Date(),
     });
     save = this.write(recorded.save);
@@ -659,7 +675,9 @@ class WordVoltage implements GameInstance {
         ? `Daily Charge · ${longDate(ref.date!)} · ${PATH_NAMES[ref.difficulty]}`
         : ref.mode === "tutorial"
           ? "Practice board"
-          : `${heading} · ${PATH_NAMES[ref.difficulty]} · ${CIRCUITS[circuitOf(ref.index ?? 0)]!.name}`;
+          : ref.mode === "theme"
+            ? `${themeById(ref.themeId ?? "")?.name ?? ""} · ${puzzle.title ?? ""}`
+            : `${heading} · ${PATH_NAMES[ref.difficulty]} · ${CIRCUITS[circuitOf(ref.index ?? 0)]!.name}`;
     const starRow = div("wv-stars");
     starRow.setAttribute("role", "img");
     starRow.setAttribute("aria-label", `${stars} of 3 stars`);
@@ -677,7 +695,9 @@ class WordVoltage implements GameInstance {
         ? this.save.campaign[ref.difficulty][puzzle.id]?.stars
         : ref.mode === "daily"
           ? this.save.daily[dailyKeyOf(ref.date!, ref.difficulty)]?.stars
-          : undefined;
+          : ref.mode === "theme"
+            ? this.save.themes[ref.themeId ?? ""]?.[puzzle.id]?.stars
+            : undefined;
     const stats = div("wv-result-stats");
     const stat = (value: string, label: string) => div("wv-stat", text("wv-stat-value", value), text("wv-stat-label", label));
     stats.append(
@@ -709,6 +729,23 @@ class WordVoltage implements GameInstance {
         home.dataset.autofocus = "";
         actions.append(home);
       }
+    } else if (ref.mode === "theme" && ref.themeId) {
+      const themeId = ref.themeId;
+      const ids = pack.themes[themeId] ?? [];
+      const next = (ref.index ?? 0) + 1;
+      if (next < ids.length) {
+        const go = button("wv-btn wv-btn--primary", "NEXT LEVEL", () => {
+          this.host.sfx("uiSelect");
+          this.openLevel(this.themeRef(themeId, next));
+        });
+        go.dataset.autofocus = "";
+        actions.append(go);
+      } else {
+        inner.append(text("wv-result-best", `That's every ${themeById(themeId)?.name ?? ""} level!`));
+        const back = button("wv-btn wv-btn--primary", "BACK TO THEMES", this.go(() => this.showThemes()));
+        back.dataset.autofocus = "";
+        actions.append(back);
+      }
     } else if (ref.mode === "daily") {
       const back = button("wv-btn wv-btn--primary", "BACK TO DAILY CHARGE", this.go(() => this.showHome()));
       back.dataset.autofocus = "";
@@ -736,6 +773,132 @@ class WordVoltage implements GameInstance {
     inner.append(actions);
     card.append(inner);
     return card;
+  }
+
+  // ----- Themes -----
+
+  private themeRef(themeId: string, index: number): LevelRef {
+    return { mode: "theme", difficulty: "challenge", puzzleId: this.pack!.themes[themeId]![index]!, index, themeId };
+  }
+
+  private themeDone(themeId: string): number {
+    const book = this.save.themes[themeId] ?? {};
+    return (this.pack!.themes[themeId] ?? []).filter((id) => book[id]).length;
+  }
+
+  /** The home screen's way in: every theme, and how far along each is. */
+  private themesCard(): HTMLElement {
+    const card = div("wv-themes-card");
+    const live = THEMES.filter((t) => (this.pack!.themes[t.id] ?? []).length > 0);
+    card.append(text("wv-themes-head", "THEMES"));
+    const chips = div("wv-theme-chips");
+    for (const theme of live) {
+      const done = this.themeDone(theme.id);
+      const chip = text("wv-theme-chip", `${theme.name} ${done}/${this.pack!.themes[theme.id]!.length}`, "span");
+      chip.style.setProperty("--wv-a", theme.colors[0]);
+      chips.append(chip);
+    }
+    card.append(chips);
+    const open = button("wv-btn wv-btn--theme", "PLAY THEMES", () => {
+      this.host.sfx("uiSelect");
+      this.showThemes();
+    });
+    open.setAttribute("aria-label", `Play themes: ${live.map((t) => t.name).join(", ")}`);
+    card.append(open);
+    return card;
+  }
+
+  private showThemes(): void {
+    this.screen = "other";
+    const pack = this.pack!;
+    const cards = THEMES.filter((t) => (pack.themes[t.id] ?? []).length > 0).map((theme) => {
+      const total = pack.themes[theme.id]!.length;
+      const done = this.themeDone(theme.id);
+      const card = button("wv-theme", "", this.go(() => this.showTheme(theme.id)));
+      card.style.setProperty("--wv-a", theme.colors[0]);
+      card.style.setProperty("--wv-b", theme.colors[1]);
+      const progress = done === total ? `All ${total} done · ${theme.badge}` : `${done} of ${total} done`;
+      card.append(
+        text("wv-theme-name", theme.name, "span"),
+        text("wv-theme-blurb", theme.blurb, "span"),
+        text("wv-theme-prog", progress, "span"),
+      );
+      card.setAttribute("aria-label", `${theme.name}. ${theme.blurb} ${progress}.`);
+      return card;
+    });
+    if (cards[0]) cards[0].dataset.autofocus = "";
+    this.mount(
+      div(
+        "wv-screen wv-list",
+        this.pageHead("THEMES", () => this.showHome()),
+        text("wv-note", "Short sets of levels on one subject. Theme words glow when you find them, and finishing a theme earns its badge."),
+        ...cards,
+      ),
+    );
+  }
+
+  private showTheme(themeId: string): void {
+    const pack = this.pack!;
+    const theme = themeById(themeId);
+    const ids = pack.themes[themeId] ?? [];
+    if (!theme || ids.length === 0) {
+      this.showThemes();
+      return;
+    }
+    this.screen = "other";
+    const book = this.save.themes[themeId] ?? {};
+    const current = ids.findIndex((id) => !book[id]);
+    const play = button("wv-play-btn", "", () => {
+      this.host.sfx("uiSelect");
+      this.openLevel(this.themeRef(themeId, current < 0 ? 0 : current));
+    });
+    const label = current < 0 ? "PLAY AGAIN" : current === 0 ? "PLAY" : `CONTINUE · LEVEL ${current + 1}`;
+    const sub = current < 0 ? "Every level done. Replay any for more stars." : (pack.puzzles[ids[current]!]?.title ?? "");
+    play.append(text("wv-play-label", label, "span"), text("wv-play-sub", sub, "span"));
+    play.setAttribute("aria-label", `${label}. ${sub}`);
+    play.dataset.autofocus = "";
+
+    const grid = div("wv-levelgrid");
+    ids.forEach((id, index) => {
+      const record = book[id];
+      const open = index === 0 || Boolean(book[ids[index - 1]!]);
+      const cell = button(
+        `wv-lvl${record ? " wv-lvl--done" : ""}${index === current ? " wv-lvl--current" : ""}${open ? "" : " wv-lvl--locked"}`,
+        "",
+        () => {
+          this.host.sfx("uiSelect");
+          this.openLevel(this.themeRef(themeId, index));
+        },
+        { disabled: !open },
+      );
+      cell.innerHTML = open
+        ? `<span class="wv-lvl-num">${index + 1}</span><span class="wv-lvl-stars">${record ? "★".repeat(record.stars) + "☆".repeat(3 - record.stars) : index === current ? "PLAY" : ""}</span>`
+        : `${ICONS.lock}<span class="wv-lvl-num">${index + 1}</span>`;
+      const title = pack.puzzles[id]?.title ?? "";
+      const state = record ? `Finished, ${record.stars} of 3 stars.` : open ? "Ready to play." : "Locked: finish the level before it.";
+      cell.setAttribute("aria-label", `Level ${index + 1}, ${title}. ${state}`);
+      grid.append(cell);
+    });
+    const section = div("wv-circuit");
+    section.style.setProperty("--wv-a", theme.colors[0]);
+    section.style.setProperty("--wv-b", theme.colors[1]);
+    section.append(
+      div(
+        "wv-circuit-head",
+        text("wv-circuit-name", theme.name, "h3"),
+        text("wv-circuit-prog", `${this.themeDone(themeId)}/${ids.length}`, "span"),
+      ),
+      grid,
+    );
+    this.mount(
+      div(
+        "wv-screen wv-list",
+        this.pageHead(theme.name.toUpperCase(), () => this.showThemes()),
+        text("wv-note", theme.blurb),
+        play,
+        section,
+      ),
+    );
   }
 
   // ----- Level select -----
@@ -899,6 +1062,7 @@ class WordVoltage implements GameInstance {
         rule("Fill the board", "Every board word fills its place. Crossing words share a square, so one word gives you letters of the next. Fill every word and the level is Powered Up. There's no timer and no way to lose."),
         rule("Shuffle and hints", "SHUFFLE moves the letters round to help you see new words. HINT lights up one square of a word: tap a square first to choose which word. Hints are free and never run out."),
         rule("Stars", "Three stars with no hints, two with one or two, one with three or more. Wrong words never cost anything. Replay a level any time to try for more."),
+        rule("Themes", "THEMES on the home screen has short sets of levels on one subject: Halloween, Dad's Garage and Bible Stories. Each level is a scene, its theme words glow when you find them, and finishing every level of a theme earns its badge."),
         rule("Bonus words", "Real words that aren't on the board count as bonus words. Every five you find on a puzzle fills a bolt for your collection. You never need them to finish."),
         rule("Which words count", "Board words are everyday words a family knows. Bonus words come from a big public word list, with rude words, slurs and the like taken out. Names, short forms and two-letter words don't count. Not every English word is in it, so if a real word doesn't count, try another."),
         rule("Daily Charge", `One new board a day on each path, the same for everyone. It changes at midnight New York time, so the whole family gets the same puzzle wherever they are.${last ? ` This version has Daily Charges up to ${longDate(last)}.` : ""}`),
@@ -1006,7 +1170,8 @@ class WordVoltage implements GameInstance {
         button("wv-btn", "LEVELS", () => {
           sheet.remove();
           this.host.sfx("uiMove");
-          this.showLevels();
+          if (level.themeId) this.showTheme(level.themeId);
+          else this.showLevels();
         }),
         button("wv-btn", "WORD VOLTAGE HOME", () => {
           sheet.remove();
@@ -1118,8 +1283,8 @@ export const wordVoltageModule: GameModule = {
   howToPlay: [
     "Drag across the letters on the wheel to spell a word, then let go. Each letter tile can be used once per word.",
     "Every word fills its place on the board, and crossing words share a square. Fill every word to finish.",
-    "SHUFFLE moves the letters round. HINT lights one square; tap a square first to pick the word.",
-    "Hints are free and never run out. Stars only count hints: three with none, two with one or two.",
+    "SHUFFLE moves the letters round. HINT lights one square, is free, and only costs stars: three with none.",
+    "THEMES are short sets on one subject, like Halloween or Dad's Garage. Theme words glow when you find them.",
     "Prefer tapping? Switch the wheel to TAP. On a keyboard, type the letters and press Enter.",
     "Daily Charge is one board a day for everyone, changing at midnight New York time. It counts toward the arcade's daily streak.",
   ],

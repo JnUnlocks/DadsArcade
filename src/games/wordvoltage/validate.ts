@@ -309,6 +309,29 @@ export function validatePack(pack: Pack, lexicon?: Lexicon, minDailyDays = 90): 
     }
   }
 
+  // Themes: real puzzles, used once, each named, each with two or more of
+  // its theme's words on the board. Neighbours may share theme words -- a
+  // theme is meant to repeat its subject -- but never a wheel (checked above).
+  for (const [themeId, ids] of Object.entries(pack.themes ?? {})) {
+    if (ids.length === 0) errors.push(`theme ${themeId} is empty`);
+    ids.forEach((id, index) => {
+      const puzzle = pack.puzzles[id];
+      if (!puzzle) {
+        errors.push(`theme ${themeId} level ${index + 1}: no puzzle ${id}`);
+        return;
+      }
+      if (used.has(id)) errors.push(`${id} is used twice (${used.get(id)} and theme ${themeId})`);
+      used.set(id, `theme ${themeId}`);
+      if (!puzzle.title?.trim()) errors.push(`${id}: a theme level needs a title`);
+      const onBoard = new Set(puzzle.words.map((p) => p.word));
+      const themeWords = puzzle.theme ?? [];
+      if (themeWords.length < 2) errors.push(`${id}: fewer than two theme words on the board`);
+      for (const word of themeWords) {
+        if (!onBoard.has(word)) errors.push(`${id}: theme word ${word} isn't on the board`);
+      }
+    });
+  }
+
   const tutorial = pack.puzzles[pack.tutorial];
   if (!tutorial) errors.push(`no tutorial puzzle ${pack.tutorial}`);
   else if (used.has(pack.tutorial)) errors.push("the tutorial puzzle is also a level");

@@ -1,0 +1,84 @@
+# Word Voltage theme: Bible Stories.
+#
+# The gentle stories a family tells: creation, the ark and the rainbow, the
+# manger and the star, the shepherd and the lost sheep. Nothing about battles
+# or punishments.
+#
+# Names aren't in ENABLE, which leaves names out, so the few this theme needs
+# are listed on the "names:" line and accepted on these levels only.
+#
+# One scene per level: "== Title", then its words, themed words only. Only a
+# scene's own words glow, and a board is built on one of them or carries
+# three, so each scene leads with a good wheel word.
+# Words must be three to eight letters.
+
+names: noah moses joseph jonah david daniel peter mary eden adam ruth
+
+== In the Beginning
+creation ocean
+== The Garden
+gardens garden eden adam
+== Noah's Ark
+noah ark rain grain
+== The Flood
+rainbows rainbow rain bow
+== The Rainbow
+rainbow rain bow
+== Two by Two
+animals animal
+== The Dove
+doves dove
+== Baby Moses
+basket baskets moses reeds
+== Ten Words
+tablets tablet
+== The Mountain
+mountain mountains
+== Joseph's Dream
+dreams dream dreamer joseph
+== Joseph's Coat
+brothers brother robe robes
+== Ruth's Harvest
+harvest harvests ruth
+== Wheat and Barley
+barley wheat
+== David's Harp
+harps harp david psalms psalm palms
+== The Shepherd
+shepherd sheep herd
+== Daniel and the Lions
+daniel lions lion den
+== Jonah and the Whale
+whales whale jonah
+== The Manger
+manger mangers
+== The Stable
+stables stable
+== Angels
+angels angel
+== The Star
+stars star
+== Wise Men
+camels camel gifts
+== Three Kings
+kings king
+== Loaves and Fishes
+loaves loves love fishes
+== The Good Shepherd
+lambs lamb flocks flock
+== Blessings
+blessing bless
+== A Miracle
+miracles miracle
+== Parables
+parable parables
+== Prayers
+prayers prayer pray prays
+== Peace on Earth
+peaceful peace
+== Heaven
+heavens heaven
+== Peter's Boat
+boats boat peter
+== Mary
+mary

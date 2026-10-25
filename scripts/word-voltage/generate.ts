@@ -24,7 +24,7 @@
  * it is, and only adds what's new. Pack v1 (Oct 21, 2026) was made from
  * scratch by the build further down; v2 (Oct 24, 2026) added Challenge
  * levels 101-200 on top of it, and v3 (Oct 25, 2026) levels 201-500 on top
- * of v2. To add more, freeze the current pack by
+ * of v2, and v4 (Oct 25, 2026) the first three themes. To add more, freeze the current pack by
  * adding it to RELEASED, bump PACK_VERSION, and add to EXTENSIONS.
  */
 
@@ -43,7 +43,9 @@ import {
   validatePack,
   validatePuzzle,
 } from "../../src/games/wordvoltage/validate.ts";
-import { loadWordLists } from "./lexicon.ts";
+import { THEMES } from "../../src/games/wordvoltage/rewards.ts";
+import { canSpell } from "../../src/games/wordvoltage/letters.ts";
+import { loadTheme, loadWordLists, type ThemeScene, type ThemeWords } from "./lexicon.ts";
 
 const SEED = 0x57a7e;
 const LEVELS = 100;
@@ -51,12 +53,13 @@ export const DAILY_START = "2026-10-21";
 export const DAILY_DAYS = 100;
 
 /** The newest pack already on phones. Everything in it is kept as it is. */
-const RELEASED = "2";
+const RELEASED = "3";
 
 /** What this pack adds on top of RELEASED: levels from..to of one path. */
-const EXTENSIONS: ReadonlyArray<{ difficulty: Difficulty; from: number; to: number }> = [
-  { difficulty: "challenge", from: 201, to: 500 },
-];
+const EXTENSIONS: ReadonlyArray<{ difficulty: Difficulty; from: number; to: number }> = [];
+
+/** At most this many levels per theme, one per scene, in the file's order. */
+const THEME_LEVELS = 20;
 
 interface Spec {
   letters: number;
@@ -281,13 +284,18 @@ function layOut(
   count: number,
   maxSide: number,
   rng: Rng,
+  /** Theme words: tried first, and worth more on the board. */
+  priority?: ReadonlySet<string>,
 ): Placement[] | null {
   let best: Layout | null = null;
   const others = candidates.filter((w) => w !== base);
+  const worth = (layout: Layout) =>
+    layout.score() + (priority ? 12 * layout.words.filter((p) => priority.has(p.word)).length : 0);
   const RESTARTS = 160;
   for (let attempt = 0; attempt < RESTARTS; attempt += 1) {
     // Longer words first gives the board a spine; the shuffle gives variety.
-    const order = shuffle(others, rng).sort((a, b) => b.length - a.length + (rng.next() - 0.5) * 2.2);
+    let order = shuffle(others, rng).sort((a, b) => b.length - a.length + (rng.next() - 0.5) * 2.2);
+    if (priority) order = [...order.filter((w) => priority.has(w)), ...order.filter((w) => !priority.has(w))];
     let layout = new Layout();
     layout.place({ word: base, row: 0, col: 0, dir: rng.chance(0.85) ? "across" : "down" }, 0);
     for (const word of order) {
@@ -299,14 +307,14 @@ function layOut(
       for (const option of shuffle(options, rng).slice(0, 6)) {
         const next = layout.clone();
         next.place(option.p, option.shared);
-        if (!pick || next.score() > pick.score()) pick = next;
+        if (!pick || worth(next) > worth(pick)) pick = next;
       }
       layout = pick!;
     }
     if (layout.words.length !== count) continue;
     const ratio = Math.max(layout.rows, layout.cols) / Math.min(layout.rows, layout.cols);
     if (ratio > MAX_ASPECT) continue;
-    if (!best || layout.score() > best.score()) best = layout;
+    if (!best || worth(layout) > worth(best)) best = layout;
   }
   return best ? best.normalized() : null;
 }
@@ -455,7 +463,13 @@ function hash(text: string): number {
  * the first hundred days of Daily Charge. Only runs when no released pack is
  * on disk; once v1 shipped it is read back instead, never remade.
  */
-function buildFromScratch(): { puzzles: Puzzle[]; campaign: Record<Difficulty, string[]>; daily: Record<string, Record<Difficulty, string>>; tutorial: string } {
+function buildFromScratch(): {
+  puzzles: Puzzle[];
+  campaign: Record<Difficulty, string[]>;
+  daily: Record<string, Record<Difficulty, string>>;
+  tutorial: string;
+  themes: Record<string, string[]>;
+} {
   const puzzles: Puzzle[] = [];
 
   // The tutorial is written by hand: STAR across, TAR down through its T, RAT
@@ -511,7 +525,7 @@ function buildFromScratch(): { puzzles: Puzzle[]; campaign: Record<Difficulty, s
     daily[date] = entry;
     date = nextDate(date);
   }
-  return { puzzles, campaign, daily, tutorial: tutorial.id };
+  return { puzzles, campaign, daily, tutorial: tutorial.id, themes: {} };
 }
 
 /** The released pack, exactly as phones have it, or null before v1 shipped. */
@@ -524,6 +538,7 @@ function readReleased(): ReturnType<typeof buildFromScratch> | null {
     campaign: { family: [...released.campaign.family], challenge: [...released.campaign.challenge] },
     daily: { ...released.daily },
     tutorial: released.tutorial,
+    themes: Object.fromEntries(Object.entries(released.themes).map(([id, ids]) => [id, [...ids]])),
   };
 }
 
@@ -559,14 +574,112 @@ for (const { difficulty, from, to } of EXTENSIONS) {
   }
 }
 
+// ----- Themes -----
+
+/**
+ * One themed level from one scene: a wheel that spells at least two of the
+ * scene's words, theme words laid on first, everyday words in the crossings.
+ * Null if no wheel makes a good board, and the scene is left out.
+ */
+function makeThemePuzzle(
+  id: string,
+  scene: ThemeScene,
+  theme: ThemeWords,
+  pool: readonly string[],
+  bonusPool: readonly string[],
+): Puzzle | null {
+  const sceneWords = new Set(scene.words);
+  const bases = [...new Set([...scene.words, ...pool])]
+    .filter((b) => b.length >= 5 && b.length <= 8 && !usedWheels.has(letterSignature(b)))
+    .map((b) => ({
+      b,
+      own: sceneWords.has(b) ? 1 : 0,
+      scene: scene.words.filter((w) => canSpell(w, b)).length,
+      theme: [...theme.words].filter((w) => canSpell(w, b)).length,
+    }))
+    .filter((x) => x.scene >= 2)
+    .sort((x, y) => y.own - x.own || y.scene - x.scene || y.theme - x.theme || (x.b < y.b ? -1 : 1));
+  for (const { b: base } of bases.slice(0, 80)) {
+    const wheel = letterSignature(base);
+    if (usedWheels.has(wheel)) continue;
+    const candidates = spellable(pool, base);
+    const priority = new Set(candidates.filter((w) => sceneWords.has(w)));
+    for (const count of [6, 5, 7]) {
+      if (candidates.length < count + 1) continue;
+      const placed = layOut(base, candidates, count, 9, new Rng(SEED ^ hash(id + base)), priority);
+      if (!placed) continue;
+      // Only the scene's own words count, and glow: a word that belongs to
+      // some other scene isn't what this level is about. The board is built
+      // on one of them, or carries three.
+      const onTheme = placed.filter((p) => sceneWords.has(p.word)).map((p) => p.word);
+      if (onTheme.length < 2 || (!sceneWords.has(base) && onTheme.length < 3)) continue;
+      const chosen = new Set(placed.map((p) => p.word));
+      const letters = wheelOrder(base, chosen, new Rng(hash(base) + 7));
+      if (!letters) continue;
+      const puzzle: Puzzle = {
+        id,
+        difficulty: "challenge",
+        letters,
+        words: placed,
+        bonus: spellable(bonusPool, base).filter((w) => !chosen.has(w)),
+        title: scene.title,
+        theme: onTheme,
+      };
+      if (validatePuzzle(puzzle, themedLexicon).length > 0) continue;
+      usedWheels.add(wheel);
+      return puzzle;
+    }
+  }
+  return null;
+}
+
+/** The lexicon, plus every theme's words, which are reviewed in their files. */
+const allThemeWords = new Set<string>();
+const themedLexicon = {
+  isTarget: (word: string) => lexicon.isTarget(word) || allThemeWords.has(word),
+  isBonus: (word: string) => lexicon.isBonus(word) || allThemeWords.has(word),
+};
+
+const themes: Record<string, string[]> = { ...base.themes };
+const themeReport: string[] = [];
+for (const theme of THEMES) {
+  const data = loadTheme(theme.id);
+  for (const word of data.words) allThemeWords.add(word);
+  // A theme already on phones is kept exactly as it is.
+  if (themes[theme.id]) continue;
+  const pool = [...new Set([...targetList, ...data.words])].sort();
+  const bonusPool = [...new Set([...bonusList, ...data.words])].sort();
+  const ids: string[] = [];
+  const skipped: string[] = [];
+  for (const scene of data.scenes) {
+    if (ids.length >= THEME_LEVELS) break;
+    const id = `${theme.id}-${String(ids.length + 1).padStart(2, "0")}`;
+    const puzzle = makeThemePuzzle(id, scene, data, pool, bonusPool);
+    if (!puzzle) {
+      skipped.push(scene.title);
+      continue;
+    }
+    puzzles.push(puzzle);
+    ids.push(id);
+  }
+  themes[theme.id] = ids;
+  themeReport.push(`${theme.name}: ${ids.length} levels${skipped.length ? `; scenes left out: ${skipped.join(", ")}` : ""}`);
+  if (data.dropped.length > 0) themeReport.push(`  words dropped: ${data.dropped.join(" ")}`);
+  for (const id of ids) {
+    const p = puzzles.find((x) => x.id === id)!;
+    themeReport.push(`  ${id}  ${p.title}  ${p.letters}: ${p.words.map((w) => (p.theme!.includes(w.word) ? `*${w.word}` : w.word)).join(" ")}`);
+  }
+}
+
 const pack: Pack = {
   version: PACK_VERSION,
   tutorial: base.tutorial,
   campaign,
   daily,
   puzzles: Object.fromEntries(puzzles.map((p) => [p.id, p])),
+  themes,
 };
-const errors = validatePack(pack, lexicon);
+const errors = validatePack(pack, themedLexicon);
 if (errors.length > 0) {
   console.error(errors.slice(0, 40).join("\n"));
   throw new Error(`The pack failed validation with ${errors.length} errors; nothing was written.`);
@@ -577,6 +690,7 @@ const file: PackFile = {
   tutorial: base.tutorial,
   campaign,
   daily,
+  themes,
   puzzles: [...puzzles].sort((a, b) => (a.id < b.id ? -1 : 1)).map(encodePuzzle),
 };
 const out = new URL(`../../public/word-voltage/pack-v${PACK_VERSION}.json`, import.meta.url);
@@ -619,6 +733,7 @@ lines.push("every tenth new level (wheel: targets):");
 for (const p of added.filter((_, i) => i % 10 === 0)) {
   lines.push(`  ${p.id}  ${p.letters}: ${p.words.map((w) => w.word).join(" ")}  (+${p.bonus.length} bonus)`);
 }
+lines.push("", "themes (* marks a theme word):", ...themeReport);
 lines.push("", eased.length === 0 ? "every new level was made at its full spec" : `levels made easier than their spec (${eased.length}):`);
 lines.push(...eased.map((line) => `  ${line}`));
 lines.push("", "candidates rejected on the way (a base word can be tried by many levels):");

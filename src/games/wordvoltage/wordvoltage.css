@@ -503,6 +503,79 @@
   pointer-events: none;
 }
 
+/* ---------- Themes ---------- */
+
+.wv-themes-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 138, 42, 0.75);
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(255, 138, 42, 0.14), rgba(21, 26, 70, 0.92));
+}
+
+.wv-themes-head {
+  font-size: calc(15px * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #ffd9b3;
+}
+
+.wv-theme-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wv-theme-chip {
+  padding: 4px 10px;
+  border: 2px solid var(--wv-a);
+  border-radius: 99px;
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 800;
+}
+
+.wv-btn--theme {
+  border-color: #ffd0a6;
+  background: linear-gradient(180deg, #ffa95c, #ff8a2a);
+  box-shadow: 0 4px 0 #9c4a00;
+  color: var(--wv-dark-ink) !important;
+}
+
+.wv-theme {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 96px;
+  padding: 14px 16px;
+  border: 2px solid var(--wv-a);
+  border-radius: 18px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--wv-a) 22%, transparent), rgba(21, 26, 70, 0.92) 70%);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--wv-a) 25%, transparent);
+  text-align: left;
+}
+
+.wv-theme-name {
+  font-family: var(--wv-display);
+  font-size: calc(22px * var(--ui-scale));
+  font-weight: 900;
+  color: var(--wv-a);
+}
+
+.wv-theme-blurb {
+  font-size: calc(14px * var(--ui-scale));
+  line-height: 1.4;
+  color: var(--wv-ink);
+}
+
+.wv-theme-prog {
+  font-size: calc(13px * var(--ui-scale));
+  font-weight: 800;
+  color: var(--wv-gold);
+}
+
 /* ---------- Level select ---------- */
 
 .wv-tabs {
@@ -886,6 +959,17 @@
   background: linear-gradient(180deg, #5ceaff, var(--wv-cyan));
   box-shadow: inset 0 -3px 0 rgba(0, 60, 90, 0.35);
   color: #061136;
+}
+
+/* A solved theme word: the theme's own colour, with a bolt-bright edge, so
+   it stands out from the everyday words even without colour vision -- the
+   letters are white on it, where the others are dark. */
+.wv-cell--theme .wv-cell-letter {
+  border-color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--wv-a) 75%, white), var(--wv-a));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--wv-a) 70%, transparent), inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 /* Revealed by a hint, but the word isn't solved: an outline, not a fill. */

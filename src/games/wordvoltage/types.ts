@@ -37,6 +37,10 @@ export interface Puzzle {
    * the bundled lexicon when the pack was made. Never includes a target.
    */
   readonly bonus: readonly string[];
+  /** Themed levels only: the level's name ("Noah's Ark"). */
+  readonly title?: string;
+  /** Themed levels only: which of its board words belong to the theme. */
+  readonly theme?: readonly string[];
 }
 
 /** A circuit is twenty levels of one path, with its own colours. */
@@ -56,4 +60,6 @@ export interface Pack {
   /** Date (YYYY-MM-DD, New York calendar) to that day's puzzle per path. */
   readonly daily: Readonly<Record<string, Readonly<Record<Difficulty, string>>>>;
   readonly tutorial: string;
+  /** Theme id (see rewards.ts THEMES) to its levels, in order. */
+  readonly themes: Readonly<Record<string, readonly string[]>>;
 }

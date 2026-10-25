@@ -14,7 +14,7 @@
 
 import type { Difficulty, Orientation, Pack, Placement, Puzzle } from "./types.ts";
 
-export const PACK_VERSION = "3";
+export const PACK_VERSION = "4";
 export const PACK_URL = `/word-voltage/pack-v${PACK_VERSION}.json`;
 
 /** One word as stored: [WORD, row, col, "A" | "D"]. */
@@ -27,6 +27,9 @@ interface StoredPuzzle {
   words: StoredWord[];
   /** Space-separated, sorted. */
   bonus: string;
+  title?: string;
+  /** Space-separated. */
+  theme?: string;
 }
 
 export interface PackFile {
@@ -35,6 +38,8 @@ export interface PackFile {
   campaign: Record<Difficulty, string[]>;
   daily: Record<string, Record<Difficulty, string>>;
   puzzles: StoredPuzzle[];
+  /** From pack v4. Absent in older packs, which have no themes. */
+  themes?: Record<string, string[]>;
 }
 
 export function encodePuzzle(puzzle: Puzzle): StoredPuzzle {
@@ -44,6 +49,8 @@ export function encodePuzzle(puzzle: Puzzle): StoredPuzzle {
     letters: puzzle.letters,
     words: puzzle.words.map((p) => [p.word, p.row, p.col, p.dir === "across" ? "A" : "D"]),
     bonus: [...puzzle.bonus].sort().join(" "),
+    ...(puzzle.title ? { title: puzzle.title } : {}),
+    ...(puzzle.theme ? { theme: puzzle.theme.join(" ") } : {}),
   };
 }
 
@@ -67,6 +74,8 @@ export function decodePack(raw: unknown): Pack {
       letters: stored.letters,
       words,
       bonus: stored.bonus ? stored.bonus.split(" ") : [],
+      ...(stored.title ? { title: stored.title } : {}),
+      ...(stored.theme ? { theme: stored.theme.split(" ") } : {}),
     };
   }
   return {
@@ -75,6 +84,7 @@ export function decodePack(raw: unknown): Pack {
     campaign: { family: [...file.campaign.family], challenge: [...file.campaign.challenge] },
     daily: file.daily,
     tutorial: file.tutorial,
+    themes: Object.fromEntries(Object.entries(file.themes ?? {}).map(([id, ids]) => [id, [...ids]])),
   };
 }
 

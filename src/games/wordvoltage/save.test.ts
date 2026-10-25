@@ -263,6 +263,47 @@ describe("a new pack", () => {
   });
 });
 
+describe("themes", () => {
+  const ids = Array.from({ length: 20 }, (_, i) => `garage-${String(i + 1).padStart(2, "0")}`);
+  const finishTheme = (save: Save, id: string, stars = 3) =>
+    recordFinish(save, {
+      mode: "theme",
+      difficulty: "challenge",
+      puzzleId: id,
+      stars,
+      hints: 3 - stars,
+      bonus: 0,
+      themeId: "garage",
+      themeIds: ids,
+      now: NOW,
+    });
+
+  it("give a bolt for each first finish, and the badge only for all twenty", () => {
+    let save = freshSave();
+    const earned: string[] = [];
+    for (const id of ids.slice(0, 19)) {
+      const result = finishTheme(save, id);
+      save = result.save;
+      earned.push(...result.earned);
+    }
+    assert.equal(boltsIn(save.ledger), 19);
+    assert.ok(!BADGES.find((b) => b.id === "theme-garage")!.earned(new Set(save.ledger)));
+    const last = finishTheme(save, ids[19]!);
+    assert.ok(last.earned.includes("themedone:garage"));
+    assert.ok(BADGES.find((b) => b.id === "theme-garage")!.earned(new Set(last.save.ledger)));
+    assert.deepEqual(finishTheme(last.save, ids[3]!).earned, [], "a replay earns nothing");
+    assert.deepEqual(last.save.campaign.challenge, {}, "themes don't touch the Challenge path");
+  });
+
+  it("keep the best stars, and merge across tabs", () => {
+    const a = finishTheme(freshSave(), ids[0]!, 1).save;
+    const b = finishTheme(freshSave(), ids[0]!, 3).save;
+    assert.equal(mergeSaves(a, b).themes.garage![ids[0]!]!.stars, 3);
+    assert.equal(sanitize(JSON.parse(JSON.stringify(b))).themes.garage![ids[0]!]!.stars, 3);
+    assert.deepEqual(sanitize({ themes: { garage: { x: { stars: 9 } }, bad: 4 } }).themes, { garage: {} });
+  });
+});
+
 describe("storage", () => {
   it("survives a reload", () => {
     const storage = new MemoryStorage();

@@ -32,7 +32,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't. Four courses and a new one every day built from the date, four animals to race as, and the family's fastest runs (and your own) replayed beside you from their saved button presses |
 | **Uncle Potato Head Number Game** | The number puzzle in a newspaper | It's Sudoku, with a potato in a bow tie to cheer you on. One puzzle a day, the same for everyone, one play of it, and a week that climbs from easy on Monday to the hard one on Sunday. Difficulty is graded by the technique a puzzle needs, not by how many squares are given. Built for one thumb: tap a number, then every square it goes in |
 | **Dad's Prize Drop** | Drop-and-merge games | Slide to aim, let go to drop. Two toys the same become the next prize up a ladder of ten, and the run ends when the pile won't stay under the line. The physics is written by hand and every prize is a circle, whatever toy is drawn inside it, so a pile sits still and a merge is never a surprise |
-| **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. 100 Family and 500 Challenge levels, a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
+| **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. 100 Family and 500 Challenge levels, themed sets (Halloween, Dad's Garage, Bible Stories), a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
 | **Solitaire** | Klondike, the one on every office PC around 2001 | Draw one or draw three, the PC's standard scoring (points per move, two off every ten seconds, a bonus for a fast win), unlimited undo, and the cards bouncing off the table when you win. Laid out for a phone on its side, and a phone that won't rotate gets the table turned for it |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
@@ -544,14 +544,43 @@ gives you letters of the next. Fill every word and the level is Powered Up.
   Pass the Disc. Progress, stars, bolts, badges and wheel styles are kept on
   the phone in `hyperdrive.wordvoltage`.
 
+### Themes
+
+THEMES on the home screen are short sets of levels on one subject, open to
+everyone from the start: Halloween, Dad's Garage and Bible Stories, 20 levels
+each (v0.34.0). Each level is a scene with a name ("Witch's Hat", "Under the
+Hood", "Noah's Ark"); its own theme words glow when found, and finishing every
+level of a theme earns its badge.
+
+A theme is a file in `scripts/word-voltage/data/themes/`: scenes, each a
+title and that scene's words, themed words only. The generator builds each
+level on a wheel word from its scene (WITCHES, PISTONS, RAINBOW), lays the
+scene's words on first and fills the crossings with everyday words. A board
+must be built on a scene word or carry three, so a level is always about its
+scene; any scene that can't make a good board is left out and named in
+`generation-report.txt`. Theme words may be outside the everyday list (they
+must still be in ENABLE and pass the deny list), and a theme can list a few
+names it needs (Bible Stories: NOAH, MOSES, JONAH and the like), accepted on
+that theme's levels only.
+
+Two choices worth knowing. Dad's Garage gets its classic-car feel from
+ordinary dictionary words (CORVETTE, IMPALA, BLAZER are a ship, an antelope
+and a jacket there); no car maker's name or logo appears, because the arcade
+keeps no trademarks, and `pack.test.ts` checks that. Bible Stories keeps to
+the gentle stories, since the deny list blocks battle words anyway.
+
+To add a theme: add it to `THEMES` in `rewards.ts`, write its file, freeze
+the current pack (`RELEASED` in `generate.ts`), bump `PACK_VERSION`, and run
+`npm run wv:generate`. A theme already released is kept exactly as it is.
+
 ### Where the puzzles come from
 
 Not from a seed on the phone. `npm run wv:generate` makes the puzzles
 offline, from the arcade's own family word lists for the board words and the
 public-domain ENABLE list for bonus words, and writes them to
-`public/word-voltage/pack-v3.json`: 801 puzzles (a practice board, 100
-Family and 500 Challenge levels, and 100 days x 2 dailies), about 165 KB
-over the wire, downloaded once. It's
+`public/word-voltage/pack-v4.json`: 861 puzzles (a practice board, 100
+Family and 500 Challenge levels, 60 themed levels, and 100 days x 2
+dailies), about 170 KB over the wire, downloaded once. It's
 deterministic, and it won't write a pack the validator rejects. The service worker caches that file when the
 arcade installs, so every level and every daily plays with no signal, even
 if Word Voltage was never opened while online.

@@ -1,0 +1,69 @@
+# Word Voltage theme: Halloween.
+#
+# One scene per level: "== Title", then that scene's words. Only a scene's own
+# words glow on its board, and a board is built on one of them (the wheel
+# word) or carries three. So each scene leads with a good wheel word (five to
+# eight letters, like WITCHES) and lists the themed words inside it.
+# Friendly spooky, never scary: no blood, no death, no graves.
+# Words must be in ENABLE, three to eight letters.
+
+== Friendly Ghost
+ghostly ghosts ghost boo float sheet
+== Witch's Hat
+witches witch hats hat broom cat
+== Broom Closet
+brooms broom brew
+== Pumpkin Patch
+pumpkins pumpkin pump pumps patch vine seeds
+== Jack-o'-Lantern
+lanterns lantern glow candle
+== Candlelight
+candles candle dance dances glow
+== Trick or Treat
+treats treat trick candy porch
+== Haunted House
+haunted haunt attic door stairs creak
+== Spooky Story
+spooky spook spooks story tales dark
+== Spider Web
+spiders spider webs silk
+== Cobwebs
+cobwebs cobweb webs web
+== Midnight
+midnight night moon owl
+== Monster Mash
+monsters monster mash dance
+== Costume Party
+costumes costume masks capes
+== Goblins
+goblins goblin
+== Candy Bowl
+candies candy bowl treats
+== Caramel Apples
+caramel cream apples apple
+== Hay Ride
+hayride hay
+== Cozy Sweater
+sweaters sweater
+== Warm Blankets
+blankets blanket
+== Moonbeam
+moonbeam moon beam beams
+== Werewolf
+werewolf wolf wolves howl
+== Autumn
+autumns autumn leaves
+== Fall Leaves
+leaves leave leaf rake
+== Harvest Moon
+harvest harvests star moon
+== Pirate Costume
+pirates pirate hat
+== Princess Gown
+princess prince gown crown
+== Wizard's Hat
+wizards wizard hat staff
+== Masks and Capes
+capes cape masks mask
+== Witch's Potion
+potions potion

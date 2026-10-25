@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.34.0",
+    date: "2026-10-25",
+    title: "Word Voltage: THEMES, starting with Halloween, Dad's Garage and Bible Stories",
+    notes: [
+      "WORD VOLTAGE has THEMES: short sets of levels on one subject, on the home screen under Daily Charge. Three to start, 20 levels each, open to everyone from the first day.",
+      "HALLOWEEN: friendly ghosts, witches, lanterns, cobwebs, a werewolf and a hay ride, just in time for the 31st.",
+      "DAD'S GARAGE: pistons, spark plugs, wrenches and tires, a pickup, a car wash, and the classic cruisers: a Corvette, an Impala and a Blazer.",
+      "BIBLE STORIES: the ark and the rainbow, Joseph's coat, David's harp, Jonah and the whale, the manger, the wise men and the loaves and fishes.",
+      "Every level is a scene with its own name, and its theme words glow when you find them. Finish all 20 of a theme to earn its badge: Pumpkin King, Head Mechanic or Good Shepherd.",
+    ],
+  },
+  {
     version: "0.33.0",
     date: "2026-10-25",
     title: "Word Voltage: Challenge goes to 500 levels, with eight-letter wheels",

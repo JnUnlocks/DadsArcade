@@ -51,6 +51,14 @@ past tenses), taking the target list to 4,537 and the bonus list to 79,814.
 None of the earlier puzzles' bonus lists change: their wheels are seven
 letters at most, so no eight-letter word fits them.
 
+`pack-v4.json` (v0.34.0, Oct 25, 2026) is v3 unchanged plus three themes of
+20 levels: Halloween, Dad's Garage and Bible Stories. Their words are in
+`data/themes/`. Theme words must be in ENABLE and pass the deny list, but
+needn't be on the everyday target list; Bible Stories also lists eleven names
+(NOAH, MOSES, JOSEPH, JONAH, DAVID, DANIEL, PETER, MARY, EDEN, ADAM, RUTH),
+accepted on its levels only. A themed level's bonus list is its wheel's
+bonus words plus its theme's words.
+
 ## How a puzzle's words are chosen (`generate.ts`)
 
 A base word from the target list gives the wheel its letters. Every target

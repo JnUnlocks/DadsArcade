@@ -76,3 +76,59 @@ export function loadWordLists(): WordLists {
   cached = { targets, bonus, notInEnable, denied, deny };
   return cached;
 }
+
+export interface ThemeScene {
+  readonly title: string;
+  readonly words: readonly string[];
+}
+
+export interface ThemeWords {
+  readonly id: string;
+  readonly scenes: readonly ThemeScene[];
+  /** Every word of every scene: what glows, and what this theme accepts. */
+  readonly words: ReadonlySet<string>;
+  /** Names this theme allows (they aren't in ENABLE). */
+  readonly names: ReadonlySet<string>;
+  /** Words left out: not in ENABLE (and not a listed name), denied, or the wrong length. */
+  readonly dropped: readonly string[];
+}
+
+/** One theme's file: data/themes/<id>.txt. */
+export function loadTheme(id: string): ThemeWords {
+  const { bonus, deny } = loadWordLists();
+  const text = readFileSync(new URL(`data/themes/${id}.txt`, import.meta.url), "utf8");
+  const names = new Set<string>();
+  const scenes: ThemeScene[] = [];
+  const dropped: string[] = [];
+  const words = new Set<string>();
+  let scene: { title: string; words: string[] } | null = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (line.startsWith("names:")) {
+      for (const name of line.slice(6).split(/\s+/).filter(Boolean)) names.add(name.toUpperCase());
+      continue;
+    }
+    if (line.startsWith("==")) {
+      scene = { title: line.slice(2).trim(), words: [] };
+      scenes.push(scene);
+      continue;
+    }
+    for (const token of line.split(/\s+/)) {
+      const word = token.toUpperCase();
+      const ok =
+        /^[A-Z]+$/.test(word) &&
+        word.length >= MIN &&
+        word.length <= MAX &&
+        !deny.has(word) &&
+        (bonus.has(word) || names.has(word));
+      if (!ok) {
+        dropped.push(word);
+        continue;
+      }
+      if (scene && !scene.words.includes(word)) scene.words.push(word);
+      words.add(word);
+    }
+  }
+  return { id, scenes, words, names, dropped: [...new Set(dropped)] };
+}

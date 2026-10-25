@@ -1,0 +1,86 @@
+# Word Voltage theme: Dad's Garage.
+#
+# Engines, tools, tires and the classic cruisers. A nod to the great old
+# American cars comes through ordinary dictionary words (CORVETTE, IMPALA,
+# NOVA and BLAZER are a ship, an antelope, a star and a jacket there). No car
+# maker's name or logo appears anywhere: the arcade keeps no trademarks.
+#
+# One scene per level: "== Title", then its words, themed words only. Only a
+# scene's own words glow, and a board is built on one of them or carries
+# three, so each scene leads with a good wheel word.
+# Words must be in ENABLE, three to eight letters.
+
+== Under the Hood
+pistons piston hood engine oil valve
+== Spark Plugs
+sparks spark plugs plug park
+== Tool Bench
+tools tool stool bench drill
+== Socket Set
+bolts bolt nuts nut socket
+== Wrench Drawer
+wrenches wrench drawer
+== Ratchet
+ratchets ratchet chart
+== Oil Change
+gaskets gasket gas oil tank
+== Filters
+filters filter lifter oil
+== New Engine
+engines engine
+== Motor Pool
+motors motor
+== Tire Shop
+tires tire rims spare tread
+== Brake Job
+brakes brake pads
+== Classic Cruisers
+cruiser cruise chrome
+== Pickup Truck
+pickups pickup truck trucks
+== Truck Bed
+trucks truck tucks haul
+== Tailgate Party
+tailgate gate tail tailgate
+== Car Wash
+sponges sponge soap rinse
+== Bucket of Suds
+buckets bucket suds wash
+== The Corvette
+corvette cover vette
+== Impala Night
+impalas impala lamp
+== Nova Rising
+novas nova star
+== Blazer Weekend
+blazers blazer trail
+== Exhaust Pipe
+exhausts exhaust
+== Muffler Shop
+mufflers muffler
+== Bumper to Bumper
+bumpers bumper
+== Fender Bender
+fenders fender
+== Chrome Grille
+grilles grille grill
+== Radiator
+radiator radio
+== Two-Car Garage
+garages garage
+== Mechanic
+mechanic machine
+== Odometer
+odometer meter
+== Driveway
+driveway drive way
+== Steering Wheel
+steering steer ring
+== Throttle
+throttle
+== Hot Rod
+hotrod hot rod door
+== Gear Shift
+shifter shift
+== Race Day
+clamps laps lap race track

@@ -68,6 +68,58 @@ export const firstLine = (difficulty: Difficulty, puzzleId: string) => `first:${
 export const circuitLine = (difficulty: Difficulty, circuit: number) => `circuit:${difficulty}:${circuit}`;
 export const dailyLine = (date: string, difficulty: Difficulty) => `daily:${date}:${difficulty}`;
 export const bonusLine = (identity: string, milestone: number) => `bonus:${identity}:${milestone}`;
+export const themeLine = (themeId: string, puzzleId: string) => `theme:${themeId}:${puzzleId}`;
+export const themeDoneLine = (themeId: string) => `themedone:${themeId}`;
+
+// ----- Themes -----
+
+export interface Theme {
+  readonly id: string;
+  readonly name: string;
+  /** Fits a level's header on the narrowest phone: "GARAGE · 12". */
+  readonly short: string;
+  /** One line for its card on the THEMES shelf. */
+  readonly blurb: string;
+  readonly colors: readonly [string, string];
+  /** The badge for finishing every level of it. */
+  readonly badge: string;
+}
+
+/**
+ * Short sets of levels on one subject, beside the two long paths. Each level
+ * is named for a scene ("Pumpkin Patch") and its theme words glow when
+ * found. The words for each live in scripts/word-voltage/data/themes/.
+ */
+export const THEMES: readonly Theme[] = [
+  {
+    id: "halloween",
+    name: "Halloween",
+    short: "HALLOWEEN",
+    blurb: "Ghosts, witches, pumpkins and a friendly haunted house.",
+    colors: ["#ff8a2a", "#7748ff"],
+    badge: "Pumpkin King",
+  },
+  {
+    id: "garage",
+    name: "Dad's Garage",
+    short: "GARAGE",
+    blurb: "Engines, tools, tires and classic cruisers.",
+    colors: ["#ff4f7b", "#c0c8d8"],
+    badge: "Head Mechanic",
+  },
+  {
+    id: "bible",
+    name: "Bible Stories",
+    short: "BIBLE",
+    blurb: "From the ark and the rainbow to the manger and the star.",
+    colors: ["#ffd52a", "#5cc8ff"],
+    badge: "Good Shepherd",
+  },
+];
+
+export function themeById(id: string): Theme | undefined {
+  return THEMES.find((t) => t.id === id);
+}
 
 /** Bonus words per bolt. */
 export const BONUS_BLOCK = 5;
@@ -76,7 +128,14 @@ export const BONUS_BLOCK = 5;
 export function boltsIn(ledger: Iterable<string>): number {
   let bolts = 0;
   for (const line of ledger) {
-    if (line.startsWith("first:") || line.startsWith("daily:") || line.startsWith("bonus:")) bolts += 1;
+    if (
+      line.startsWith("first:") ||
+      line.startsWith("daily:") ||
+      line.startsWith("bonus:") ||
+      line.startsWith("theme:")
+    ) {
+      bolts += 1;
+    }
   }
   return bolts;
 }
@@ -139,6 +198,15 @@ export const BADGES: readonly Badge[] = [
         color: circuit.colors[0],
       }),
     ),
+  ),
+  ...THEMES.map(
+    (theme): Badge => ({
+      id: `theme-${theme.id}`,
+      name: theme.badge,
+      says: `Finish every ${theme.name} level`,
+      earned: (ledger) => ledger.has(themeDoneLine(theme.id)),
+      color: theme.colors[0],
+    }),
   ),
 ];
 

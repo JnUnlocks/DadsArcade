@@ -26,6 +26,8 @@ import {
   dailyLine,
   firstLine,
   LEVELS_PER_CIRCUIT,
+  themeDoneLine,
+  themeLine,
 } from "./rewards.ts";
 
 export const SAVE_KEY = "hyperdrive.wordvoltage";
@@ -33,7 +35,7 @@ export const SCHEMA_VERSION = 1;
 
 export type InputMode = "swipe" | "tap";
 export type Motion = "system" | "reduced" | "full";
-export type Mode = "campaign" | "daily" | "tutorial";
+export type Mode = "campaign" | "daily" | "tutorial" | "theme";
 
 export interface Preferences {
   difficulty: Difficulty;
@@ -85,6 +87,8 @@ export interface Save {
   tutorial: { done: boolean; dismissed: string[] };
   /** One-off explanations already shown, like "hints are free". */
   notes: string[];
+  /** Themed levels finished, per theme id: best stars and first finish. */
+  themes: Record<string, Record<string, Completion>>;
 }
 
 export function freshSave(): Save {
@@ -98,6 +102,7 @@ export function freshSave(): Save {
     ledger: [],
     tutorial: { done: false, dismissed: [] },
     notes: [],
+    themes: {},
   };
 }
 
@@ -149,7 +154,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 const strings = (v: unknown): string[] =>
   Array.isArray(v) ? [...new Set(v.filter((s): s is string => typeof s === "string"))] : [];
 const isDifficulty = (v: unknown): v is Difficulty => v === "family" || v === "challenge";
-const isMode = (v: unknown): v is Mode => v === "campaign" || v === "daily" || v === "tutorial";
+const isMode = (v: unknown): v is Mode =>
+  v === "campaign" || v === "daily" || v === "tutorial" || v === "theme";
 const stars = (v: unknown): number => (v === 1 || v === 2 || v === 3 ? v : 0);
 const count = (v: unknown): number => (Number.isInteger(v) && (v as number) >= 0 ? (v as number) : 0);
 const time = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -228,6 +234,16 @@ export function sanitize(raw: unknown): Save {
   const tutorial = isRecord(raw.tutorial) ? raw.tutorial : {};
   save.tutorial = { done: tutorial.done === true, dismissed: strings(tutorial.dismissed) };
   save.notes = strings(raw.notes);
+  if (isRecord(raw.themes)) {
+    for (const [themeId, book] of Object.entries(raw.themes)) {
+      if (!isRecord(book)) continue;
+      const out: Record<string, Completion> = {};
+      for (const [id, value] of Object.entries(book)) {
+        if (isRecord(value) && stars(value.stars) > 0) out[id] = { stars: stars(value.stars), at: isoTime(value.at) };
+      }
+      save.themes[themeId] = out;
+    }
+  }
   return save;
 }
 
@@ -273,6 +289,11 @@ export function mergeSaves(disk: Save, mine: Save): Save {
     dismissed: [...new Set([...disk.tutorial.dismissed, ...mine.tutorial.dismissed])],
   };
   merged.notes = [...new Set([...disk.notes, ...mine.notes])];
+  for (const themeId of new Set([...Object.keys(disk.themes), ...Object.keys(mine.themes)])) {
+    const out: Record<string, Completion> = { ...disk.themes[themeId] };
+    for (const [id, record] of Object.entries(mine.themes[themeId] ?? {})) out[id] = bestOf(out[id], record);
+    merged.themes[themeId] = out;
+  }
   return merged;
 }
 
@@ -295,6 +316,9 @@ export interface Finish {
   date?: string;
   /** Campaign only: the path's level ids, to tell when a circuit is complete. */
   campaignIds?: readonly string[];
+  /** Theme only: which theme, and all its level ids. */
+  themeId?: string;
+  themeIds?: readonly string[];
   now: Date;
 }
 
@@ -334,6 +358,12 @@ export function recordFinish(save: Save, finish: Finish): { save: Save; earned: 
       bonus: before && before.stars >= finish.stars ? Math.max(before.bonus, finish.bonus) : finish.bonus,
     };
     lines.push(dailyLine(finish.date, finish.difficulty));
+  } else if (finish.mode === "theme" && finish.themeId) {
+    const book = (next.themes[finish.themeId] ??= {});
+    book[finish.puzzleId] = bestOf(book[finish.puzzleId], { stars: finish.stars, at });
+    lines.push(themeLine(finish.themeId, finish.puzzleId));
+    const ids = finish.themeIds ?? [];
+    if (ids.length > 0 && ids.every((id) => book[id])) lines.push(themeDoneLine(finish.themeId));
   } else if (finish.mode === "tutorial") {
     next.tutorial.done = true;
   }

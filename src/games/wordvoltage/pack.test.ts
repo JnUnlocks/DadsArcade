@@ -13,20 +13,27 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
-import { loadWordLists } from "../../../scripts/word-voltage/lexicon.ts";
+import { loadTheme, loadWordLists } from "../../../scripts/word-voltage/lexicon.ts";
 import { dailyDate } from "./daily.ts";
 import { canSpell } from "./letters.ts";
 import { decodePack, PACK_URL } from "./pack.ts";
 import { FRESH_ATTEMPT, makeLevel, useHint } from "./play.ts";
 import { buildBoard } from "./board.ts";
-import { LEVELS_PER_CIRCUIT, PATH_CIRCUITS } from "./rewards.ts";
+import { LEVELS_PER_CIRCUIT, PATH_CIRCUITS, THEMES } from "./rewards.ts";
 import { validatePack } from "./validate.ts";
 
 const pack = decodePack(
   JSON.parse(readFileSync(new URL(`../../../public${PACK_URL}`, import.meta.url), "utf8")),
 );
 const words = loadWordLists();
-const lexicon = { isTarget: (w: string) => words.targets.has(w), isBonus: (w: string) => words.bonus.has(w) };
+/** Each theme's own words: accepted on its levels, and reviewed in its file. */
+const themeWords = new Map(THEMES.map((t) => [t.id, loadTheme(t.id).words]));
+const anyTheme = (w: string) => [...themeWords.values()].some((set) => set.has(w));
+const lexicon = {
+  isTarget: (w: string) => words.targets.has(w) || anyTheme(w),
+  isBonus: (w: string) => words.bonus.has(w) || anyTheme(w),
+};
+const themeOf = new Map(Object.entries(pack.themes).flatMap(([id, ids]) => ids.map((p) => [p, id] as const)));
 
 /** The day Word Voltage is planned to go out. The calendar must start by then. */
 const RELEASE_DATE = "2026-10-21";
@@ -86,7 +93,10 @@ describe("the content pack", () => {
     const bonus = [...words.bonus];
     for (const puzzle of Object.values(pack.puzzles)) {
       const targets = new Set(puzzle.words.map((p) => p.word));
-      const expected = bonus
+      // A themed level also takes its theme's words, names included.
+      const theme = themeOf.get(puzzle.id);
+      const pool = theme ? [...new Set([...bonus, ...themeWords.get(theme)!])] : bonus;
+      const expected = pool
         .filter((w) => w.length <= puzzle.letters.length && canSpell(w, puzzle.letters) && !targets.has(w))
         .sort();
       assert.deepEqual([...puzzle.bonus].sort(), expected, puzzle.id);
@@ -121,7 +131,32 @@ describe("the content pack", () => {
     }
   });
 
-  for (const released of ["1", "2"]) {
+  it("has the three themes, twenty levels each, every one named and on theme", () => {
+    assert.deepEqual(Object.keys(pack.themes).sort(), THEMES.map((t) => t.id).sort());
+    for (const theme of THEMES) {
+      const ids = pack.themes[theme.id]!;
+      assert.equal(ids.length, 20, theme.id);
+      for (const id of ids) {
+        const puzzle = pack.puzzles[id]!;
+        assert.ok(puzzle.title, id);
+        assert.ok((puzzle.theme ?? []).length >= 2, id);
+        for (const w of puzzle.theme!) assert.ok(themeWords.get(theme.id)!.has(w), `${id}: ${w}`);
+        // Themed boards stay friendly-sized.
+        const board = buildBoard(puzzle);
+        assert.ok(board.rows <= 9 && board.cols <= 9, id);
+      }
+    }
+  });
+
+  it("never names a car maker", () => {
+    for (const id of pack.themes.garage ?? []) {
+      const puzzle = pack.puzzles[id]!;
+      const text = [puzzle.title, ...puzzle.words.map((p) => p.word), ...puzzle.bonus].join(" ").toUpperCase();
+      assert.doesNotMatch(text, /CHEV|FORD|DODGE|TOYOTA|HONDA/, id);
+    }
+  });
+
+  for (const released of ["1", "2", "3"]) {
     it(`keeps every puzzle, level and daily of pack v${released}, already on phones`, () => {
       // Saves, stars and rewards are keyed on these ids: a released pack's
       // content must come through every later pack exactly as it was.
