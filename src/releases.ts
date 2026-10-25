@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.33.0",
+    date: "2026-10-25",
+    title: "Word Voltage: Challenge goes to 500 levels, with eight-letter wheels",
+    notes: [
+      "WORD VOLTAGE CHALLENGE now has 500 levels. Levels 201 to 500 pick up straight after 200, in 15 new circuits from Neon Nights to Ultra Voltage, each with its own badge and wheel style.",
+      "Levels 201 to 300: seven letters and 12 words on every board, none shorter than four letters.",
+      "From level 301 the wheel has EIGHT letters. Boards grow from 10 words to 14, and from level 401 they can be a little bigger.",
+      "The last 31 levels are the hardest in the arcade: every word on the board is five letters or more.",
+      "Over 700 more everyday words can now be board words, which is what made room for all these new boards.",
+      "Everything you've done is kept: levels, stars, bolts, badges, and any board you were halfway through.",
+    ],
+  },
+  {
     version: "0.32.0",
     date: "2026-10-24",
     title: "Word Voltage: 100 more Challenge levels",

@@ -19,7 +19,9 @@ export const LIMITS: Readonly<
   Record<Difficulty, { minLetters: number; maxLetters: number; maxSide: number }>
 > = {
   family: { minLetters: 4, maxLetters: 6, maxSide: 8 },
-  challenge: { minLetters: 5, maxLetters: 7, maxSide: 10 },
+  // Eight letters and 11x11 are only for Challenge levels 301-500 (pack v3);
+  // everything before them is held to 7 and 10 by pack.test.ts.
+  challenge: { minLetters: 5, maxLetters: 8, maxSide: 11 },
 };
 
 /** Longest side over shortest. Wider than this is a strip, not a crossword. */

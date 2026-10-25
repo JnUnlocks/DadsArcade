@@ -32,7 +32,7 @@ leaderboard, a real pause button, and it plays with no signal.
 | **Forest Dash** | Endless-runner platformers | One button: tap to jump, hold to glide. A race rather than a survival run — falls and trips cost time, never the race — against a computer racer who is a recording of a bot running the same course on the same physics, so he can't do anything you can't. Four courses and a new one every day built from the date, four animals to race as, and the family's fastest runs (and your own) replayed beside you from their saved button presses |
 | **Uncle Potato Head Number Game** | The number puzzle in a newspaper | It's Sudoku, with a potato in a bow tie to cheer you on. One puzzle a day, the same for everyone, one play of it, and a week that climbs from easy on Monday to the hard one on Sunday. Difficulty is graded by the technique a puzzle needs, not by how many squares are given. Built for one thumb: tap a number, then every square it goes in |
 | **Dad's Prize Drop** | Drop-and-merge games | Slide to aim, let go to drop. Two toys the same become the next prize up a ladder of ten, and the run ends when the pile won't stay under the line. The physics is written by hand and every prize is a circle, whatever toy is drawn inside it, so a pile sits still and a merge is never a surprise |
-| **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. 100 Family and 200 Challenge levels, a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
+| **Word Voltage** | Letter-wheel crossword games | Drag across a wheel of letters to spell words that fill a small crossword, where crossing words share their squares. 100 Family and 500 Challenge levels, a shared Daily Charge, hints that are free and only ever cost stars, and no timer. Every board is made offline and checked by a strict validator before it ships |
 | **Solitaire** | Klondike, the one on every office PC around 2001 | Draw one or draw three, the PC's standard scoring (points per move, two off every ten seconds, a bonus for a fast win), unlimited undo, and the cards bouncing off the table when you win. Laid out for a phone on its side, and a phone that won't rotate gets the table turned for it |
 
 Every theme is original — no trademarked names, art or audio anywhere — so it's
@@ -519,15 +519,14 @@ place on a small crossword. Crossing words share a square, so every word
 gives you letters of the next. Fill every word and the level is Powered Up.
 
 - **Two paths, independent saves.** FAMILY is four to six letters and three
-  to seven words on boards up to 8x8; CHALLENGE is five to seven letters and
-  five to twelve words, up to 10x10. Circuits are 20 levels each: Family has
-  five (Starter Circuit, Neon Alley, Pixel Power, Turbo Terminal, Voltage
-  Vault), Challenge has those and five more (Laser Lanes, Hyper Grid, Thunder
-  Core, Overdrive, Max Voltage). Challenge's levels 101-200 were added in
-  v0.32.0 after the first player finished both paths in three days: every
-  wheel is seven letters, boards climb from 9 words to 12, and from level 141
-  there are no three-letter words. Levels open one at a time, and any
-  finished one can be replayed.
+  to seven words on boards up to 8x8; CHALLENGE is five to eight letters and
+  five to fourteen words, up to 11x11. Circuits are 20 levels each: Family
+  has five, Challenge has 25. Challenge grew after its first player raced
+  through it: levels 101-200 in v0.32.0 (seven letters, 9 to 12 words, no
+  three-letter words from 141), and 201-500 in v0.33.0 (seven letters and 12
+  words to 300; eight-letter wheels from 301, 10 to 14 words; boards up to
+  11x11 from 401; every word five letters or more from 470). Levels open one
+  at a time, and any finished one can be replayed.
 - **Nobody loses.** There's no timer and no failure. A wrong word says "Try
   another word" and costs nothing. HINT lights up one square, is free and
   never runs out, and stars only count hints: three with none, two with one
@@ -550,8 +549,9 @@ gives you letters of the next. Fill every word and the level is Powered Up.
 Not from a seed on the phone. `npm run wv:generate` makes the puzzles
 offline, from the arcade's own family word lists for the board words and the
 public-domain ENABLE list for bonus words, and writes them to
-`public/word-voltage/pack-v2.json`: 501 puzzles (a practice board, 100
-Family and 200 Challenge levels, and 100 days x 2 dailies). It's
+`public/word-voltage/pack-v3.json`: 801 puzzles (a practice board, 100
+Family and 500 Challenge levels, and 100 days x 2 dailies), about 165 KB
+over the wire, downloaded once. It's
 deterministic, and it won't write a pack the validator rejects. The service worker caches that file when the
 arcade installs, so every level and every daily plays with no signal, even
 if Word Voltage was never opened while online.
@@ -571,8 +571,10 @@ generator starts from the newest released pack file (`RELEASED` in
 and only adds what's new (`EXTENSIONS`); `pack.test.ts` fails if anything
 from v1 changed. A level half-done under one pack carries on under the next,
 because saved attempts are looked up by puzzle id whatever pack they were
-saved under. `pack-v1.json` stays in `public/` for any phone still running
-the older build. Sources,
+saved under. Older pack files stay in `public/` for any phone still running
+an older build. When the word lists can't fill a level at its planned
+difficulty, the generator steps it down one notch and says so in
+`generation-report.txt`; v3 needed none. Sources,
 licences, filters and limits are in
 [`scripts/word-voltage/LEXICON.md`](scripts/word-voltage/LEXICON.md).
 

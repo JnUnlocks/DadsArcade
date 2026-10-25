@@ -1,4 +1,4 @@
-Word Voltage pack v2
+Word Voltage pack v3
 
 family: 100 campaign levels
   circuit 1: 4/5 letters, 3-5 words, boards up to 6 squares
@@ -6,7 +6,7 @@ family: 100 campaign levels
   circuit 3: 5 letters, 5-6 words, boards up to 7 squares
   circuit 4: 6 letters, 5-6 words, boards up to 8 squares
   circuit 5: 6 letters, 7-7 words, boards up to 8 squares
-challenge: 200 campaign levels
+challenge: 500 campaign levels
   circuit 1: 5/6 letters, 5-6 words, boards up to 8 squares
   circuit 2: 6 letters, 6-7 words, boards up to 10 squares
   circuit 3: 7 letters, 7-8 words, boards up to 10 squares
@@ -17,6 +17,21 @@ challenge: 200 campaign levels
   circuit 8: 7 letters, 10-10 words, boards up to 10 squares
   circuit 9: 7 letters, 11-11 words, boards up to 10 squares
   circuit 10: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 11: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 12: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 13: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 14: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 15: 7 letters, 12-12 words, boards up to 10 squares
+  circuit 16: 8 letters, 10-10 words, boards up to 10 squares
+  circuit 17: 8 letters, 10-10 words, boards up to 10 squares
+  circuit 18: 8 letters, 11-11 words, boards up to 10 squares
+  circuit 19: 8 letters, 11-12 words, boards up to 10 squares
+  circuit 20: 8 letters, 12-12 words, boards up to 10 squares
+  circuit 21: 8 letters, 13-13 words, boards up to 11 squares
+  circuit 22: 8 letters, 13-14 words, boards up to 11 squares
+  circuit 23: 8 letters, 14-14 words, boards up to 11 squares
+  circuit 24: 8 letters, 12-14 words, boards up to 11 squares
+  circuit 25: 8 letters, 12-12 words, boards up to 11 squares
 
 daily: 100 dates, 2026-10-21 to 2027-01-28, both paths
 
@@ -42,18 +57,40 @@ first ten levels of each path (wheel: targets):
   c-009  WONBR: BROWN BORN WORN WON ORB BOW  (+7 bonus)
   c-010  UOTER: OUTER ROUTE TOUR TORE TRUE OUT  (+15 bonus)
 
-new in v2: 100 puzzles on top of v1's 401, kept unchanged
+new in v3: 300 puzzles on top of v2's 501, kept unchanged
 every tenth new level (wheel: targets):
-  c-101  JEIALNV: JAVELIN NAIVE LINE ALIVE ALIEN NAIL LEAN LIVE VEIL  (+62 bonus)
-  c-111  EAONLTB: NOTABLE BATON TALON TABLE NOBLE ALONE LATE BLOT LEAN  (+111 bonus)
-  c-121  IOSMPER: PROMISE SORE PIES PRIME SOME PRISM PORE ORE SIR PIE  (+134 bonus)
-  c-131  IGNARSI: RAISING RISING RAISIN GRAINS GRAIN RANG GRIN SIGN SANG SING  (+62 bonus)
-  c-141  SRNIEVO: VERSION SENIOR NOISE SNORE RINSE VISOR IRON REIN RISE OVEN  (+101 bonus)
-  c-151  TRENOMS: MENTORS MONSTER MENTOR STORM SNORT STORE STERN NOTES SNORE TORN  (+136 bonus)
-  c-161  DLUORBE: BOULDER DOUBLE BLUR BORED RULE ROLE RUDE BOLD LURE ROBE LOUD  (+87 bonus)
-  c-171  SGHELIN: SHINGLE SINGLE SLING SHINE LENS HINGE SIGN SING HENS LINE LEGS  (+67 bonus)
-  c-181  TENRGSI: STINGER RESTING SINGER INSERT STING SIREN RINSE TIGER REIGN STERN REST GRIN  (+137 bonus)
-  c-191  NRTIKEH: THINKER HIKER THINK TRIKE KNIT THEN HINT TIRE HIKE HIRE KITE RENT  (+65 bonus)
+  c-201  DSEWPOR: POWDERS POWDER POWER ROPES WORDS ROSE RODE DOSE WORSE DROP WORE DOES  (+114 bonus)
+  c-211  RSTIFOL: FLORIST STIR FROST FIRST LOFT LIFT SOFT SLIT SOIL SLOT SIFT FITS  (+86 bonus)
+  c-221  TNUIEER: REUNITE ENTIRE RUIN UNITE TUNER UNTIE ENTER RENT TUNE UNIT TREE REIN  (+59 bonus)
+  c-231  MLSEHFI: HIMSELF SLIME FILES SMILE SHELF LIES LIME HELM ISLE SLIM MILE LIFE  (+59 bonus)
+  c-241  AREGNOS: ORANGES ORGANS ORANGE GROANS RANGES REASON GROAN SNORE GEAR EARN AGES SONG  (+152 bonus)
+  c-251  ELNRESD: SLENDER LENDS ELDER LEND DENSE NEED SEND ENDS SLED SEEN SEED LENS  (+74 bonus)
+  c-261  TSETRAR: STARTER TREATS TASTE STATE RATES TREAT START STARE TEST STAR TEARS EATS  (+88 bonus)
+  c-271  SAECSVR: SCARVES CARES RACES SCARE VASES CRAVE CARVE SCAR CAVE VASE EARS CARE  (+72 bonus)
+  c-281  ACNREUF: FURNACE NEAR CRANE FERN EARN ACRE FARE CAFE FACE FEAR CURE RACE  (+50 bonus)
+  c-291  EDFSTOR: FROSTED STRODE SOFTER FOREST SORTED ROSE SOFT DOTS TORE SORE REST DOSE  (+109 bonus)
+  c-301  PEACNKAS: PANCAKES PANCAKE SNAKE SPACE SNEAK PANES SPECK CAKES SNACK SACK  (+126 bonus)
+  c-311  EDATICNI: INDICATE CADET DANCE ACID DATE IDEA DINE TIDE NEAT DICE  (+108 bonus)
+  c-321  RDGERENA: GARDENER DANGER GARDEN READER RANGED EARNED ERRAND GREEN NEAR EARN  (+127 bonus)
+  c-331  ZGFNEIRE: FREEZING FINGER FRINGE REIGN GENRE GREEN GRIN REIN RING FINE  (+63 bonus)
+  c-341  ONAICTLO: LOCATION ACTION TALON INTO LINT COOL COIL COAL NAIL COAT TOOL  (+118 bonus)
+  c-351  PTAOSETO: POTATOES TEAPOTS POTATO TEAPOT PASTE STOOP STATE PEST POST EAST SEAT  (+124 bonus)
+  c-361  LTMAIERA: MATERIAL RETAIL METAL TAMER ALERT ALARM TIMER LATE AREA ITEM TEAM  (+196 bonus)
+  c-371  LCTAHIET: ATHLETIC CATTLE TITLE LATCH LATTE ATTIC TEACH HALT HEAL ACHE TILT EACH  (+128 bonus)
+  c-381  ATFLNGOI: FLOATING LINGO ALONG TALON TANGO LION GOLF INTO LINT LOAF GOAL FOAL  (+151 bonus)
+  c-391  DAPORCTS: POSTCARD ACTOR PARTS PORTS TOADS SCRAP ADOPT STRAP ROADS CARDS TRAP STOP  (+235 bonus)
+  c-401  AURADETG: GRADUATE GRATED GRATE TRADE TREAD GREAT RATED READ DATE DUET DARE GRADE GATE  (+108 bonus)
+  c-411  RSAWESET: SWEATERS SWEATER ASSERT WATERS STARES EATER STRAW ERASE SWEET STARE TEARS WEARS STEW  (+206 bonus)
+  c-421  EDPOALTS: TADPOLES PALEST LASTED POSTED STAPLE PETALS STALE TOADS LEAST LEADS DELTA TOAD EATS  (+352 bonus)
+  c-431  WEHPSIRS: WHISPERS WHISPER RISES WIRES PRESS SWISH WIRE HIRE PIER SHIP WISH WIPE PIES WHIP  (+118 bonus)
+  c-441  NTIEDSAC: DISTANCE INSECT INSTEAD DANCES TIDES SATIN CADET DANCE DENTS EATS DIETS IDEAS CATS DICE  (+281 bonus)
+  c-451  IHPNSOLD: DOLPHINS DOLPHIN POLISH PONDS LIONS SPOIL SLID DISH LIPS SPIN SOLID SHIP SHOP POND  (+124 bonus)
+  c-461  USDPMORG: GUMDROPS POURS GROUP DRUMS DUMP SOUR PROUD RUGS SOUP GOURD DOGS MUGS POUR SPUR  (+114 bonus)
+  c-471  SNEGDEIR: DESIGNER DESIGN SIGNER REIGNS SINGER RIDES EDGES DINES GENRE SNEER GREEN RINSE  (+222 bonus)
+  c-481  AIMGERDN: DREAMING READING MARINE GARDEN RANGED MARGIN DANGER ADMIRE RAINED DENIM AIMED RIDGE  (+253 bonus)
+  c-491  TGORPNSI: SPORTING SPRING SPRINT SNORT ROPING PORTS POINT PRINT TRIPS STING IRONS SPORT  (+225 bonus)
+
+every new level was made at its full spec
 
 candidates rejected on the way (a base word can be tried by many levels):
-  4863  too few common words in the wheel
+  23048  too few common words in the wheel

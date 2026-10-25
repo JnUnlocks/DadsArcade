@@ -17,7 +17,7 @@ import { CLUES } from "../../src/games/crossword/clues.ts";
 import { ANSWERS } from "../../src/games/letterlock/words.ts";
 
 const MIN = 3;
-const MAX = 7;
+const MAX = 8;
 
 function wordsOf(path: URL): string[] {
   return readFileSync(path, "utf8")
@@ -60,6 +60,7 @@ export function loadWordLists(): WordLists {
       ...CLUES.map((entry) => entry.word),
       ...ANSWERS,
       ...wordsOf(new URL("data/extra-targets.txt", import.meta.url)),
+      ...wordsOf(new URL("data/extra-targets-2.txt", import.meta.url)),
     ]
       .map((w) => w.toUpperCase())
       .filter(fits),

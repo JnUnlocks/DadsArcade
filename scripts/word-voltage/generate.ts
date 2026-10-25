@@ -23,7 +23,8 @@
  * file (RELEASED below), keeps every puzzle, level and daily in it exactly as
  * it is, and only adds what's new. Pack v1 (Oct 21, 2026) was made from
  * scratch by the build further down; v2 (Oct 24, 2026) added Challenge
- * levels 101-200 on top of it. To add more, freeze the current pack by
+ * levels 101-200 on top of it, and v3 (Oct 25, 2026) levels 201-500 on top
+ * of v2. To add more, freeze the current pack by
  * adding it to RELEASED, bump PACK_VERSION, and add to EXTENSIONS.
  */
 
@@ -50,11 +51,11 @@ export const DAILY_START = "2026-10-21";
 export const DAILY_DAYS = 100;
 
 /** The newest pack already on phones. Everything in it is kept as it is. */
-const RELEASED = "1";
+const RELEASED = "2";
 
 /** What this pack adds on top of RELEASED: levels from..to of one path. */
 const EXTENSIONS: ReadonlyArray<{ difficulty: Difficulty; from: number; to: number }> = [
-  { difficulty: "challenge", from: 101, to: 200 },
+  { difficulty: "challenge", from: 201, to: 500 },
 ];
 
 interface Spec {
@@ -64,6 +65,8 @@ interface Spec {
   repeats: boolean;
   /** The shortest board word. Four leaves out the easy three-letter ones. */
   minLength?: number;
+  /** A smaller board limit than the path's own, for the levels before 401. */
+  maxSide?: number;
 }
 
 /** The Family path: four letters to start, six by the last circuit. */
@@ -94,7 +97,32 @@ function extendedChallengeSpec(level: number): Spec {
   if (level <= 140) return { letters: 7, words: 10, repeats: true };
   if (level <= 160) return { letters: 7, words: 10, repeats: true, minLength: 4 };
   if (level <= 180) return { letters: 7, words: 11, repeats: true, minLength: 4 };
-  return { letters: 7, words: 12, repeats: true, minLength: 4 };
+  if (level <= 200) return { letters: 7, words: 12, repeats: true, minLength: 4 };
+  // 201-300: twelve words of four letters or more on every seven-letter board.
+  if (level <= 300) return { letters: 7, words: 12, repeats: true, minLength: 4, maxSide: 10 };
+  // 301-400: eight-letter wheels, the board growing from 10 words to 12.
+  if (level <= 340) return { letters: 8, words: 10, repeats: true, minLength: 4, maxSide: 10 };
+  if (level <= 370) return { letters: 8, words: 11, repeats: true, minLength: 4, maxSide: 10 };
+  if (level <= 400) return { letters: 8, words: 12, repeats: true, minLength: 4, maxSide: 10 };
+  // 401-500: up to 11x11 and 13 or 14 words, then the last 31 with every
+  // word five letters or more. That is about as many wheels as the word
+  // lists have that can carry a board like that, so they end the path.
+  if (level <= 430) return { letters: 8, words: 13, repeats: true, minLength: 4 };
+  if (level <= 469) return { letters: 8, words: 14, repeats: true, minLength: 4 };
+  return { letters: 8, words: 12, repeats: true, minLength: 5 };
+}
+
+/**
+ * When the word lists can't fill a level at its spec, the next-easiest spec
+ * to try: one fewer word, then three-letter words allowed back, then a
+ * seven-letter wheel instead of eight. Each step taken is in the report.
+ */
+function easier(spec: Spec): Spec | null {
+  if ((spec.minLength ?? 3) >= 5) return { ...spec, minLength: 4 };
+  if (spec.words > 9) return { ...spec, words: spec.words - 1 };
+  if ((spec.minLength ?? 3) > 3) return { ...spec, minLength: 3 };
+  if (spec.letters > 7) return { ...spec, letters: 7 };
+  return null;
 }
 
 function dailySpec(difficulty: Difficulty, day: number): Spec {
@@ -326,7 +354,7 @@ const reject = (reason: string) => rejections.set(reason, (rejections.get(reason
 /** Shuffled once: the order bases are offered in, per wheel size. */
 const rng = new Rng(SEED);
 const basesBySize = new Map<number, string[]>();
-for (const size of [4, 5, 6, 7]) {
+for (const size of [4, 5, 6, 7, 8]) {
   basesBySize.set(size, shuffle(targetList.filter((w) => w.length === size), rng));
 }
 
@@ -366,7 +394,7 @@ function readings(order: string): string[] {
 
 function makePuzzle(id: string, difficulty: Difficulty, spec: Spec, recent: readonly Puzzle[]): Puzzle {
   const pool = basesBySize.get(spec.letters)!;
-  const maxSide = LIMITS[difficulty].maxSide;
+  const maxSide = Math.min(spec.maxSide ?? LIMITS[difficulty].maxSide, LIMITS[difficulty].maxSide);
   for (const base of pool) {
     if (usedBases.has(base)) continue;
     if (hasRepeat(base) && !spec.repeats) continue;
@@ -504,6 +532,8 @@ const { puzzles, campaign, daily } = base;
 // Nothing new may reuse a wheel already on a phone.
 for (const puzzle of puzzles) usedWheels.add(letterSignature(puzzle.letters));
 const keptIds = new Set(puzzles.map((p) => p.id));
+/** Levels the word lists couldn't fill at their full spec. */
+const eased: string[] = [];
 
 for (const { difficulty, from, to } of EXTENSIONS) {
   if (campaign[difficulty].length !== from - 1) {
@@ -511,9 +541,18 @@ for (const { difficulty, from, to } of EXTENSIONS) {
   }
   const recent = campaign[difficulty].slice(-(NEAR_WINDOW - 1)).map((id) => puzzles.find((p) => p.id === id)!);
   for (let level = from; level <= to; level += 1) {
-    const spec = difficulty === "challenge" ? extendedChallengeSpec(level) : familySpec(level);
     const id = `${difficulty[0]}-${String(level).padStart(3, "0")}`;
-    const puzzle = makePuzzle(id, difficulty, spec, recent.slice(-(NEAR_WINDOW - 1)));
+    let spec: Spec | null = difficulty === "challenge" ? extendedChallengeSpec(level) : familySpec(level);
+    let puzzle: Puzzle | null = null;
+    while (spec && !puzzle) {
+      try {
+        puzzle = makePuzzle(id, difficulty, spec, recent.slice(-(NEAR_WINDOW - 1)));
+      } catch {
+        spec = easier(spec);
+        if (spec) eased.push(`${id}: eased to ${spec.letters} letters, ${spec.words} words, ${spec.minLength ?? 3}+ letters each`);
+      }
+    }
+    if (!puzzle) throw new Error(`No puzzle could be made for ${id}, even eased`);
     puzzles.push(puzzle);
     campaign[difficulty].push(id);
     recent.push(puzzle);
@@ -580,6 +619,8 @@ lines.push("every tenth new level (wheel: targets):");
 for (const p of added.filter((_, i) => i % 10 === 0)) {
   lines.push(`  ${p.id}  ${p.letters}: ${p.words.map((w) => w.word).join(" ")}  (+${p.bonus.length} bonus)`);
 }
+lines.push("", eased.length === 0 ? "every new level was made at its full spec" : `levels made easier than their spec (${eased.length}):`);
+lines.push(...eased.map((line) => `  ${line}`));
 lines.push("", "candidates rejected on the way (a base word can be tried by many levels):");
 for (const [reason, count] of [...rejections].sort((a, b) => b[1] - a[1])) {
   lines.push(`  ${count}  ${reason}`);

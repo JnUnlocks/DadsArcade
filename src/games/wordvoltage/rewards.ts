@@ -30,10 +30,27 @@ export const CIRCUITS: readonly Circuit[] = [
   { id: "thunder", name: "Thunder Core", colors: ["#ffb020", "#3d8bff"] },
   { id: "overdrive", name: "Overdrive", colors: ["#ff3bd4", "#ffd52a"] },
   { id: "max", name: "Max Voltage", colors: ["#f8fbff", "#19dfff"] },
+  // Challenge levels 201-500, added in pack v3: seven letters to 300, then
+  // eight-letter wheels.
+  { id: "nights", name: "Neon Nights", colors: ["#7748ff", "#ff3bd4"] },
+  { id: "breaker", name: "Circuit Breaker", colors: ["#19dfff", "#ff8a2a"] },
+  { id: "storm", name: "Pixel Storm", colors: ["#3d8bff", "#ffd52a"] },
+  { id: "lagoon", name: "Laser Lagoon", colors: ["#2de1c2", "#7748ff"] },
+  { id: "shock", name: "Static Shock", colors: ["#ffd52a", "#ff4f7b"] },
+  { id: "megawatt", name: "Megawatt", colors: ["#ff8a2a", "#7748ff"] },
+  { id: "arc", name: "Arc Light", colors: ["#f8fbff", "#ff3bd4"] },
+  { id: "surge", name: "Power Surge", colors: ["#7cff4f", "#19dfff"] },
+  { id: "sky", name: "Sky Circuit", colors: ["#5cc8ff", "#ffd52a"] },
+  { id: "vortex", name: "Volt Vortex", colors: ["#ff3bd4", "#2de1c2"] },
+  { id: "ion", name: "Ion Drive", colors: ["#19dfff", "#7cff4f"] },
+  { id: "gigawatt", name: "Gigawatt", colors: ["#ffb020", "#ff3bd4"] },
+  { id: "peak", name: "Lightning Peak", colors: ["#f8fbff", "#7748ff"] },
+  { id: "star", name: "Star Circuit", colors: ["#ffd52a", "#3d8bff"] },
+  { id: "ultra", name: "Ultra Voltage", colors: ["#ff4f7b", "#ffd52a"] },
 ];
 
 /** How many circuits each path has: the pack test holds the pack to this. */
-export const PATH_CIRCUITS: Readonly<Record<Difficulty, number>> = { family: 5, challenge: 10 };
+export const PATH_CIRCUITS: Readonly<Record<Difficulty, number>> = { family: 5, challenge: 25 };
 
 /** 0-based level index to 0-based circuit index. */
 export function circuitOf(levelIndex: number): number {
@@ -87,6 +104,21 @@ const CIRCUIT_BADGE_NAMES = [
   "Thunder Maker",
   "Overdrive Hero",
   "Max Voltage Master",
+  "Night Owl",
+  "Breaker Boss",
+  "Storm Chaser",
+  "Lagoon Glow",
+  "Shock Wave",
+  "Megawatt Maker",
+  "Arc Artist",
+  "Surge Star",
+  "Sky Racer",
+  "Vortex Rider",
+  "Ion Ace",
+  "Gigawatt Giant",
+  "Peak Climber",
+  "Star Wirer",
+  "Ultra Legend",
 ];
 
 export const BADGES: readonly Badge[] = [
@@ -134,6 +166,21 @@ const STYLE_COLORS: ReadonlyArray<{ tile: string; rim: string; trail: string }> 
   { tile: "#ffb020", rim: "#3d8bff", trail: "#ffd52a" },
   { tile: "#ff3bd4", rim: "#ffd52a", trail: "#ffd52a" },
   { tile: "#f8fbff", rim: "#19dfff", trail: "#ff3bd4" },
+  { tile: "#7748ff", rim: "#ff3bd4", trail: "#19dfff" },
+  { tile: "#19dfff", rim: "#ff8a2a", trail: "#ffd52a" },
+  { tile: "#3d8bff", rim: "#ffd52a", trail: "#f8fbff" },
+  { tile: "#2de1c2", rim: "#7748ff", trail: "#ff3bd4" },
+  { tile: "#ffd52a", rim: "#ff4f7b", trail: "#19dfff" },
+  { tile: "#ff8a2a", rim: "#7748ff", trail: "#19dfff" },
+  { tile: "#f8fbff", rim: "#ff3bd4", trail: "#ffd52a" },
+  { tile: "#7cff4f", rim: "#19dfff", trail: "#ff3bd4" },
+  { tile: "#5cc8ff", rim: "#ffd52a", trail: "#ff8a2a" },
+  { tile: "#ff3bd4", rim: "#2de1c2", trail: "#f8fbff" },
+  { tile: "#19dfff", rim: "#7cff4f", trail: "#ff3bd4" },
+  { tile: "#ffb020", rim: "#ff3bd4", trail: "#19dfff" },
+  { tile: "#f8fbff", rim: "#7748ff", trail: "#ffd52a" },
+  { tile: "#ffd52a", rim: "#3d8bff", trail: "#ff3bd4" },
+  { tile: "#ff4f7b", rim: "#ffd52a", trail: "#19dfff" },
 ];
 
 export const COSMETICS: readonly Cosmetic[] = [

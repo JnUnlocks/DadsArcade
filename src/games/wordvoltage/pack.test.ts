@@ -37,9 +37,9 @@ describe("the content pack", () => {
     assert.deepEqual(errors.slice(0, 20), []);
   });
 
-  it("has 100 Family levels and 200 Challenge, a circuit of 20 at a time", () => {
+  it("has 100 Family levels and 500 Challenge, a circuit of 20 at a time", () => {
     assert.equal(pack.campaign.family.length, 100);
-    assert.equal(pack.campaign.challenge.length, 200);
+    assert.equal(pack.campaign.challenge.length, 500);
     for (const difficulty of ["family", "challenge"] as const) {
       assert.equal(pack.campaign[difficulty].length, PATH_CIRCUITS[difficulty] * LEVELS_PER_CIRCUIT);
     }
@@ -58,7 +58,7 @@ describe("the content pack", () => {
   it("keeps each path inside its letter and word ranges", () => {
     for (const [difficulty, range] of [
       ["family", { letters: [4, 6], words: [3, 7], side: 8 }],
-      ["challenge", { letters: [5, 7], words: [5, 12], side: 10 }],
+      ["challenge", { letters: [5, 8], words: [5, 14], side: 11 }],
     ] as const) {
       for (const id of [...pack.campaign[difficulty], ...Object.values(pack.daily).map((d) => d[difficulty])]) {
         const p = pack.puzzles[id]!;
@@ -121,29 +121,39 @@ describe("the content pack", () => {
     }
   });
 
-  it("keeps every puzzle, level and daily of the pack already on phones", () => {
-    // Saves, stars and rewards are keyed on these ids: a released pack's
-    // content must come through every later pack exactly as it was.
-    const v1 = decodePack(
-      JSON.parse(readFileSync(new URL("../../../public/word-voltage/pack-v1.json", import.meta.url), "utf8")),
-    );
-    for (const [id, puzzle] of Object.entries(v1.puzzles)) {
-      assert.deepEqual(pack.puzzles[id], puzzle, id);
-    }
-    for (const difficulty of ["family", "challenge"] as const) {
-      assert.deepEqual(pack.campaign[difficulty].slice(0, v1.campaign[difficulty].length), v1.campaign[difficulty]);
-    }
-    for (const [date, entry] of Object.entries(v1.daily)) assert.deepEqual(pack.daily[date], entry, date);
-    assert.equal(pack.tutorial, v1.tutorial);
-  });
+  for (const released of ["1", "2"]) {
+    it(`keeps every puzzle, level and daily of pack v${released}, already on phones`, () => {
+      // Saves, stars and rewards are keyed on these ids: a released pack's
+      // content must come through every later pack exactly as it was.
+      const old = decodePack(
+        JSON.parse(
+          readFileSync(new URL(`../../../public/word-voltage/pack-v${released}.json`, import.meta.url), "utf8"),
+        ),
+      );
+      for (const [id, puzzle] of Object.entries(old.puzzles)) {
+        assert.deepEqual(pack.puzzles[id], puzzle, id);
+      }
+      for (const difficulty of ["family", "challenge"] as const) {
+        assert.deepEqual(pack.campaign[difficulty].slice(0, old.campaign[difficulty].length), old.campaign[difficulty]);
+      }
+      for (const [date, entry] of Object.entries(old.daily)) assert.deepEqual(pack.daily[date], entry, date);
+      assert.equal(pack.tutorial, old.tutorial);
+    });
+  }
 
   it("gets harder past level 100 on Challenge", () => {
     for (const [index, id] of pack.campaign.challenge.entries()) {
-      if (index < 100) continue;
       const puzzle = pack.puzzles[id]!;
-      assert.equal(puzzle.letters.length, 7, id);
-      assert.ok(puzzle.words.length >= 9, id);
-      if (index >= 140) assert.ok(puzzle.words.every((p) => p.word.length >= 4), `${id} has a three-letter word`);
+      const board = buildBoard(puzzle);
+      const shortest = Math.min(...puzzle.words.map((p) => p.word.length));
+      // Eight letters and 11x11 boards are only for levels 301 and up.
+      if (index < 300) assert.ok(puzzle.letters.length <= 7, id);
+      if (index < 400) assert.ok(board.rows <= 10 && board.cols <= 10, id);
+      if (index < 100) continue;
+      assert.equal(puzzle.letters.length, index < 300 ? 7 : 8, id);
+      assert.ok(puzzle.words.length >= (index < 200 ? 9 : 10), id);
+      if (index >= 140) assert.ok(shortest >= 4, `${id} has a three-letter word`);
+      if (index >= 469) assert.ok(shortest >= 5, `${id} has a four-letter word`);
     }
   });
 

@@ -14,7 +14,7 @@
 
 import type { Difficulty, Orientation, Pack, Placement, Puzzle } from "./types.ts";
 
-export const PACK_VERSION = "2";
+export const PACK_VERSION = "3";
 export const PACK_URL = `/word-voltage/pack-v${PACK_VERSION}.json`;
 
 /** One word as stored: [WORD, row, col, "A" | "D"]. */

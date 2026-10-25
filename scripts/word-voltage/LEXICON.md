@@ -12,7 +12,7 @@ puzzle in the pack carries its own list of accepted bonus words.
 | Bonus words | ENABLE (Enhanced North American Benchmark Lexicon), as the arcade already ships it in `public/crossword-words.txt` | Public domain. Built by `scripts/build-wordlist.mjs` from `enable1.txt` ([dolph/dictionary](https://github.com/dolph/dictionary)) |
 | Target words | Letter Lock's answers (`src/games/letterlock/words.ts`) | Written by hand for this arcade |
 | | Mom Mom's Crossword clue bank (`src/games/crossword/clues.ts`) | Written by hand for this arcade |
-| | `data/extra-targets.txt` | Written by hand for Word Voltage |
+| | `data/extra-targets.txt`, `data/extra-targets-2.txt` | Written by hand for Word Voltage |
 | Deny list | `data/bonus-deny.txt` | Written by hand for Word Voltage |
 
 Nothing was taken from another word game's dictionary, levels or art.
@@ -35,8 +35,8 @@ Nothing was taken from another word game's dictionary, levels or art.
 - Plurals and past tenses count only where a list spells them out. The
   generator never makes a word by adding S, ED or ING.
 
-At the last build: 3,796 target words (343 three-letter, 1,039 four, 1,230
-five, 652 six, 532 seven) and 51,428 bonus words.
+At the last build: 4,537 target words (343 three-letter, 937 four, 1,408
+five, 715 six, 703 seven, 431 eight) and 79,814 bonus words.
 
 ## Packs
 
@@ -44,6 +44,12 @@ five, 652 six, 532 seven) and 51,428 bonus words.
 `pack-v2.json` (v0.32.0, Oct 24, 2026) is v1 unchanged plus Challenge levels
 101-200, with the same word lists: seven-letter wheels, 9 to 12 words, and
 four letters or more for every board word from level 141.
+`pack-v3.json` (v0.33.0, Oct 25, 2026) is v2 unchanged plus Challenge levels
+201-500. Words now run to eight letters, and `extra-targets-2.txt` added
+about 740 board words (mostly six to eight letters, and plain plurals and
+past tenses), taking the target list to 4,537 and the bonus list to 79,814.
+None of the earlier puzzles' bonus lists change: their wheels are seven
+letters at most, so no eight-letter word fits them.
 
 ## How a puzzle's words are chosen (`generate.ts`)
 

@@ -8,14 +8,14 @@
  * Bump CACHE_VERSION on any release that changes the shell.
  */
 
-const CACHE_VERSION = "dads-arcade-v32";
+const CACHE_VERSION = "dads-arcade-v33";
 
 /**
  * Enough to boot offline; hashed build assets are cached on first visit.
  *
  * Word Voltage's puzzle pack is here too, so every level and every Daily
  * Charge plays offline even on a phone that never opened the cabinet while it
- * had signal. Its name carries its version (pack-v2.json) and it never
+ * had signal. Its name carries its version (pack-v3.json) and it never
  * changes once released, so caching it for good is safe.
  */
 const APP_SHELL = [
@@ -23,7 +23,7 @@ const APP_SHELL = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
-  "/word-voltage/pack-v2.json",
+  "/word-voltage/pack-v3.json",
 ];
 
 self.addEventListener("install", (event) => {

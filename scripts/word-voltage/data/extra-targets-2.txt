@@ -1,0 +1,118 @@
+# Word Voltage: more common words, added for Challenge levels 201-500.
+#
+# Same bar as extra-targets.txt: everyday American English a family knows,
+# nothing rude, nothing about fighting, drinking or drugs, no names, no
+# abbreviations. Every word must also be in ENABLE, which is how typos are
+# caught (lexicon.ts reports any that aren't).
+#
+# Mostly six to eight letters, because the eight-letter wheels from level 301
+# need common base words and a lot of common words inside them, plus plain
+# plurals and past tenses a child would say.
+
+# ----- eight letters -----
+absolute accident activity actually addition airplane alphabet although ancestor anything
+anywhere appetite applause approach aquarium argument assemble athletic attached audience
+backpack backyard baseball basement bathroom beginner behavior believed birthday blankets
+blessing bluebird boundary bracelet brownies building calendar campfire campsite capacity
+cardinal careless carnival carousel cartoons category ceremony champion chapters charming
+checkers cheerful children chipmunk cinnamon circular climbing clothing colorful complete
+computer confetti constant continue cookbook costumes cottages courtesy coverage creative
+creature cupboard cucumber customer daffodil darkness daughter daylight decision delicate
+delivery designer diamonds dinosaur directly director discover distance doghouse dolphins
+doorbell doorstep doughnut downhill drawings dreaming dressing driveway dumpling eastward
+eggplant eighteen elephant elevator emeralds engineer entrance envelope equation evenings
+everyday everyone exercise expected explorer eyebrows familiar farmland favorite feathers
+festival fireside firewood flagpole flamingo flashing floating flounder football footstep
+forecast forehead forgiven fourteen fragrant freezing friendly frontier frosting function
+gardener gathered gemstone generous geranium giggling goldfish goodness graceful graduate
+grateful greeting grinning grounded guardian guidance gumdrops halftime handbook handmade
+handsome hardware harmless harvests headband headline headrest heirloom heritage highland
+hilltops holidays homemade homework honestly hospital hundreds hurrying imagined incoming
+increase indicate infinite innocent insisted interest invented inventor jamboree journals
+journeys keyboard kindness kingdoms knapsack laughing lavender learning leftover lemonade
+lifeboat lifetime lighting likewise listened location lollipop magnetic marathon marigold
+material meantime medicine memories merchant midnight mischief moisture monument moonbeam
+mosquito mountain movement mushroom musician neighbor nineteen noontime notebook numerous
+occasion opposite optional orchards ordinary organize ornament outdoors overcoat overhead
+overlook painting pancakes paradise parakeet passport pastries patience peaceful pinecone
+pinwheel planting platform pleasant pleasure plumbing pointing positive possible postcard
+potatoes powerful practice precious presents pressure pretzels princess printing probably
+problems produced promises property protects provided pumpkins purchase question rainbows
+raindrop rainfall reaction received recently recorder reindeer relaxing remember reminder
+repeated reporter required response restless restored riverbed roadside rosebush rotation
+sailboat sandwich sapphire scramble seashell seashore sensible sentence separate sharpest
+shepherd shoelace shopping shortcut shoulder showcase sidewalk silently simplest smallest
+snapshot snowball snowfall snowshoe softball somebody somewhat songbird sparkler speaking
+spelling spinning splendid sporting spotless sprinkle squirrel stairway standard starfish
+stations steering stepping stickers stitches stranger strategy strength students studying
+sunlight sunshine supplies surprise sweaters sweetest swimming sympathy tadpoles talented
+teaching teammate teaspoon terrific thankful thinking thirteen thousand timeline together
+tomorrow tortoise training treasure triangle trombone tropical umbrella uncommon universe
+vacation valuable wardrobe watering weekends welcomed whispers whistles wildlife windmill
+wishbone woodland workshop yearbook yourself zucchini
+creation reaction counters stations listener teardrop stampede operates trainers strainer
+restrain relating altering gardener stranger earliest seashore headrest painters
+parental paternal triangle remained sardines seasoned retained
+treasure strained trainees speaking spelling repaints strangle angriest
+
+# ----- seven letters -----
+ancient arrange balance beanbag bedtime boxcars bracket cabbage captain caramel catalog
+cereals chalets chimney classic cleaned climber coaster cobbled cookies corners
+cottage counted cowgirl crayons crumble cupcake dancers dentist desktop dessert dinners
+dolphin drawers dresses drivers dusting earning eastern enclose engines entered
+erasers evening farmers fastest feather fishing flowers folders footing forests fortune
+freight friends gardens glasses goggles grandpa granola grapple greater
+greeted grinned gumball haircut hamster handles harbors heading healthy hearing heaters
+helmets herself highest hobbies hoedown hostess hottest insects
+islands jackets jasmine jigsaws jingles kettles kitchen kittens ladders leaders
+learned lessons letters lettuce lighter lizards lockers magnets
+mailbox mammals mapping markers mascots meadows mentors minutes mirrors mittens
+mixture monkeys mothers muffins museums napkins needles nesting nickels noodles notices
+numbers oranges orchids ostrich oysters paddles palaces pancake panther parades parents
+parrots partner pastels peacock peanuts pebbles pelican pencils penguin peppers
+pickles picnics pigeons pillows pirates planets plaster plastic players pockets popcorn
+posters potters pottery powders praised pretend printer puddles puppets puzzles
+rabbits radiant raisins readers reading recipes records remains renters repairs
+reptile rescued rewards ribbons riddles rockets rodents rollers rooster runners
+saddles sailors samples sandals sardine scarves scenery schools scooter screens
+seasons secrets sellers sharpen shelter shimmer shorter showers singers sisters skaters
+slender slipper snorkel sparkle spiders sponges springs
+sprouts squares stables stapler starter station statues stencil stories strange
+streams streets stripes student studios summers sunbeam sunrise sunsets suppers sweater
+tablets talents tangles teacher teapots tickets timbers toaster
+trailer trainer travels treetop trinket tunnels turkeys turtles
+uniform unicorn vanilla village violins visitor volcano waffles walnuts wanders
+warmest washers weather wedding weekend whisker whistle windows winners winters wizards
+wonders writers zippers
+
+# ----- six letters, and plain plurals and past tenses -----
+dealer leader ranged garden danger stride driest tinder rented tender
+stared stares trades traced crates caters reacts listen silent
+tinsel enlist salted slated lasted petals plates staple pastel palest
+spider prides sorted stored strode ported posted
+parted hearts haters earths others master stream
+remain marine seated sedate rested desert tested setter street
+sailed ideals ladies nailed denial trains strain grains
+rating orange groans organs
+signer singer reigns noting toning tuning tiring
+rating eating dating mating taping hoping coping roping riding hiding
+siding waving saving paving raving caving baking taking making
+raking waking baking
+
+arts bags bars bats beds bees boats bones books boots cakes cards cares cats coats coins
+cones cores dates deals dents diets dimes dines doors drags drums earns eats edges ends
+fans fares feats files fines fires gates gears goals hands hares hats hears heats hints
+holes homes hoses ideas irons items lanes lasts leads leans lends liars lies lines lions
+lists loads loans mares marks mates meals meets mines mints moles names nears nests notes
+pages pains pairs panes parts paste pears piles pines plans plates poles ponds pores ports
+posts pours races rails rains rates reads rents rests rides rings rises roads roars robes
+rocks roles roots ropes roses rules sails sales salts sands seals seats seeds sides signs
+sites skins slots snaps soles songs sorts spots stars steps stems tails tales tames tanks
+tapes tears teens tents terms tides tiles times tires toads tones tools tours trees trips
+tunes vases veils vests vines votes waits walls wands warns waves wears wings wires words
+works years
+aimed baked cared dared dated faded fared hated lined mated named paled paced raced rated
+saved tamed taped timed tired toned tuned voted waded waved wiped added ended lasted listed
+rented rested tested sailed rained leaned loaned mailed nailed paired parted posted raised
+seated sorted stored traced traded trained eating dating rating seating tiring toning
+tuning raining sailing nailing
