@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   capture-real-gameplay:
@@ -30,6 +30,20 @@ jobs:
         run: node marketing/v3/capture.cjs
       - name: Assemble social video with the official Suno song
         run: bash marketing/v3/build.sh
+      - name: Make MP4 directly downloadable (marketing branch only)
+        if: success()
+        run: |
+          if [ ! -f marketing/v3/out/Dads_Arcade_V3_Real_Gameplay.mp4 ]; then
+            echo "Song download did not succeed: refusing to publish silent ad."
+            exit 1
+          fi
+          mkdir -p ad-assets
+          cp marketing/v3/out/Dads_Arcade_V3_Real_Gameplay.mp4 ad-assets/Dads_Arcade_V3_Real_Gameplay.mp4
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ad-assets/Dads_Arcade_V3_Real_Gameplay.mp4
+          git commit -m "Add V3 social-ready real-gameplay MP4 [skip ci]"
+          git push origin HEAD:marketing/v3-live-gameplay
       - name: Package MP4 for sharing
         if: always()
         uses: actions/upload-artifact@v4
