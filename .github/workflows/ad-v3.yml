@@ -52,6 +52,8 @@ jobs:
           path: |
             marketing/v3/out/*.mp4
             marketing/v3/captured/*.jpg
+            marketing/v3/captured/*.webm
+            marketing/v3/work/visual.mp4
             marketing/v3/captured/*.json
           if-no-files-found: warn
           retention-days: 14
