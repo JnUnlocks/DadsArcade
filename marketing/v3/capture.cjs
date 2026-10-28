@@ -92,7 +92,7 @@ async function record(browser,key,slug,act) {
     await page.keyboard.type("SOUND",{delay:65});
   });
   await record(browser,"slime","riley-slime-shop",async(page)=>{
-    await tapText(page,"SLIME LAB");
+    await page.locator(".slime-mode").first().click({timeout:2200});
     await page.waitForTimeout(400);
     const bottles=page.locator(".slime-bottle");
     if(await bottles.count()>1){
