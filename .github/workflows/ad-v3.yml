@@ -1,0 +1,43 @@
+name: Capture Dad's Arcade V3 commercial
+on:
+  push:
+    branches: [marketing/v3-live-gameplay]
+    paths:
+      - "marketing/v3/**"
+      - ".github/workflows/ad-v3.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-real-gameplay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install app and capture tools
+        run: |
+          npm ci
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y ffmpeg python3-pil fonts-dejavu-core
+      - name: Record actual game sessions in mobile Chromium
+        run: node marketing/v3/capture.cjs
+      - name: Assemble social video with the official Suno song
+        run: bash marketing/v3/build.sh
+      - name: Package MP4 for sharing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dads-Arcade-V3-Real-Gameplay
+          path: |
+            marketing/v3/out/*.mp4
+            marketing/v3/captured/*.jpg
+            marketing/v3/captured/*.json
+          if-no-files-found: warn
+          retention-days: 14
