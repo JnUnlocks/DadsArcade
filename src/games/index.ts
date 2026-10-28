@@ -44,12 +44,14 @@ export const GAMES: GameModule[] = [
   towerModule,
   crossingModule,
   brickfallModule,
-  slimeShopModule,
   blackDiscModule,
   sudokuModule,
   // At the bottom while the family tries it out (BETA), by Justin's choice on
   // 2026-10-21.
   wordVoltageModule,
-  // Brand new and in BETA (2026-10-22): last, after Word Voltage.
+  // Brand new and in BETA (2026-10-22): after Word Voltage.
   solitaireModule,
+  // Riley's own game, more for her than for the public: at the very bottom,
+  // by Justin's choice on 2026-10-28.
+  slimeShopModule,
 ];

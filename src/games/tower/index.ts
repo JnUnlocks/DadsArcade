@@ -79,6 +79,13 @@ const RESCUE_SECONDS = 2.8;
 const WINDUP_SECONDS = 0.55;
 const THROW_POSE_SECONDS = 0.3;
 
+/**
+ * A JUMP pressed this soon before JB can jump -- still in the air from the
+ * last one, or stepping off a ladder -- happens the moment he can. Without it
+ * a tap a hair early is silently dropped and the next tyre lands on him.
+ */
+const JUMP_BUFFER_SECONDS = 0.15;
+
 /** The bonus drains 100 points every this many seconds. */
 const BONUS_TICK_SECONDS = 2;
 
@@ -148,6 +155,7 @@ export class TowerTrouble implements GameInstance {
   private touchDrag = 0;
   private wasPointerDown = false;
   private jumpQueued = false;
+  private jumpBuffer = 0;
 
   constructor(host: GameHost) {
     this.host = host;
@@ -282,7 +290,12 @@ export class TowerTrouble implements GameInstance {
     const p = this.player;
     if (this.invulnerable > 0) this.invulnerable -= dt;
 
-    const events = stepPlayer(p, dt, intent);
+    if (intent.jump) this.jumpBuffer = JUMP_BUFFER_SECONDS;
+    else if (this.jumpBuffer > 0) this.jumpBuffer -= dt;
+    const jump = this.jumpBuffer > 0 && p.mode === "walk";
+    if (jump) this.jumpBuffer = 0;
+
+    const events = stepPlayer(p, dt, { ...intent, jump });
     if (p.mode === "walk" && p.level > this.checkpoint.level) {
       this.checkpoint = { level: p.level, x: p.x };
     }
@@ -393,7 +406,10 @@ export class TowerTrouble implements GameInstance {
     }
   }
 
-  /** Early stages throw mostly slow, readable junk; the fast stuff arrives later. */
+  /**
+   * Stage 1 throws mostly spools and toolboxes: easy to read as they come. The
+   * paint can, which loves a ladder, arrives from stage 2.
+   */
   private pickJunk(): JunkKind {
     const roll = this.rng.next();
     if (this.stage === 1) return roll < 0.5 ? "spool" : roll < 0.8 ? "toolbox" : "tire";
@@ -433,6 +449,7 @@ export class TowerTrouble implements GameInstance {
     p.y = girderY(p.level, p.x);
     this.player = p;
     this.junk = [];
+    this.jumpBuffer = 0;
     this.invulnerable = INVULNERABLE_SECONDS;
     this.robotPose = "idle";
     this.holding = null;
@@ -467,6 +484,7 @@ export class TowerTrouble implements GameInstance {
     this.robotPose = "idle";
     this.holding = null;
     this.invulnerable = 0;
+    this.jumpBuffer = 0;
     this.phase = "ready";
     this.phaseTimer = READY_SECONDS;
     this.say(`STAGE ${this.stage}`, READY_SECONDS + 0.4);
@@ -480,6 +498,7 @@ export class TowerTrouble implements GameInstance {
     this.touchDrag = 0;
     this.wasPointerDown = false;
     this.jumpQueued = false;
+    this.jumpBuffer = 0;
     this.dpad.reset();
   }
 
@@ -647,14 +666,14 @@ export const towerModule: GameModule = {
   title: "JB'S TOWER TROUBLE",
   shortTitle: "TOWER",
   progressShort: "ST",
-  blurb: "D-pad to walk and climb, JUMP over junk. Rescue the good boy.",
+  blurb: "Climb the girders, hop the junk, rescue the good boy from the Scrap King.",
   howToPlay: [
-    "Use the D-pad to walk and to climb ladders. Tap JUMP to hop over rolling junk.",
+    "Use the D-pad to walk and climb. Press up or down near a ladder and JB walks over and grabs it.",
+    "Tap JUMP to hop rolling junk. Jump as it reaches you, or jump toward it for more room.",
     "A jump goes the way you were heading when you took off. You can't turn in the air.",
     "Grab a wrench to smash junk for a few seconds. You can't climb while you're holding it.",
-    "Reach the roof to rescue the dog. Each rescue earns a heart, up to five.",
+    "Reach the roof to rescue the dog: a heart (up to five) plus whatever BONUS is left.",
     "Get hit and you lose a heart, but you restart on the girder you'd reached, not at the bottom.",
-    "The bonus counts down while you climb. It only costs points, never a heart.",
   ],
   accent: "#ff6a3d",
 

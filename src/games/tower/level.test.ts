@@ -22,6 +22,9 @@ import {
   GRAVITY,
   JUMP_VELOCITY,
   JUNK_RADIUS,
+  JUNK_TRAITS,
+  LADDER_ASSIST,
+  LADDER_GRAB,
   junkHitsPlayer,
   jumpedOver,
   LADDERS,
@@ -200,6 +203,44 @@ describe("jumping", () => {
     );
   });
 
+  it("clears the slowest junk from a standing jump", () => {
+    // The move everyone tries first: stand still, tap JUMP as the junk
+    // arrives. Play it out with the real step functions for the slowest junk
+    // there is -- a spool on stage 1 -- and count the take-off distances that
+    // work. It used to be none, which made the jump look broken.
+    const slowest = (Object.keys(JUNK_TRAITS) as JunkKind[]).reduce((a, b) =>
+      JUNK_TRAITS[a].speed < JUNK_TRAITS[b].speed ? a : b,
+    );
+    const neverLadder = { next: () => 1 } as unknown as Rng;
+    const dt = 1 / 120;
+    let cleared = 0;
+    for (let gap = 8; gap <= 60; gap += 1) {
+      const j = spawnJunk(1, slowest);
+      j.level = 1;
+      j.dir = downhill(1);
+      j.x = 60;
+      j.y = girderY(1, j.x);
+      const p = newPlayer();
+      p.level = 1;
+      p.x = j.x + gap;
+      p.y = girderY(1, p.x);
+      let hit = false;
+      stepPlayer(p, dt, { x: 0, y: 0, jump: true });
+      for (let t = 0; t < 3 && !hit && j.x < p.x + 20; t += dt) {
+        stepJunk(j, dt, 1, neverLadder);
+        stepPlayer(p, dt, IDLE);
+        hit = junkHitsPlayer(j, p);
+      }
+      if (!hit) cleared += 1;
+    }
+    // Each unit of gap is 1/speed seconds of timing; ask for about 0.2s.
+    const speed = difficulty(1).junkSpeed * JUNK_TRAITS[slowest].speed;
+    assert.ok(
+      cleared / speed >= 0.2,
+      `only ${(cleared / speed).toFixed(2)}s of timing window to jump a ${slowest} from standing`,
+    );
+  });
+
   it("lands back on the same girder", () => {
     const p = newPlayer();
     stepPlayer(p, 1 / 60, { x: -1, y: 0, jump: true });
@@ -238,6 +279,26 @@ describe("JB", () => {
     assert.ok(events.includes("climbStart"));
     assert.equal(p.level, 1);
     assert.equal(p.mode, "walk");
+  });
+
+  it("walks onto a ladder when up is pressed just short of it", () => {
+    const p = onLadderBottom(0);
+    p.x += LADDER_ASSIST - 2;
+    let climbing = false;
+    for (let i = 0; i < 120 && !climbing; i += 1) {
+      climbing = stepPlayer(p, 1 / 60, { x: 0, y: -1, jump: false }).includes("climbStart");
+    }
+    assert.ok(climbing, "pressing up near the ladder never started a climb");
+    assert.equal(p.x, LADDERS[0]!.x);
+  });
+
+  it("doesn't drift toward a ladder that's far away", () => {
+    const p = onLadderBottom(0);
+    p.x += LADDER_ASSIST + 6;
+    const before = p.x;
+    stepPlayer(p, 1 / 60, { x: 0, y: -1, jump: false });
+    assert.equal(p.x, before);
+    assert.ok(LADDER_ASSIST > LADDER_GRAB);
   });
 
   it("can't climb while holding the wrench, and says why", () => {

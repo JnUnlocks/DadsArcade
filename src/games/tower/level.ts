@@ -153,7 +153,11 @@ export const JUNK_RADIUS = 8;
 /** How each kind of junk differs from the stage's baseline. */
 export const JUNK_TRAITS: Record<JunkKind, { speed: number; ladder: number }> = {
   tire: { speed: 1.25, ladder: 0.7 }, // fast, and mostly stays on the girder
-  spool: { speed: 0.8, ladder: 1.0 }, // slow and heavy
+  // Slow and heavy -- but slow junk is the *hardest* to jump, because it
+  // spends longest underneath you. At 0.8 it left a standing jump on stage 1
+  // (half of which is spools) a sliver of timing; 0.9 keeps it the slowest
+  // while giving about a third of a second.
+  spool: { speed: 0.9, ladder: 1.0 },
   paint: { speed: 1.0, ladder: 1.7 }, // loves a ladder
   toolbox: { speed: 0.95, ladder: 1.0 },
 };
@@ -287,11 +291,25 @@ export const PLAYER_W = 10;
 export const PLAYER_H = 22;
 export const WALK_SPEED = 62;
 export const CLIMB_SPEED = 48;
-export const JUMP_VELOCITY = -152;
-export const GRAVITY = 520;
+/**
+ * The jump. Tuned so a jump from standing still clears the slowest junk (a
+ * cable spool on stage 1) with time to spare, not only a running jump at a
+ * fast tyre. The first tuning hung in the air for 0.58s: a spool couldn't
+ * roll all the way underneath in that time, so standing and tapping JUMP as
+ * it arrived -- the first thing anyone tries -- lost a heart every time.
+ * level.test.ts holds both the standing and the running case.
+ */
+export const JUMP_VELOCITY = -170;
+export const GRAVITY = 400;
 
 /** How close to a ladder's centre JB must be to grab it. */
 export const LADDER_GRAB = 7;
+/**
+ * Pressing up or down this close to a ladder walks JB onto it. Stopping
+ * inside the grab window at full walking speed is a 0.2s target on a phone,
+ * and missing it meant pressing UP and nothing happening at all.
+ */
+export const LADDER_ASSIST = 24;
 
 export interface Player {
   x: number;
@@ -335,13 +353,19 @@ function clampToGirder(level: number, x: number): number {
 }
 
 /** A ladder JB could start climbing from where he stands, going up or down. */
-export function ladderAt(p: Player, direction: "up" | "down"): number {
+export function ladderAt(p: Player, direction: "up" | "down", reach = LADDER_GRAB): number {
+  let best = -1;
+  let bestDistance = Infinity;
   for (let i = 0; i < LADDERS.length; i += 1) {
     const ladder = LADDERS[i]!;
     const here = direction === "up" ? ladder.bottom : ladderTop(ladder);
-    if (here === p.level && Math.abs(p.x - ladder.x) <= LADDER_GRAB) return i;
+    const distance = Math.abs(p.x - ladder.x);
+    if (here === p.level && distance <= reach && distance < bestDistance) {
+      best = i;
+      bestDistance = distance;
+    }
   }
-  return -1;
+  return best;
 }
 
 /**
@@ -378,6 +402,14 @@ export function stepPlayer(p: Player, dt: number, intent: Intent): PlayerEvent[]
           p.x = ladder.x;
           events.push("climbStart");
           return events;
+        }
+      } else if (intent.x === 0) {
+        // Just short of a ladder: walk to it, and the next step grabs it.
+        const near = ladderAt(p, direction, LADDER_ASSIST);
+        if (near !== -1) {
+          const dx = LADDERS[near]!.x - p.x;
+          p.facing = dx > 0 ? 1 : -1;
+          p.x = clampToGirder(p.level, p.x + Math.sign(dx) * Math.min(Math.abs(dx), WALK_SPEED * dt));
         }
       }
     }

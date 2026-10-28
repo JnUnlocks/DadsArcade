@@ -34,6 +34,20 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.35.0",
+    date: "2026-10-28",
+    title: "JB's Tower Trouble: a jump that works, and a new cabinet picture",
+    notes: [
+      "JB'S TOWER TROUBLE: JB jumps higher and hangs in the air longer. Standing still and tapping JUMP as junk rolls up to you now clears it. Before, a cable spool hit you every time.",
+      "Cable spools roll a little faster, so they're easier to hop. They're still the slowest junk.",
+      "Press up or down near a ladder and JB walks over and grabs it. You don't have to stop exactly on it any more.",
+      "Tap JUMP a moment before JB lands or steps off a ladder and he jumps as soon as he can, instead of the tap getting lost.",
+      "Fixed JB's legs coming loose from his shirt in mid-air.",
+      "A new picture on the Tower Trouble cabinet: JB hopping a tyre, with the good boy waiting on the roof.",
+      "RILEY'S SLIME SHOP moves to the end of the arcade.",
+    ],
+  },
+  {
     version: "0.34.0",
     date: "2026-10-25",
     title: "Word Voltage: THEMES, starting with Halloween, Dad's Garage and Bible Stories",

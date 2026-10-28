@@ -376,15 +376,16 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, p: Player, look: Playe
   const stride = p.mode === "walk" ? Math.sin(look.time * 14) : 0;
   const climbing = p.mode === "climb";
 
-  // Boots and legs.
+  // Boots and legs. In the air the knees tuck: the legs shorten from the
+  // bottom and the boots come up with them, so the jeans stay on the shirt.
   const legA = climbing ? Math.sin(look.time * 10) * 2 : stride * 2.5;
   const tuck = p.mode === "jump" ? 3 : 0;
   ctx.fillStyle = "#3563b8"; // jeans
-  ctx.fillRect(-4 + legA * 0.3, -10 + tuck, 3, 7 - tuck);
-  ctx.fillRect(1 - legA * 0.3, -10 + tuck, 3, 7 - tuck);
+  ctx.fillRect(-4 + legA * 0.3, -10, 3, 7 - tuck);
+  ctx.fillRect(1 - legA * 0.3, -10, 3, 7 - tuck);
   ctx.fillStyle = "#7a4a26"; // boots
-  ctx.fillRect(-5 + legA * 0.3, -3, 4, 3);
-  ctx.fillRect(1 - legA * 0.3, -3, 4, 3);
+  ctx.fillRect(-5 + legA * 0.3, -3 - tuck, 4, 3);
+  ctx.fillRect(1 - legA * 0.3, -3 - tuck, 4, 3);
 
   // Pack, behind him.
   if (!climbing) {
@@ -584,7 +585,24 @@ export function drawDog(ctx: CanvasRenderingContext2D, time: number, rescued: bo
 
   ctx.save();
   ctx.translate(x, y);
+  dogFigure(ctx, wag, rescued);
+  ctx.restore();
 
+  // The paw-print toolbox beside him.
+  ctx.save();
+  ctx.translate(x - 26, y);
+  drawJunkShape(ctx, "toolbox", 0, -5, 0);
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(0, -5, 1.4, 0, Math.PI * 2);
+  ctx.arc(-2, -7.4, 0.8, 0, Math.PI * 2);
+  ctx.arc(2, -7.4, 0.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** The dog himself, sitting with his feet at the origin. */
+function dogFigure(ctx: CanvasRenderingContext2D, wag: number, rescued: boolean): void {
   if (rescued) {
     const glow = ctx.createRadialGradient(0, -12, 2, 0, -12, 34);
     glow.addColorStop(0, "rgba(255,216,77,0.55)");
@@ -632,20 +650,6 @@ export function drawDog(ctx: CanvasRenderingContext2D, time: number, rescued: bo
     ctx.fillStyle = "#ff6b8a";
     ctx.fillRect(-9, -13, 2, 3); // tongue out
   }
-
-  ctx.restore();
-
-  // The paw-print toolbox beside him.
-  ctx.save();
-  ctx.translate(x - 26, y);
-  drawJunkShape(ctx, "toolbox", 0, -5, 0);
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(0, -5, 1.4, 0, Math.PI * 2);
-  ctx.arc(-2, -7.4, 0.8, 0, Math.PI * 2);
-  ctx.arc(2, -7.4, 0.8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
 }
 
 // ----- Junk and the wrench -----
@@ -779,43 +783,92 @@ export function drawHeartIcon(ctx: CanvasRenderingContext2D, highContrast: boole
   ctx.fill();
 }
 
-/** Cabinet marquee art: JB on a ladder between two red girders, a tyre above. */
+/**
+ * Cabinet marquee art: the game in one frame. JB mid-hop over a rolling tyre
+ * on a red girder, and the good boy waiting on the roof up the ladder.
+ *
+ * The first version stood JB on a ladder with a tyre over his head; at tile
+ * size the tyre read as his face, and the picture said nothing about jumping,
+ * junk or a dog to rescue.
+ */
 export function drawTowerIcon(ctx: CanvasRenderingContext2D, size: number): void {
   const s = size / 32;
   ctx.save();
   ctx.scale(s, s);
 
-  ctx.fillStyle = PALETTE.ladder;
-  ctx.fillRect(12, 10, 1, 16);
-  ctx.fillRect(19, 10, 1, 16);
-  for (let y = 12; y < 26; y += 4) ctx.fillRect(12, y, 8, 1);
-
-  ctx.fillStyle = PALETTE.girder;
-  ctx.beginPath();
-  ctx.moveTo(2, 7);
-  ctx.lineTo(30, 10);
-  ctx.lineTo(30, 13);
-  ctx.lineTo(2, 10);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(2, 28);
-  ctx.lineTo(30, 25);
-  ctx.lineTo(30, 28);
-  ctx.lineTo(2, 31);
-  ctx.closePath();
-  ctx.fill();
-
-  const jb: Player = {
-    x: 16, y: 24, level: 0, mode: "climb", ladder: 0, vx: 0, vy: 0, facing: 1, wrench: 0,
+  const beam = (x1: number, y1: number, x2: number, y2: number, depth: number) => {
+    ctx.fillStyle = PALETTE.girder;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x2, y2 + depth);
+    ctx.lineTo(x1, y1 + depth);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = PALETTE.girderLight;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x2, y2 + 0.8);
+    ctx.lineTo(x1, y1 + 0.8);
+    ctx.closePath();
+    ctx.fill();
   };
+
+  // The ladder up to the roof, behind everything.
+  ctx.fillStyle = PALETTE.ladder;
+  ctx.fillRect(24.2, 11, 0.9, 15);
+  ctx.fillRect(28.9, 11, 0.9, 15);
+  for (let y = 13; y < 25; y += 3) ctx.fillRect(24.2, y, 5.6, 0.9);
+
+  // The roof, and the bottom girder sloping down to the left.
+  beam(19, 11, 31.5, 11, 2.4);
+  beam(0.5, 29, 31.5, 25.5, 3);
+
+  // The good boy, waiting.
   ctx.save();
-  ctx.translate(16, 24);
-  ctx.scale(0.7, 0.7);
-  ctx.translate(-16, -24);
-  drawPlayer(ctx, jb, { time: 0.4, hurt: false, hidden: false, swinging: false });
+  ctx.translate(25.5, 11);
+  ctx.scale(0.42, 0.42);
+  dogFigure(ctx, 1.5, false);
   ctx.restore();
 
-  drawJunkShape(ctx, "tire", 24, 5, 0.6);
+  // A tyre rolling left, with speed lines behind it.
+  const tyreX = 11;
+  const tyreY = 28 - 4.2;
+  ctx.strokeStyle = "rgba(207,224,255,0.75)";
+  ctx.lineWidth = 0.9;
+  ctx.lineCap = "round";
+  for (const [dy, len] of [[-2, 4], [0.4, 5.5], [2.6, 3.5]] as const) {
+    ctx.beginPath();
+    ctx.moveTo(tyreX + 5.6, tyreY + dy);
+    ctx.lineTo(tyreX + 5.6 + len, tyreY + dy - 0.4);
+    ctx.stroke();
+  }
+  ctx.save();
+  ctx.translate(tyreX, tyreY);
+  ctx.scale(0.52, 0.52);
+  drawJunkShape(ctx, "tire", 0, 0, 0.3);
+  ctx.restore();
+
+  // JB in the air right over it, hopping uphill into the tyre's path.
+  const jb: Player = {
+    x: 0, y: 0, level: 0, mode: "jump", ladder: -1, vx: 1, vy: -1, facing: 1, wrench: 0,
+  };
+  ctx.save();
+  ctx.translate(tyreX, 18);
+  ctx.scale(0.62, 0.62);
+  drawPlayer(ctx, jb, { time: 0, hurt: false, hidden: false, swinging: false });
+  ctx.restore();
+
+  // The hop's arc trailing behind him, so he reads as jumping, not floating.
+  ctx.strokeStyle = "rgba(255,216,77,0.85)";
+  ctx.lineWidth = 0.9;
+  ctx.setLineDash([1.4, 1.2]);
+  ctx.beginPath();
+  ctx.moveTo(tyreX - 9, 27.5);
+  ctx.quadraticCurveTo(tyreX - 6, 15, tyreX - 2.5, 16.5);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
   ctx.restore();
 }
