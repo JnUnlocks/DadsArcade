@@ -47,7 +47,7 @@ while IFS=: read -r key dur label; do
     segment="$WORK/seg_$(printf '%02d' "$idx").mp4"
     printf '%s' "$label" > "$WORK/title_$idx.txt"
     echo "Rendering $key, $dur seconds..."
-    ffmpeg -hide_banner -loglevel error -y -stream_loop -1 -i "$in" -t "$dur" \
+    ffmpeg -nostdin -hide_banner -loglevel error -y -stream_loop -1 -i "$in" -t "$dur" \
       -vf "fps=30,scale=720:1280:flags=lanczos,format=yuv420p,drawbox=x=0:y=80:w=iw:h=105:color=0x081225@0.86:t=fill,drawtext=fontfile=$FNT:textfile=$WORK/title_$idx.txt:fontsize=31:fontcolor=white:borderw=2:bordercolor=black@0.65:x=(w-text_w)/2:y=115" \
       -an -c:v libx264 -preset veryfast -crf 19 -pix_fmt yuv420p -r 30 -video_track_timescale 15360 "$segment"
     echo "file '$segment'" >>"$WORK/concat.txt"
@@ -61,11 +61,11 @@ slime:3.8:RILEY'S SLIME SHOP
 voltage:3.6:WORD VOLTAGE - NEW LEVELS
 menu:1.8:PLAY TOGETHER - FREE & NO ADS
 SEGMENTS
-ffmpeg -hide_banner -loglevel error -y -loop 1 -i "$WORK/endcard.png" -t 4.0 \
+ffmpeg -nostdin -hide_banner -loglevel error -y -loop 1 -i "$WORK/endcard.png" -t 4.0 \
     -vf 'fps=30,format=yuv420p' -an -c:v libx264 -preset veryfast -crf 18 \
     -pix_fmt yuv420p -r 30 -video_track_timescale 15360 "$WORK/endcard.mp4"
 echo "file '$WORK/endcard.mp4'" >>"$WORK/concat.txt"
-ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i "$WORK/concat.txt" -c copy "$WORK/visual.mp4"
+ffmpeg -nostdin -hide_banner -loglevel error -y -f concat -safe 0 -i "$WORK/concat.txt" -c copy "$WORK/visual.mp4"
 DUR=$(ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 "$WORK/visual.mp4")
 echo "Total ad duration: $DUR"
 SONG_ID=97093b35-17d2-42ff-acf6-1c403c8c5e33
@@ -76,10 +76,10 @@ for host in cdn1.suno.ai cdn2.suno.ai; do
     fi
 done
 if [ -s "$WORK/press-play.mp3" ] && ffprobe -v error "$WORK/press-play.mp3" >/dev/null 2>&1; then
-   ffmpeg -hide_banner -loglevel error -y -i "$WORK/press-play.mp3" -filter_complex \
-     '[0:a]atrim=start=0:end=22.7,asetpts=PTS-STARTPTS[a];[0:a]atrim=start=94:end=98.0,asetpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=0:a=1,afade=t=out:st=26.0:d=0.65[out]' \
+   ffmpeg -nostdin -hide_banner -loglevel error -y -i "$WORK/press-play.mp3" -filter_complex \
+     '[0:a]atrim=start=0:end=20.2,asetpts=PTS-STARTPTS[a];[0:a]atrim=start=99.28:end=105.78,asetpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=0:a=1,afade=t=out:st=26.2:d=0.5[out]' \
      -map '[out]' -t "$DUR" -c:a aac -b:a 192k "$WORK/song.m4a"
-   ffmpeg -hide_banner -loglevel error -y -i "$WORK/visual.mp4" -i "$WORK/song.m4a" \
+   ffmpeg -nostdin -hide_banner -loglevel error -y -i "$WORK/visual.mp4" -i "$WORK/song.m4a" \
      -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -movflags +faststart -shortest \
      "$OUT/Dads_Arcade_V3_Real_Gameplay.mp4"
 else
