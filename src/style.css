@@ -2578,3 +2578,108 @@ body {
   font-size: calc(11px * var(--ui-scale));
   max-width: 40ch;
 }
+
+/* ---------- Newcomer help (src/ui/welcome.ts) ---------- */
+
+/* Shown to a phone in its first week until it has tried three cabinets:
+   games to try next, and the offer to keep the arcade on the home screen. */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+}
+
+.try-another {
+  width: 100%;
+  max-width: 420px;
+}
+
+.screen p.try-label {
+  margin: 0 0 calc(6px * var(--ui-scale));
+  text-align: center;
+  color: var(--accent-warm);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.try-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: calc(8px * var(--ui-scale));
+}
+
+.try-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: calc(48px * var(--ui-scale));
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 2px solid var(--cabinet-accent, var(--edge));
+  background: color-mix(in srgb, var(--cabinet-accent, #46e0ff) 14%, rgba(8, 14, 30, 0.92));
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.try-game:active {
+  transform: scale(0.97);
+}
+
+.try-art {
+  flex: none;
+  width: calc(32px * var(--ui-scale));
+  height: calc(32px * var(--ui-scale));
+}
+
+.try-name {
+  font-size: calc(9px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.install-card {
+  padding: calc(12px * var(--ui-scale)) 14px;
+  border: 1px solid rgba(70, 224, 255, 0.35);
+  border-radius: 14px;
+  background: rgba(70, 224, 255, 0.06);
+  text-align: left;
+}
+
+.screen p.install-title {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.screen p.install-body {
+  margin: 0;
+  color: var(--ink);
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.45;
+}
+
+.install-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: calc(8px * var(--ui-scale));
+}
+
+.install-actions .btn {
+  width: auto;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .try-game:active {
+    transform: none;
+  }
+}

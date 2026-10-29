@@ -7,6 +7,7 @@
  */
 
 import { addFinish, type DayLog, parseDayLog } from "./streak.ts";
+import { EXISTING } from "./welcome.ts";
 
 const KEY_PLAYER = "hyperdrive.player";
 const KEY_SETTINGS = "hyperdrive.settings";
@@ -19,6 +20,10 @@ const KEY_STREAK_DAYS = "hyperdrive.streak.days";
 const KEY_STREAK_CHEERED = "hyperdrive.streak.cheered";
 /** Anonymous id for play counts, made before the player ever enters initials. */
 const KEY_VISITOR = "hyperdrive.visitor";
+/** The day this phone first opened the arcade, or "existing" (see core/welcome.ts). */
+const KEY_FIRST_SEEN = "hyperdrive.firstSeen";
+/** Set once a newcomer has turned down the home-screen offer. */
+const KEY_INSTALL_DECLINED = "hyperdrive.installDeclined";
 
 export interface Player {
   /** Three-character arcade initials, the way the machine asked for them. */
@@ -307,4 +312,48 @@ export function countPlay(gameId: string): void {
   const plays = loadPlayCounts();
   plays[gameId] = (plays[gameId] ?? 0) + 1;
   write(KEY_PLAYS, plays);
+}
+
+/**
+ * The day this phone first opened the arcade, written on its first launch and
+ * never again. A phone that already holds anything the arcade writes had it
+ * before the first-seen mark existed, so it is marked EXISTING and is never
+ * treated as a newcomer. Call before anything else writes to storage.
+ */
+export function initFirstSeen(today: string): string {
+  try {
+    const stored = localStorage.getItem(KEY_FIRST_SEEN);
+    if (stored) return stored;
+    const before = [
+      KEY_PLAYER,
+      KEY_VISITOR,
+      KEY_PLAYS,
+      KEY_SETTINGS,
+      KEY_BESTS,
+      KEY_SEEN_VERSION,
+      KEY_STREAK_DAYS,
+    ].some((key) => localStorage.getItem(key) !== null);
+    const mark = before ? EXISTING : today;
+    localStorage.setItem(KEY_FIRST_SEEN, mark);
+    return mark;
+  } catch {
+    // No storage at all: nothing would be remembered anyway, so don't offer.
+    return EXISTING;
+  }
+}
+
+export function loadInstallDeclined(): boolean {
+  try {
+    return localStorage.getItem(KEY_INSTALL_DECLINED) !== null;
+  } catch {
+    return true;
+  }
+}
+
+export function saveInstallDeclined(): void {
+  try {
+    localStorage.setItem(KEY_INSTALL_DECLINED, "1");
+  } catch {
+    // Not worth interrupting anything for.
+  }
 }

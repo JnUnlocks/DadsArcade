@@ -16,14 +16,17 @@ import { dailyKey } from "./core/rng";
 import {
   countPlay,
   createDeviceId,
+  initFirstSeen,
   loadDailySeen,
   loadDayLog,
+  loadInstallDeclined,
   loadPlayCounts,
   loadPlayer,
   loadSeenVersion,
   loadSettings,
   loadStreakCheered,
   recordBest,
+  saveInstallDeclined,
   savePlayer,
   saveSeenVersion,
   saveSettings,
@@ -45,6 +48,9 @@ import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
 import { buildStreakScreen, buildStreakStrip } from "./ui/streak";
+import { installKind, isNewcomer, suggestGames, triedCount } from "./core/welcome";
+import { canPromptInstall, isIos, isStandalone, promptInstall } from "./core/install";
+import { buildInstallCard, buildTryAnother } from "./ui/welcome";
 
 type ScreenName = "menu" | "playing" | "paused" | "resuming" | "gameover";
 
@@ -63,6 +69,8 @@ export class Shell implements GameHost {
   private _settings: Settings;
   private _score = 0;
   private player: Player | null = loadPlayer();
+  /** The day this phone first opened the arcade, or "existing" (core/welcome.ts). */
+  private readonly firstSeen: string;
 
   private games: GameModule[] = [];
   private module: GameModule | null = null;
@@ -81,6 +89,9 @@ export class Shell implements GameHost {
   constructor(canvas: HTMLCanvasElement, ui: HTMLElement) {
     this.view = new View(canvas);
     this.ui = ui;
+    // First, before anything writes to storage, or a new phone would look
+    // like one that had the arcade already.
+    this.firstSeen = initFirstSeen(dailyKey());
     this._settings = loadSettings();
 
     this.input = new Input(canvas, this.view);
@@ -364,6 +375,13 @@ export class Shell implements GameHost {
     // which, until now, nothing in the app ever called. Five machines stacked
     // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
     // floor finally looks like an arcade instead of a list.
+    // A newcomer back from their first game: what to try next, and the offer
+    // to keep the arcade on the home screen. Not before the first game, when
+    // the whole menu is the suggestion, and never for a phone that had the
+    // arcade before (core/welcome.ts).
+    const welcome = this.buildMenuWelcome();
+    if (welcome) screen.append(welcome);
+
     const cabinets = el("div", "cabinets");
     const fillCabinets = () => {
       const ordered = sortGames(this.games, this._settings.menuSort, loadPlayCounts());
@@ -740,6 +758,56 @@ export class Shell implements GameHost {
     }
   }
 
+  // ----- Newcomer help (core/welcome.ts) -----
+
+  private isNewcomer(): boolean {
+    return isNewcomer(this.firstSeen, dailyKey(), loadPlayCounts());
+  }
+
+  /** Games a newcomer hasn't tried, or null when there's nothing to show. */
+  private buildTryAnotherRow(label: string, current: string | null): HTMLElement | null {
+    if (!this.isNewcomer()) return null;
+    const games = suggestGames(this.games, loadPlayCounts(), current);
+    if (games.length === 0) return null;
+    return buildTryAnother(label, games, (game) => {
+      this.audio.unlock();
+      this.audio.play("uiSelect");
+      countPlay(game.id);
+      this.startGame(game);
+    });
+  }
+
+  private buildMenuWelcome(): HTMLElement | null {
+    if (!this.isNewcomer() || triedCount(loadPlayCounts()) === 0) return null;
+    const box = el("div", "welcome");
+    const row = this.buildTryAnotherRow("NEW HERE? TRY THESE NEXT", null);
+    if (row) box.append(row);
+    const kind = loadInstallDeclined()
+      ? null
+      : installKind({
+          userAgent: navigator.userAgent,
+          standalone: isStandalone(),
+          canPrompt: canPromptInstall(),
+          ios: isIos(),
+        });
+    if (kind) {
+      box.append(
+        buildInstallCard(
+          kind,
+          () => {
+            this.audio.play("uiSelect");
+            void promptInstall().then(() => this.showMenu());
+          },
+          () => {
+            this.audio.play("uiMove");
+            saveInstallDeclined();
+          },
+        ),
+      );
+    }
+    return box.childElementCount > 0 ? box : null;
+  }
+
   private renderGameOver(summary: RunSummary, isBest: boolean): void {
     this.clearUi();
     const ranked = summary.ranked !== false;
@@ -796,6 +864,11 @@ export class Shell implements GameHost {
 
     const menu = el("button", "btn btn--ghost", "ARCADE");
     menu.addEventListener("click", () => this.showMenu());
+
+    // A newcomer's next game, right under PLAY AGAIN. Most people who leave
+    // after one game leave from here.
+    const tryAnother = this.buildTryAnotherRow("TRY ANOTHER", this.module?.id ?? null);
+    if (tryAnother) afterAgain.push(tryAnother);
 
     const run: QueuedScore = {
       gameId: this.module?.id ?? "unknown",
