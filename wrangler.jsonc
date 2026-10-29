@@ -39,5 +39,9 @@
     }
   ],
 
+  // Hourly: sends the daily reminders that are due (worker/push.ts). Does
+  // nothing until the VAPID secrets are set.
+  "triggers": { "crons": ["0 * * * *"] },
+
   "observability": { "enabled": true }
 }

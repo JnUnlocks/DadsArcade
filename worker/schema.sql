@@ -181,3 +181,19 @@ CREATE TABLE IF NOT EXISTS play_geo (
   plays       INTEGER NOT NULL DEFAULT 1,
   PRIMARY KEY (day, device_id)
 ) WITHOUT ROWID;
+
+-- Daily reminders (worker/push.ts): one row per device that turned them on
+-- from the streak screen. `endpoint` is the push service address its browser
+-- gave; the hourly cron sends an empty push to it at `hour` in `tz` on days
+-- the device hasn't started a game (`last_play_at`, set by POST /api/plays).
+-- Turning reminders off deletes the row; so does a push service saying the
+-- subscription is gone.
+CREATE TABLE IF NOT EXISTS reminders (
+  device_id     TEXT    PRIMARY KEY,
+  endpoint      TEXT    NOT NULL,
+  hour          INTEGER NOT NULL,  -- 0-23, the player's local time
+  tz            TEXT    NOT NULL,  -- IANA, e.g. 'America/New_York'
+  last_play_at  INTEGER,
+  last_sent_day TEXT,              -- YYYY-MM-DD in tz
+  created_at    INTEGER NOT NULL
+) WITHOUT ROWID;

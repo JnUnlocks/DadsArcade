@@ -17,6 +17,7 @@
  */
 
 import { ADMIN_PAGE_HTML } from "./admin-page";
+import { dueForReminder, isPushEndpoint, isTimeZone, localTime, vapidAuthorization } from "./push";
 
 export interface Env {
   DB: D1Database;
@@ -35,6 +36,13 @@ export interface Env {
    */
   CF_API_TOKEN?: string;
   CF_ACCOUNT_ID?: string;
+  /**
+   * Optional, for daily reminders (worker/push.ts). A VAPID key pair from
+   * `node scripts/vapid-keys.mjs`, both set with `wrangler secret put`.
+   * Without them the arcade never offers reminders.
+   */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
 }
 
 /** Workers rate-limit binding, typed here so no types package bump is needed. */
@@ -115,6 +123,11 @@ export default {
       return json({ error: "internal_error" }, 500);
     }
   },
+
+  // Hourly (wrangler.jsonc "triggers"): send the reminders that are due.
+  async scheduled(controller, env, ctx): Promise<void> {
+    ctx.waitUntil(sendReminders(env, controller.scheduledTime));
+  },
 } satisfies ExportedHandler<Env>;
 
 function adminPage(): Response {
@@ -144,6 +157,17 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
 
   if (pathname === "/api/plays" && request.method === "POST") {
     return postPlay(request, env);
+  }
+  if (pathname === "/api/reminders/key" && request.method === "GET") {
+    return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY
+      ? json({ key: env.VAPID_PUBLIC_KEY })
+      : json({ error: "not_configured" }, 404);
+  }
+  if (pathname === "/api/reminders" && request.method === "POST") {
+    return postReminder(request, env);
+  }
+  if (pathname === "/api/reminders" && request.method === "DELETE") {
+    return deleteReminder(env, url);
   }
   if (pathname === "/api/scores" && request.method === "GET") {
     return getScores(env, url);
@@ -784,6 +808,7 @@ async function postPlay(request: Request, env: Env): Promise<Response> {
     .run();
 
   await recordGeo(request, env, deviceId);
+  await touchReminder(env, deviceId);
 
   return json({ ok: true });
 }
@@ -817,6 +842,121 @@ async function recordGeo(request: Request, env: Env, deviceId: string): Promise<
       .run();
   } catch (error) {
     console.error("recordGeo failed", error);
+  }
+}
+
+// ----- Daily reminders (worker/push.ts) -----
+
+/** Who identifies the sender to the push services (RFC 8292 "sub"). */
+const PUSH_SUBJECT = "https://play.hyperdrive-arcade.workers.dev";
+/** The Workers free plan allows 50 outgoing requests per run; keep clear of it. */
+const PUSHES_PER_RUN = 45;
+
+/**
+ * Turn reminders on for a device, or change its hour. Body: deviceId, the
+ * browser's push subscription, the local hour (0-23) and the IANA time zone.
+ */
+async function postReminder(request: Request, env: Env): Promise<Response> {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return json({ error: "not_configured" }, 404);
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid_json" }, 400);
+  }
+  if (typeof body !== "object" || body === null) return json({ error: "invalid_body" }, 400);
+  const raw = body as Record<string, unknown>;
+
+  const deviceId = typeof raw.deviceId === "string" ? raw.deviceId.trim() : "";
+  if (deviceId.length < 8 || deviceId.length > 64) return json({ error: "invalid_device" }, 400);
+  const endpoint = (raw.subscription as { endpoint?: unknown } | null)?.endpoint;
+  if (!isPushEndpoint(endpoint)) return json({ error: "invalid_subscription" }, 400);
+  const hour = Number(raw.hour);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return json({ error: "invalid_hour" }, 400);
+  if (!isTimeZone(raw.tz)) return json({ error: "invalid_tz" }, 400);
+
+  await env.DB.prepare(
+    `INSERT INTO reminders (device_id, endpoint, hour, tz, created_at)
+     VALUES (?1, ?2, ?3, ?4, ?5)
+     ON CONFLICT (device_id) DO UPDATE SET
+       endpoint = excluded.endpoint, hour = excluded.hour, tz = excluded.tz`,
+  )
+    .bind(deviceId, endpoint, hour, raw.tz, Date.now())
+    .run();
+  return json({ ok: true });
+}
+
+async function deleteReminder(env: Env, url: URL): Promise<Response> {
+  const deviceId = url.searchParams.get("device")?.trim() ?? "";
+  if (deviceId.length < 8 || deviceId.length > 64) return json({ error: "invalid_device" }, 400);
+  await env.DB.prepare(`DELETE FROM reminders WHERE device_id = ?1`).bind(deviceId).run();
+  return json({ ok: true });
+}
+
+/**
+ * A game was started, so today's reminder isn't needed. Writes only for a
+ * device that has reminders on; for everyone else it matches no row.
+ */
+async function touchReminder(env: Env, deviceId: string): Promise<void> {
+  try {
+    await env.DB.prepare(`UPDATE reminders SET last_play_at = ?1 WHERE device_id = ?2`)
+      .bind(Date.now(), deviceId)
+      .run();
+  } catch (error) {
+    // Before the reminders table exists, or a hiccup: never lose the play.
+    console.error("touchReminder failed", error);
+  }
+}
+
+interface ReminderTarget {
+  deviceId: string;
+  endpoint: string;
+  hour: number;
+  tz: string;
+  lastSentDay: string | null;
+  lastPlayAt: number | null;
+}
+
+/**
+ * The hourly run: an empty push to every device whose reminder hour it is
+ * where they live and who hasn't played today. A push service that says the
+ * subscription is gone (404/410) gets the row deleted.
+ */
+async function sendReminders(env: Env, now: number): Promise<void> {
+  const publicKey = env.VAPID_PUBLIC_KEY;
+  const privateKey = env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) return;
+
+  const { results } = await env.DB.prepare(
+    `SELECT device_id AS deviceId, endpoint, hour, tz,
+            last_sent_day AS lastSentDay, last_play_at AS lastPlayAt
+       FROM reminders`,
+  ).all<ReminderTarget>();
+
+  const due = results.filter((row) => dueForReminder(row, now)).slice(0, PUSHES_PER_RUN);
+  for (const row of due) {
+    try {
+      const response = await fetch(row.endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: await vapidAuthorization(row.endpoint, publicKey, privateKey, PUSH_SUBJECT, now),
+          TTL: String(6 * 3600),
+          Urgency: "normal",
+          "Content-Length": "0",
+        },
+      });
+      if (response.status === 404 || response.status === 410) {
+        await env.DB.prepare(`DELETE FROM reminders WHERE device_id = ?1`).bind(row.deviceId).run();
+      } else if (response.ok) {
+        await env.DB.prepare(`UPDATE reminders SET last_sent_day = ?1 WHERE device_id = ?2`)
+          .bind(localTime(row.tz, now).day, row.deviceId)
+          .run();
+      } else {
+        console.warn("reminder push refused", response.status, await response.text());
+      }
+    } catch (error) {
+      console.error("reminder push failed", error);
+    }
   }
 }
 

@@ -75,6 +75,8 @@ export function buildStreakScreen(
   dailies: readonly GameModule[],
   onPlay: (game: GameModule) => void,
   onBack: () => void,
+  /** Shown above BACK: the daily reminder switch (ui/reminders.ts). */
+  extra?: HTMLElement,
 ): HTMLElement {
   const screen = el("div", "screen screen--streak");
   screen.append(el("h2", "", "DAILY STREAK"));
@@ -159,6 +161,8 @@ export function buildStreakScreen(
       "Only the daily puzzles count, and won or lost doesn't matter. Each game keeps its own streak as well. It's kept on this phone.",
     ),
   );
+
+  if (extra) screen.append(extra);
 
   const back = el("button", "btn btn--ghost", "BACK");
   back.addEventListener("click", onBack);

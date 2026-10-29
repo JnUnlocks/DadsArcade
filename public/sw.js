@@ -51,6 +51,33 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/*
+ * Daily reminders (worker/push.ts). The push arrives empty on purpose, so the
+ * words live here. Every push must show a notification: Safari and Chrome
+ * both cancel a subscription that receives pushes it doesn't show.
+ */
+self.addEventListener("push", (event) => {
+  event.waitUntil(
+    self.registration.showNotification("Dad's Arcade", {
+      body: "Today's puzzles are waiting. A couple of minutes keeps your streak going.",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: "daily-reminder",
+    }),
+  );
+});
+
+// Tapping it opens the arcade, or brings the open one to the front.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+      return open ? open.focus() : self.clients.openWindow("/");
+    }),
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;

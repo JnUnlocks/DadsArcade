@@ -2683,3 +2683,22 @@ body {
     transform: none;
   }
 }
+
+/* ---------- Daily reminder switch (src/ui/reminders.ts) ---------- */
+
+.reminder {
+  width: 100%;
+  max-width: 420px;
+}
+
+.reminder:empty {
+  display: none;
+}
+
+.screen p.reminder-text {
+  margin: 0 0 calc(10px * var(--ui-scale));
+  text-align: center;
+  color: var(--dim);
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.45;
+}

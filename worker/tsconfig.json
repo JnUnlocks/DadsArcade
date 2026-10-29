@@ -16,5 +16,7 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["."]
+  "include": ["."],
+  // Tests run under Node (npm test), with Node's types, not the Worker's.
+  "exclude": ["**/*.test.ts"]
 }

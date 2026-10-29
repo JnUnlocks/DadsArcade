@@ -51,6 +51,7 @@ import { buildStreakScreen, buildStreakStrip } from "./ui/streak";
 import { installKind, isNewcomer, suggestGames, triedCount } from "./core/welcome";
 import { canPromptInstall, isIos, isStandalone, promptInstall } from "./core/install";
 import { buildInstallCard, buildTryAnother } from "./ui/welcome";
+import { buildReminderSection } from "./ui/reminders";
 
 type ScreenName = "menu" | "playing" | "paused" | "resuming" | "gameover";
 
@@ -370,11 +371,6 @@ export class Shell implements GameHost {
       }),
     );
 
-    // A grid of cabinets rather than a column of full-width buttons. Each
-    // game already draws its own marquee art through GameModule.drawIcon --
-    // which, until now, nothing in the app ever called. Five machines stacked
-    // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
-    // floor finally looks like an arcade instead of a list.
     // A newcomer back from their first game: what to try next, and the offer
     // to keep the arcade on the home screen. Not before the first game, when
     // the whole menu is the suggestion, and never for a phone that had the
@@ -382,6 +378,11 @@ export class Shell implements GameHost {
     const welcome = this.buildMenuWelcome();
     if (welcome) screen.append(welcome);
 
+    // A grid of cabinets rather than a column of full-width buttons. Each
+    // game already draws its own marquee art through GameModule.drawIcon --
+    // which, until now, nothing in the app ever called. Five machines stacked
+    // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
+    // floor finally looks like an arcade instead of a list.
     const cabinets = el("div", "cabinets");
     const fillCabinets = () => {
       const ordered = sortGames(this.games, this._settings.menuSort, loadPlayCounts());
@@ -546,6 +547,10 @@ export class Shell implements GameHost {
           this.startGame(game);
         },
         () => this.showMenu(),
+        buildReminderSection(() => {
+          this.audio.unlock();
+          this.audio.play("uiSelect");
+        }),
       ),
     );
   }
