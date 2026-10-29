@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.36.0",
+    date: "2026-10-29",
+    title: "A hand for newcomers, and daily reminders if you want them",
+    notes: [
+      "New to the arcade? For your first week, the end of a game suggests two games you haven't tried yet, and the arcade offers to go on your home screen. If you've played before, you won't see any of this.",
+      "Daily reminders, if you'd like them: open the daily streak and tap REMIND ME for one nudge at 7 PM on days you haven't played yet. On an iPhone the arcade needs to be on your home screen first. Turn it off on the same screen.",
+    ],
+  },
+  {
     version: "0.35.0",
     date: "2026-10-28",
     title: "JB's Tower Trouble: a jump that works, and a new cabinet picture",
