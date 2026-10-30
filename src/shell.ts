@@ -651,9 +651,9 @@ export class Shell implements GameHost {
 
   private buildPauseButton(): HTMLElement {
     const button = el("button", "pause-btn");
-    button.setAttribute("aria-label", "Pause");
+    button.setAttribute("aria-label", "Pause and open menu");
     button.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg><span>MENU</span>';
     button.addEventListener("click", () => this.pause());
     return button;
   }
@@ -682,7 +682,7 @@ export class Shell implements GameHost {
       if (this.module) this.startGame(this.module, true);
     });
 
-    const quit = el("button", "btn btn--danger", "QUIT TO ARCADE");
+    const quit = el("button", "btn btn--danger", "BACK TO ARCADE");
     quit.addEventListener("click", () => this.showMenu());
 
     screen.append(resume, restart, quit);
