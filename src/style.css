@@ -615,7 +615,9 @@ body {
   width: 56px;
   height: 56px;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
   border-radius: 14px;
   border: 1px solid rgba(142, 163, 200, 0.32);
   background: rgba(6, 12, 26, 0.66);
@@ -658,9 +660,16 @@ body {
 }
 
 .pause-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   fill: currentColor;
+}
+
+.pause-btn span {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 /* ---------- Fire button (Mallard Challenge) ---------- */
