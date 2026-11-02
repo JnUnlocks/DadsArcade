@@ -198,6 +198,16 @@ export interface GameInstance {
   pauseExtras?(): HTMLElement;
 }
 
+/** One game's scoreboard in a cabinet of several (see GameModule.modeBoards). */
+export interface ModeBoard {
+  readonly id: string;
+  readonly title: string;
+  readonly shortTitle?: string;
+  readonly accent: string;
+  /** This board's progress abbreviation, e.g. "FL" for floors. */
+  readonly progressShort?: string;
+}
+
 /** One of a time-ranked game's boards: a course, for Forest Dash. */
 export interface TimeBoard {
   readonly id: string;
@@ -260,6 +270,12 @@ export interface GameModule {
    */
   readonly beta?: boolean;
   /**
+   * The last day (local, YYYY-MM-DD) a newly finished cabinet wears a NEW
+   * badge. A date rather than a flag so it comes off by itself, without a
+   * release just to take it down.
+   */
+  readonly newUntil?: string;
+  /**
    * True for a cabinet that keeps no scores on purpose -- Black Disc, played
    * between two teams in a room, and the Word Finder, which is a tool. The
    * high-score screen leaves it out, rather than list a board that can only
@@ -302,6 +318,17 @@ export interface GameModule {
       readonly shortTitle?: string;
       readonly accent: string;
     };
+  };
+  /**
+   * For a cabinet that holds several games (Reflex Rush): what each game's
+   * scoreboard is called. `main` names the cabinet's own board after the
+   * game that files there. Each of `others` is a board of its own that runs
+   * reach by reporting its id as their `boardId`, with its own personal best,
+   * listed on the high-score screen by name like Brickfall's BRICK BLAST.
+   */
+  readonly modeBoards?: {
+    readonly main: Omit<ModeBoard, "id">;
+    readonly others: readonly ModeBoard[];
   };
   /** Draw the cabinet's marquee art into a size x size box at the origin. */
   drawIcon(ctx: CanvasRenderingContext2D, size: number): void;

@@ -60,7 +60,6 @@ export const wordFinderModule: GameModule = {
     "The first time you open it, it needs a connection to fetch its dictionary.",
   ],
   accent: "#7fd6c2",
-  beta: true,
   drawIcon: drawFinderIcon,
   create: (host) => new WordFinder(host),
 };

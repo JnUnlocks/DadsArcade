@@ -1253,7 +1253,6 @@ export const solitaireModule: GameModule = {
   accent: "#2fbf4a",
   progressShort: "C",
   extraBoard: { id: DRAW_ONE_BOARD, label: "DRAW 1" },
-  beta: true,
   drawIcon: drawSolitaireIcon,
   create: (host, start) => new Solitaire(host, start),
 };

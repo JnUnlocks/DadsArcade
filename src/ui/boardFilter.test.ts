@@ -11,6 +11,8 @@ import type { GameModule } from "../core/game.ts";
 import {
   extraBoardGame,
   listBoards,
+  separateBoardIds,
+  standaloneBoardIds,
   standaloneKey,
   gamesInView,
   progressText,
@@ -176,5 +178,56 @@ describe("a mode with a board of its own", () => {
   it("keeps the game's progress label", () => {
     const { games } = listBoards(arcade);
     assert.equal(progressText(games[2], 4), progressText(blast, 4));
+  });
+});
+
+describe("a cabinet of several games", () => {
+  const rush = game("reflex-rush", {
+    shortTitle: "REFLEX",
+    progressShort: "FL",
+    modeBoards: {
+      main: { title: "NEON SKYLINE", shortTitle: "SKYLINE", accent: "#2ee6ff", progressShort: "FL" },
+      others: [
+        { id: "flash-point", title: "FLASH POINT", shortTitle: "FLASH", accent: "#ffd84d", progressShort: "MS" },
+      ],
+    },
+  });
+  const arcade = [GAMES[0]!, rush, GAMES[2]!];
+
+  it("lists each game under its own name, the main board first", () => {
+    const { games } = listBoards(arcade);
+    assert.deepEqual(
+      games.map((g) => [g.id, g.title, shortTitleOf(g)]),
+      [
+        [GAMES[0]!.id, GAMES[0]!.title, GAMES[0]!.title],
+        ["reflex-rush", "NEON SKYLINE", "SKYLINE"],
+        [standaloneKey("reflex-rush", "flash-point"), "FLASH POINT", "FLASH"],
+        [GAMES[2]!.id, GAMES[2]!.title, GAMES[2]!.title],
+      ],
+    );
+  });
+
+  it("reads each from the cabinet's own boards", () => {
+    const { sources } = listBoards(arcade);
+    assert.deepEqual(sources.get("reflex-rush"), { gameId: "reflex-rush", board: "" });
+    assert.deepEqual(sources.get(standaloneKey("reflex-rush", "flash-point")), {
+      gameId: "reflex-rush",
+      board: "flash-point",
+    });
+  });
+
+  it("prints each board's own progress", () => {
+    const { games } = listBoards(arcade);
+    assert.equal(progressText(games[1], 12), "FL12");
+    assert.equal(progressText(games[2], 241), "MS241");
+  });
+
+  it("keeps a personal best per game, and offers no tab for a board that is listed by name", () => {
+    assert.deepEqual(separateBoardIds(rush), ["flash-point"]);
+    assert.deepEqual(standaloneBoardIds(rush), ["flash-point"]);
+    const { games } = listBoards(arcade);
+    assert.equal(extraBoardGame(games, "reflex-rush"), undefined);
+    assert.deepEqual(separateBoardIds(GAMES[3]!), ["classic"], "Snake's CLASSIC still has its own best");
+    assert.deepEqual(standaloneBoardIds(GAMES[3]!), [], "but is a tab, not a game");
   });
 });

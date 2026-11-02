@@ -39,8 +39,30 @@ export function standaloneKey(gameId: string, boardId: string): string {
 }
 
 /**
+ * The ids of a game's boards that keep a personal best of their own: its
+ * extra board, and every board of a cabinet of several games.
+ */
+export function separateBoardIds(game: GameModule): string[] {
+  const ids = (game.modeBoards?.others ?? []).map((b) => b.id);
+  if (game.extraBoard) ids.push(game.extraBoard.id);
+  return ids;
+}
+
+/**
+ * The ids of a game's boards that the high-score screen lists by name, as a
+ * game of their own: a standalone extra board, and a multi-game cabinet's
+ * other games.
+ */
+export function standaloneBoardIds(game: GameModule): string[] {
+  const ids = (game.modeBoards?.others ?? []).map((b) => b.id);
+  if (game.extraBoard?.standalone) ids.push(game.extraBoard.id);
+  return ids;
+}
+
+/**
  * The high-score screen's list of games, with every standalone extra board
- * (see GameModule.extraBoard.standalone) promoted to an entry of its own.
+ * (see GameModule.extraBoard.standalone) and every game of a multi-game
+ * cabinet (GameModule.modeBoards) promoted to an entry of its own.
  *
  * The stand-in is the game's module under another name, placed straight after
  * it, so the rest of this file -- and the screen -- treat it as one more
@@ -52,12 +74,58 @@ export function listBoards(games: readonly GameModule[]): BoardListing {
   const listed: GameModule[] = [];
   const sources = new Map<string, BoardSource>();
 
+  /** The game's module under another name, reading another board. */
+  const standIn = (
+    game: GameModule,
+    boardId: string,
+    named: { title: string; shortTitle?: string; accent: string; progressShort?: string },
+  ): void => {
+    const {
+      extraBoard: _extra,
+      modeBoards: _modes,
+      shortTitle: _short,
+      progressShort: _progress,
+      ...base
+    } = game;
+    const key = standaloneKey(game.id, boardId);
+    listed.push({
+      ...base,
+      drawIcon: game.drawIcon,
+      create: game.create,
+      id: key,
+      title: named.title,
+      accent: named.accent,
+      hasDailyChallenge: false,
+      ...(named.shortTitle ? { shortTitle: named.shortTitle } : {}),
+      ...(named.progressShort ? { progressShort: named.progressShort } : {}),
+    });
+    sources.set(key, { gameId: game.id, board: boardId });
+  };
+
   for (const game of games) {
     // A cabinet that keeps no scores has no place here.
     if (game.noLeaderboard) continue;
+    sources.set(game.id, { gameId: game.id, board: "" });
+
+    const modes = game.modeBoards;
+    if (modes) {
+      // The cabinet's own board, under the name of the game that files there.
+      const { extraBoard: _extra, modeBoards: _modes, shortTitle: _short, ...rest } = game;
+      listed.push({
+        ...rest,
+        drawIcon: game.drawIcon,
+        create: game.create,
+        title: modes.main.title,
+        accent: modes.main.accent,
+        ...(modes.main.shortTitle ? { shortTitle: modes.main.shortTitle } : {}),
+        ...(modes.main.progressShort ? { progressShort: modes.main.progressShort } : {}),
+      });
+      for (const other of modes.others) standIn(game, other.id, other);
+      continue;
+    }
+
     const extra = game.extraBoard;
     const own = extra?.standalone;
-    sources.set(game.id, { gameId: game.id, board: "" });
     if (!extra || !own) {
       listed.push(game);
       continue;
@@ -65,23 +133,12 @@ export function listBoards(games: readonly GameModule[]): BoardListing {
 
     const { extraBoard: _extra, ...rest } = game;
     listed.push({ ...rest, drawIcon: game.drawIcon, create: game.create });
-
-    const key = standaloneKey(game.id, extra.id);
-    const { shortTitle: _short, progressShort: _progress, ...base } = rest;
-    listed.push({
-      ...base,
-      drawIcon: game.drawIcon,
-      create: game.create,
-      id: key,
-      title: own.title,
-      accent: own.accent,
-      hasDailyChallenge: false,
-      ...(own.shortTitle ? { shortTitle: own.shortTitle } : {}),
+    standIn(game, extra.id, {
+      ...own,
       ...((extra.progressShort ?? game.progressShort)
         ? { progressShort: extra.progressShort ?? game.progressShort }
         : {}),
     });
-    sources.set(key, { gameId: game.id, board: extra.id });
   }
 
   return { games: listed, sources };

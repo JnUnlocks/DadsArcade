@@ -1416,6 +1416,15 @@ body {
   background: var(--accent);
 }
 
+/* A cabinet just finished: NEW, in BETA's corner, in hot pink so the two
+   never read as each other. Comes off by itself (GameModule.newUntil). */
+.cabinet-badge--new {
+  right: auto;
+  left: 6px;
+  background: #ff4fb8;
+  color: #ffffff;
+}
+
 /* The icon inside a SHARE button (ui/shareButton.ts). Each game styles the
    button itself; the icon's size is the one thing they have in common. */
 .share-icon {

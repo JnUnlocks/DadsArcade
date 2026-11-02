@@ -24,14 +24,16 @@ import { sudokuModule } from "./sudoku";
 import { prizeDropModule } from "./prizedrop";
 import { wordVoltageModule } from "./wordvoltage";
 import { solitaireModule } from "./solitaire";
+import { reflexRushModule } from "./reflexrush";
 
 export const GAMES: GameModule[] = [
   // The two daily puzzles share the top row: they're the reason to open the
   // arcade today, and the cabinets a shared result links to.
   plasmaSortModule,
   letterLockModule,
-  // The newest cabinet, up where it's seen, then the straight arcade games.
-  // Order chosen by Justin on 2026-10-16.
+  // The newest cabinet, up where it's seen (2026-11-02).
+  reflexRushModule,
+  // Then the straight arcade games. Order chosen by Justin on 2026-10-16.
   prizeDropModule,
   starfighterModule,
   snakeModule,
@@ -46,10 +48,10 @@ export const GAMES: GameModule[] = [
   brickfallModule,
   blackDiscModule,
   sudokuModule,
-  // At the bottom while the family tries it out (BETA), by Justin's choice on
-  // 2026-10-21.
+  // Placed at the bottom while the family tried it out, by Justin's choice on
+  // 2026-10-21; out of BETA 2026-11-02.
   wordVoltageModule,
-  // Brand new and in BETA (2026-10-22): after Word Voltage.
+  // Added 2026-10-22, after Word Voltage; out of BETA 2026-11-02.
   solitaireModule,
   // Riley's own game, more for her than for the public: at the very bottom,
   // by Justin's choice on 2026-10-28.
