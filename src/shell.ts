@@ -40,7 +40,7 @@ import { buildAboutScreen } from "./ui/about";
 import { buildReleaseNotesScreen } from "./ui/releases";
 import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
-import { standaloneKey } from "./ui/boardFilter";
+import { separateBoardIds, standaloneBoardIds, standaloneKey } from "./ui/boardFilter";
 import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
@@ -177,7 +177,9 @@ export class Shell implements GameHost {
     // the two modes score on different scales, and a Hyper score would
     // otherwise stop a Classic one ever being a personal best.
     const onExtraBoard =
-      summary.boardId !== undefined && summary.boardId === this.module?.extraBoard?.id;
+      summary.boardId !== undefined &&
+      this.module !== null &&
+      separateBoardIds(this.module).includes(summary.boardId);
     const bestKey = onExtraBoard ? `${this.module?.id}:${summary.boardId}` : this.module?.id;
     const isBest = ranked && bestKey ? recordBest(bestKey, this._score) : false;
     this.renderGameOver(summary, isBest);
@@ -787,10 +789,11 @@ export class Shell implements GameHost {
       if (!this.module) return;
       // After a run of a mode with a board of its own, open that board, not
       // the cabinet's main one: the score just set is the one to go and see.
-      const extra = this.module.extraBoard;
-      const own = extra?.standalone && summary.boardId === extra.id;
+      const own =
+        summary.boardId !== undefined &&
+        standaloneBoardIds(this.module).includes(summary.boardId);
       this.showLeaderboard(
-        own && extra ? standaloneKey(this.module.id, extra.id) : this.module.id,
+        own && summary.boardId ? standaloneKey(this.module.id, summary.boardId) : this.module.id,
       );
     });
 

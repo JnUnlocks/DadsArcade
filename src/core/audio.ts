@@ -137,7 +137,14 @@ export type SoundName =
   | "cardHome"
   | "cardDeny"
   | "cardUndo"
-  | "cardWin";
+  | "cardWin"
+  // Reflex Rush
+  | "stackPlace"
+  | "stackPerfect"
+  | "stackBonus"
+  | "stackMiss"
+  | "flashHit"
+  | "flashEarly";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -731,6 +738,29 @@ export class AudioEngine {
       case "cardWin":
         this.arpeggio(t, [523, 659, 784, 1047, 1319], 0.08, "square", 0.12);
         this.blip(t + 0.42, "sine", 1568, 1568, 0.55, 0.12, 6);
+        break;
+      // ----- Reflex Rush -----
+      case "stackPlace":
+        this.burst(t, 0.05, 2400, 700, 0.1);
+        this.blip(t, "square", 260, 200, 0.07, 0.12);
+        break;
+      case "stackPerfect":
+        this.blip(t, "square", 784, 1175, 0.09, 0.14);
+        this.blip(t + 0.05, "sine", 1568, 1568, 0.14, 0.08);
+        break;
+      case "stackBonus":
+        this.arpeggio(t, [659, 880, 1175, 1568], 0.05, "square", 0.15);
+        break;
+      case "stackMiss":
+        this.blip(t, "sawtooth", 300, 70, 0.4, 0.2);
+        this.burst(t, 0.18, 900, 200, 0.14);
+        break;
+      case "flashHit":
+        this.blip(t, "square", 1047, 1397, 0.08, 0.14);
+        break;
+      case "flashEarly":
+        this.blip(t, "triangle", 220, 150, 0.14, 0.18);
+        this.blip(t + 0.12, "triangle", 180, 120, 0.16, 0.16);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
