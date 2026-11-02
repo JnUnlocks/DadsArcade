@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.38.0",
+    date: "2026-11-02",
+    title: "Reflex Rush is complete: Zap Dash and Overdrive",
+    notes: [
+      "ZAP DASH: 30 seconds on a grid of nine tiles. Tap each cyan orb before it fades, and they fade faster as the clock runs down.",
+      "Hits in a row build a combo worth more each time. Pink X tiles cost 150 points and an empty tile costs 25, so aim before you tap. On a keyboard, Q W E / A S D / Z X C are the nine tiles.",
+      "OVERDRIVE: tap the reactor as fast as you can for 10 seconds and watch the city light up at every 20 taps. It shows your speed as you go, and your best one-second burst at the end.",
+      "Overdrive counts one finger at a time, so drumming two fingers doesn't help, and a round that gets interrupted starts over.",
+      "Both have their own high scores: look for ZAP and OVERDRIVE on the high-score screen.",
+    ],
+  },
+  {
     version: "0.37.0",
     date: "2026-11-02",
     title: "New: REFLEX RUSH, with Neon Skyline and Flash Point. And four games out of BETA",

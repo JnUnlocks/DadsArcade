@@ -3,14 +3,14 @@
  *
  *   NEON SKYLINE  timing    stack the sliding block, as high as you can
  *   FLASH POINT   reaction  wait for GO, then tap
- *   ZAP DASH      accuracy  (coming)
- *   OVERDRIVE     speed     (coming)
+ *   ZAP DASH      accuracy  tap the orbs, dodge the hazards, 30 seconds
+ *   OVERDRIVE     speed     tap the reactor, 10 seconds
  *
  * Like Brickfall's two games, opening the cabinet asks which, and PLAY AGAIN
  * goes straight back into the one just played. Each game is ranked on the
  * arcade's own scoreboard under its own name (GameModule.modeBoards): Neon
- * Skyline files on the cabinet's main board, Flash Point on a board of its
- * own, so a tower's points are never compared with a reaction time's.
+ * Skyline files on the cabinet's main board and each of the others on a board
+ * of its own, so a tower's points are never compared with a reaction time's.
  */
 
 import type {
@@ -23,15 +23,22 @@ import type {
 import type { InputSnapshot } from "../../core/input.ts";
 import { loadBests } from "../../core/storage.ts";
 import { drawCity, drawReflexIcon, RR } from "./art.ts";
+import { DRIVE_BOARD, OverdriveGame } from "./driveGame.ts";
 import { FLASH_BOARD, FlashPointGame } from "./flashGame.ts";
 import { Presses, type Press } from "./presses.ts";
 import { NeonSkylineGame } from "./skylineGame.ts";
+import { ZAP_BOARD, ZapDashGame } from "./zapGame.ts";
 import "./reflexrush.css";
 
 const GAME_ID = "reflex-rush";
 const MODE_KEY = "hyperdrive.reflexrush.mode";
 
-type Mode = "skyline" | "flash";
+type Mode = "skyline" | "flash" | "zap" | "drive";
+
+const MODES: readonly Mode[] = ["skyline", "flash", "zap", "drive"];
+
+const ZAP_COLOUR = "#a77bff";
+const DRIVE_COLOUR = "#ff7a4d";
 
 interface Pick {
   mode: Mode | null;
@@ -64,18 +71,22 @@ const PICKS: readonly Pick[] = [
     best: (score) => `YOUR BEST ${score}`,
   },
   {
-    mode: null,
+    mode: "zap",
     skill: "ACCURACY",
     name: "ZAP DASH",
-    pitch: "Tap the energy orbs. Avoid the hazards! Coming soon.",
-    colour: "#a77bff",
+    pitch: "Tap the energy orbs. Avoid the hazards!",
+    colour: ZAP_COLOUR,
+    bestKey: `${GAME_ID}:${ZAP_BOARD}`,
+    best: (score) => `YOUR BEST ${score}`,
   },
   {
-    mode: null,
+    mode: "drive",
     skill: "SPEED",
     name: "OVERDRIVE",
-    pitch: "Tap to charge the reactor. How much power can you make? Coming soon.",
-    colour: "#ff7a4d",
+    pitch: "Tap to charge the reactor. How much power can you make?",
+    colour: DRIVE_COLOUR,
+    bestKey: `${GAME_ID}:${DRIVE_BOARD}`,
+    best: (score) => `YOUR BEST ${score} TAPS`,
   },
 ];
 
@@ -89,7 +100,8 @@ interface Playing {
 
 function loadLastMode(): Mode {
   try {
-    return localStorage.getItem(MODE_KEY) === "flash" ? "flash" : "skyline";
+    const saved = localStorage.getItem(MODE_KEY);
+    return MODES.find((m) => m === saved) ?? "skyline";
   } catch {
     return "skyline";
   }
@@ -180,7 +192,11 @@ export class ReflexRush implements GameInstance {
     this.playing =
       mode === "flash"
         ? new FlashPointGame(this.host, this.root, done)
-        : new NeonSkylineGame(this.host, done);
+        : mode === "zap"
+          ? new ZapDashGame(this.host, done)
+          : mode === "drive"
+            ? new OverdriveGame(this.host, done)
+            : new NeonSkylineGame(this.host, done);
   }
 
   update(dt: number, _input: InputSnapshot): void {
@@ -228,13 +244,13 @@ export const reflexRushModule: GameModule = {
   title: "REFLEX RUSH",
   shortTitle: "REFLEX",
   progressShort: "FL",
-  blurb: "Four quick skill games. Stack the neon tower, or wait for GO and tap.",
+  blurb: "Four quick skill games: stack the tower, wait for GO, zap the orbs, charge the reactor.",
   howToPlay: [
-    "Pick a game from the four. PLAY AGAIN goes straight back into the one you just played.",
-    "NEON SKYLINE: tap, Space or Enter when the sliding block lines up with the one below.",
-    "NEON SKYLINE: whatever hangs over is cut off. Land it dead on for a PERFECT, and three in a row win width back.",
-    "FLASH POINT: wait for the yellow GO, then tap as fast as you can. Tapping during WAIT is a false start.",
-    "FLASH POINT: five tries. Each GO is worth 1,000 points, less one for every millisecond you take.",
+    "Pick one of the four games. PLAY AGAIN goes straight back into the one you just played.",
+    "NEON SKYLINE: tap, Space or Enter when the sliding block lines up. Overhangs are cut off; three PERFECTs in a row win width back.",
+    "FLASH POINT: wait for the yellow GO, then tap. Five tries, each worth 1,000 less your milliseconds. Tapping during WAIT is a false start.",
+    "ZAP DASH: 30 seconds. Tap the cyan orbs before they fade, or use Q W E / A S D / Z X C. Pink X tiles and empty tiles cost points.",
+    "OVERDRIVE: tap the reactor, or Space, as fast as you can for 10 seconds. One finger at a time counts.",
     "Timings depend a little on your phone and screen, so compare them on the same device.",
   ],
   accent: "#2ee6ff",
@@ -249,6 +265,14 @@ export const reflexRushModule: GameModule = {
         shortTitle: "FLASH",
         accent: RR.yellow,
         progressShort: "MS",
+      },
+      { id: ZAP_BOARD, title: "ZAP DASH", shortTitle: "ZAP", accent: ZAP_COLOUR, progressShort: "AC" },
+      {
+        id: DRIVE_BOARD,
+        title: "OVERDRIVE",
+        shortTitle: "OVERDRIVE",
+        accent: DRIVE_COLOUR,
+        progressShort: "PK",
       },
     ],
   },

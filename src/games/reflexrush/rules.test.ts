@@ -28,6 +28,20 @@ import {
   type Skyline,
 } from "./skyline.ts";
 import { judge, median, points, summarise, TIMEOUT_MS, TRIALS, waitFor, WAIT_MAX, WAIT_MIN } from "./flash.ts";
+import {
+  accuracy,
+  advance,
+  CELLS,
+  HAZARD_FROM,
+  newZap,
+  orbLife,
+  ORB_LIFE_END,
+  ORB_LIFE_START,
+  ROUND_SECONDS,
+  tap,
+  type Zap,
+} from "./zap.ts";
+import { average, DRIVE_MS, liveSpeed, milestonesReached, newDrive, peakSpeed, press } from "./drive.ts";
 
 /** Put the sliding block exactly `offset` units right of the block below. */
 function aim(s: Skyline, offset: number): void {
@@ -225,5 +239,162 @@ describe("flash point", () => {
     assert.equal(s.best, null);
     assert.equal(s.score, 0);
     assert.equal(s.falseStarts, TRIALS);
+  });
+});
+
+/** Run a Zap round forward in 1/60 s steps until `until` or the end. */
+function runZap(z: Zap, until: number, each?: (z: Zap) => void): void {
+  while (!z.over && z.t < until) {
+    advance(z, 1 / 60);
+    each?.(z);
+  }
+}
+
+describe("zap dash", () => {
+  it("shows an orb at once, and fades orbs faster as the round goes on", () => {
+    const z = newZap(1);
+    advance(z, 1 / 60);
+    assert.ok(z.orb, "an orb from the first frame");
+    assert.equal(orbLife(0), ORB_LIFE_START);
+    assert.equal(orbLife(ROUND_SECONDS), ORB_LIFE_END);
+    assert.ok(Math.abs(orbLife(15) - (ORB_LIFE_START + ORB_LIFE_END) / 2) < 1e-9);
+  });
+
+  it("scores 100 a hit plus 10 for each hit before it in the combo, up to 10", () => {
+    const z = newZap(2);
+    const gained: number[] = [];
+    runZap(z, 25, (z) => {
+      if (z.orb && gained.length < 13) gained.push(tap(z, z.orb.cell)!.points);
+    });
+    assert.deepEqual(gained, [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 200, 200]);
+  });
+
+  it("breaks the combo when an orb fades", () => {
+    const z = newZap(3);
+    advance(z, 1 / 60);
+    tap(z, z.orb!.cell);
+    runZap(z, 0.2);
+    assert.ok(z.orb);
+    runZap(z, z.orb!.until + 0.01);
+    assert.equal(z.combo, 0);
+    assert.equal(z.missed, 1);
+  });
+
+  it("charges 150 for a hazard and 25 for an empty cell, never below zero", () => {
+    const z = newZap(4);
+    advance(z, 1 / 60);
+    const empty = [...Array(CELLS).keys()].find((c) => c !== z.orb!.cell)!;
+    const first = tap(z, empty)!;
+    assert.deepEqual([first.kind, first.points, z.score], ["empty", -0, 0], "nothing to lose yet");
+    tap(z, z.orb!.cell);
+    runZap(z, HAZARD_FROM + 3, () => {});
+    // Find a moment with a hazard up and tap it.
+    runZap(z, ROUND_SECONDS, (z) => {
+      if (z.hazard && z.hazardHits === 0) {
+        z.score = 400;
+        const hit = tap(z, z.hazard.cell)!;
+        assert.equal(hit.kind, "hazard");
+        assert.equal(z.score, 250);
+        assert.equal(z.combo, 0);
+      }
+    });
+    assert.equal(z.hazardHits, 1);
+  });
+
+  it("never puts a hazard on the orb, or anything under the last tap", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const z = newZap(seed);
+      let lastTap = -1;
+      runZap(z, ROUND_SECONDS, (z) => {
+        if (z.orb && z.hazard) assert.notEqual(z.orb.cell, z.hazard.cell, `seed ${seed} at ${z.t}`);
+        if (z.orb && z.orb.born === z.t) assert.notEqual(z.orb.cell, lastTap, `orb under the finger, seed ${seed}`);
+        if (z.hazard && z.hazard.born === z.t) assert.notEqual(z.hazard.cell, lastTap);
+        if (z.orb && z.rng.next() < 0.05) {
+          tap(z, z.orb.cell);
+          lastTap = z.lastTap;
+        }
+      });
+    }
+  });
+
+  it("has no hazards in the first five seconds, and some after", () => {
+    const z = newZap(5);
+    let early = false;
+    let late = false;
+    runZap(z, ROUND_SECONDS, (z) => {
+      if (z.hazard && z.t < HAZARD_FROM) early = true;
+      if (z.hazard && z.t >= HAZARD_FROM) late = true;
+    });
+    assert.ok(!early && late);
+  });
+
+  it("ends at thirty seconds and plays the same round for the same seed", () => {
+    const cells = (seed: number) => {
+      const z = newZap(seed);
+      const seen: number[] = [];
+      runZap(z, 99, (z) => {
+        if (z.orb && z.orb.born === z.t) seen.push(z.orb.cell);
+      });
+      assert.ok(z.over && z.t >= ROUND_SECONDS && z.t < ROUND_SECONDS + 0.05);
+      return seen;
+    };
+    assert.deepEqual(cells(77), cells(77));
+    assert.notDeepEqual(cells(77), cells(78));
+  });
+
+  it("counts accuracy as hits over all taps, and 0 for no taps", () => {
+    const z = newZap(6);
+    assert.equal(accuracy(z), 0);
+    advance(z, 1 / 60);
+    tap(z, z.orb!.cell);
+    tap(z, z.lastOrbCell === 0 ? 1 : 0);
+    tap(z, z.lastOrbCell === 0 ? 1 : 0);
+    assert.equal(z.presses, 3);
+    assert.equal(accuracy(z), 33);
+  });
+});
+
+describe("overdrive", () => {
+  it("counts taps inside [start, deadline) by their own time", () => {
+    const d = newDrive(1000);
+    assert.equal(press(d, { at: 999.9, via: "pointer" }), false, "before the start");
+    assert.equal(press(d, { at: 1000, via: "pointer" }), true, "at the start");
+    assert.equal(press(d, { at: 1000 + DRIVE_MS - 0.1, via: "pointer" }), true, "just inside");
+    assert.equal(press(d, { at: 1000 + DRIVE_MS, via: "pointer" }), false, "at the deadline");
+    assert.equal(d.taps.length, 2);
+  });
+
+  it("takes one finger at a time", () => {
+    const d = newDrive(0);
+    press(d, { at: 10, via: "pointer", alongside: 0 });
+    assert.equal(press(d, { at: 20, via: "pointer", alongside: 1 }), false);
+    assert.equal(d.taps.length, 1);
+  });
+
+  it("locks to the first tap's input, so keys and fingers can't add up", () => {
+    const d = newDrive(0);
+    press(d, { at: 10, via: "key" });
+    assert.equal(press(d, { at: 20, via: "pointer" }), false);
+    assert.equal(press(d, { at: 30, via: "key" }), true);
+    assert.equal(d.method, "key");
+  });
+
+  it("works out live, peak and average speed", () => {
+    const d = newDrive(0);
+    for (let t = 0; t < 10_000; t += 125) press(d, { at: t, via: "pointer" }); // 8 a second
+    assert.equal(d.taps.length, 80);
+    assert.equal(average(d), 8);
+    assert.equal(peakSpeed(d), 8);
+    assert.equal(liveSpeed(d, 5000), 8);
+    assert.equal(liveSpeed(d, 20_000), 0, "nothing in the last second");
+    const burst = newDrive(0);
+    for (let t = 0; t < 600; t += 50) press(burst, { at: t, via: "key" }); // 12 in 0.6 s
+    assert.equal(peakSpeed(burst), 12);
+  });
+
+  it("lights milestones without stopping at 100", () => {
+    assert.equal(milestonesReached(19), 0);
+    assert.equal(milestonesReached(20), 1);
+    assert.equal(milestonesReached(140), 5);
   });
 });

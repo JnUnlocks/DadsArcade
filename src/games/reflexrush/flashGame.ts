@@ -24,7 +24,7 @@ import {
   waitFor,
   type Trial,
 } from "./flash.ts";
-import type { Press } from "./presses.ts";
+import { isAction, type Press } from "./presses.ts";
 
 export const FLASH_BOARD = "flash-point";
 
@@ -190,9 +190,10 @@ export class FlashPointGame {
 
   // ----- Loop -----
 
-  update(dt: number, presses: readonly Press[]): void {
+  update(dt: number, all: readonly Press[]): void {
     this.time += dt;
     const now = performance.now();
+    const presses = all.filter(isAction);
 
     if (this.phase === "intro" || this.phase === "result") {
       // A tap on the screen doesn't press the card's button -- only the

@@ -5,7 +5,7 @@
 
 import type { GameHost, HudState } from "../../core/game.ts";
 import { drawBlock, drawCity, label, RR } from "./art.ts";
-import type { Press } from "./presses.ts";
+import { isAction, type Press } from "./presses.ts";
 import {
   BLOCK_H,
   BONUS_EVERY,
@@ -99,7 +99,7 @@ export class NeonSkylineGame {
 
     step(this.s, dt);
     const now = performance.now();
-    for (const press of presses) {
+    for (const press of presses.filter(isAction)) {
       if (press.at - this.lastPressAt < MIN_GAP_MS) continue;
       this.lastPressAt = press.at;
       const ago = Math.min(MAX_REWIND, Math.max(0, (now - press.at) / 1000));

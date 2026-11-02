@@ -144,7 +144,12 @@ export type SoundName =
   | "stackBonus"
   | "stackMiss"
   | "flashHit"
-  | "flashEarly";
+  | "flashEarly"
+  | "zapHit"
+  | "zapBad"
+  | "zapFade"
+  | "driveTap"
+  | "driveMilestone";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -761,6 +766,23 @@ export class AudioEngine {
       case "flashEarly":
         this.blip(t, "triangle", 220, 150, 0.14, 0.18);
         this.blip(t + 0.12, "triangle", 180, 120, 0.16, 0.16);
+        break;
+      case "zapHit":
+        this.blip(t, "square", 880, 1760, 0.07, 0.13);
+        this.burst(t, 0.04, 4000, 2000, 0.06);
+        break;
+      case "zapBad":
+        this.blip(t, "sawtooth", 180, 110, 0.16, 0.16);
+        break;
+      case "zapFade":
+        this.blip(t, "sine", 520, 300, 0.12, 0.06);
+        break;
+      case "driveTap":
+        // Short and quiet: at ten a second, anything longer turns to mush.
+        this.blip(t, "square", 300, 420, 0.03, 0.06);
+        break;
+      case "driveMilestone":
+        this.arpeggio(t, [523, 784, 1047], 0.05, "square", 0.16);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
