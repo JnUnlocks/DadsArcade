@@ -270,6 +270,12 @@ export interface GameModule {
    */
   readonly beta?: boolean;
   /**
+   * The last day (local, YYYY-MM-DD) a newly finished cabinet wears a NEW
+   * badge. A date rather than a flag so it comes off by itself, without a
+   * release just to take it down.
+   */
+  readonly newUntil?: string;
+  /**
    * True for a cabinet that keeps no scores on purpose -- Black Disc, played
    * between two teams in a room, and the Word Finder, which is a tool. The
    * high-score screen leaves it out, rather than list a board that can only

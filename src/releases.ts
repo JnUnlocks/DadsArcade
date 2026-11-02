@@ -36,7 +36,7 @@ export const RELEASES: readonly Release[] = [
   {
     version: "0.36.0",
     date: "2026-11-02",
-    title: "New: REFLEX RUSH, with Neon Skyline and Flash Point (BETA)",
+    title: "New: REFLEX RUSH, with Neon Skyline and Flash Point. And four games out of BETA",
     notes: [
       "NEW CABINET: REFLEX RUSH, quick skill games for the whole family. Two are ready today, and two more are on the way.",
       "NEON SKYLINE: a block slides back and forth over your tower. Tap when it lines up. Whatever hangs over is cut off, so the tower gets narrower unless you're spot on.",
@@ -44,6 +44,8 @@ export const RELEASES: readonly Release[] = [
       "FLASH POINT: wait for the yellow GO, then tap as fast as you can. Five tries. Tap during WAIT and that try is a false start.",
       "Each GO is worth 1,000 points, less one for every millisecond you take, and you see your median and fastest times at the end.",
       "Both have their own high scores: look for SKYLINE and FLASH on the high-score screen. Coming next: ZAP DASH and OVERDRIVE.",
+      "Reflex Rush wears a NEW badge on its tile for its first two weeks.",
+      "Out of BETA: DAD'S PRIZE DROP, WORD FINDER, WORD VOLTAGE and SOLITAIRE are finished. Thanks to everyone who tried them and sent notes.",
     ],
   },
   {

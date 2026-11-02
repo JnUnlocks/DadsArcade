@@ -1291,7 +1291,6 @@ export const wordVoltageModule: GameModule = {
   accent: "#ffd52a",
   noLeaderboard: true,
   dailyWithoutBoard: true,
-  beta: true,
   drawIcon: drawWordVoltageIcon,
   create: (host, start) => new WordVoltage(host, start),
 };

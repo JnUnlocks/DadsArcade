@@ -238,7 +238,8 @@ export const reflexRushModule: GameModule = {
     "Timings depend a little on your phone and screen, so compare them on the same device.",
   ],
   accent: "#2ee6ff",
-  beta: true,
+  // Tried on dev by the family and finished: NEW for two weeks.
+  newUntil: "2026-11-16",
   modeBoards: {
     main: { title: "NEON SKYLINE", shortTitle: "SKYLINE", accent: RR.cyan, progressShort: "FL" },
     others: [

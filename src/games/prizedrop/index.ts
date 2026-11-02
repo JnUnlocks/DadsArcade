@@ -671,7 +671,6 @@ export const prizeDropModule: GameModule = {
     "On a keyboard, the arrow keys aim and Space drops.",
   ],
   accent: "#45ddf4",
-  beta: true,
   drawIcon: drawPrizeDropIcon,
   create: (host: GameHost, start?: StartOptions): GameInstance => new PrizeDrop(host, start),
 };

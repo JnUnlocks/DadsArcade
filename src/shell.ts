@@ -496,6 +496,8 @@ export class Shell implements GameHost {
     button.append(art, name, hint);
     if (game.beta) {
       button.append(el("span", "cabinet-badge cabinet-badge--beta", "BETA"));
+    } else if (game.newUntil && dailyKey() <= game.newUntil) {
+      button.append(el("span", "cabinet-badge cabinet-badge--new", "NEW"));
     }
     if (hasFreshDaily) {
       button.append(el("span", "cabinet-badge", "TODAY"));
