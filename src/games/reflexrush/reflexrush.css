@@ -205,3 +205,149 @@
     transform: none;
   }
 }
+
+/* The picker's fifth tile runs the full width under the 2x2. */
+.rr-grid > .rr-mode:nth-child(5):last-child {
+  grid-column: 1 / -1;
+  min-height: calc(84px * var(--ui-scale));
+}
+
+/*
+ * Thumb Storm: the passage at the top of the screen, clear of the phone's
+ * keyboard, with the invisible text box over it.
+ */
+.rr-type {
+  --type: #4dff9a;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--ui-scale));
+  width: 100%;
+  max-width: 560px;
+  /* Pushed to the top of the bottom-aligned root. */
+  margin: calc(env(safe-area-inset-top, 0px) + 64px) auto auto;
+  padding: calc(12px * var(--ui-scale)) 14px;
+  border-radius: 16px;
+  border: 2px solid var(--type);
+  background: rgba(8, 10, 30, 0.95);
+  font-family: var(--font);
+}
+
+.rr-type__top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.rr-type__name {
+  color: var(--type);
+  font-size: calc(12px * var(--ui-scale));
+  margin-right: auto;
+}
+
+.rr-type__speed {
+  color: var(--ink);
+  font-size: calc(13px * var(--ui-scale));
+}
+
+.rr-type__clock {
+  min-width: 4.2em;
+  text-align: right;
+  color: #ffd84d;
+  font-size: calc(18px * var(--ui-scale));
+  font-variant-numeric: tabular-nums;
+}
+
+.rr-type__clock--low {
+  color: #ff6b8a;
+}
+
+.rr-type__field {
+  position: relative;
+}
+
+.rr-type__text {
+  /* Three lines: the one before, the one being typed, the one coming. */
+  --line: calc(30px * var(--ui-scale));
+  height: calc(var(--line) * 3);
+  overflow: hidden;
+  position: relative;
+  font-size: calc(20px * var(--ui-scale));
+  line-height: var(--line);
+  color: rgba(238, 243, 255, 0.5);
+  word-break: normal;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.rr-ch--ok {
+  color: var(--ink);
+}
+
+.rr-ch--bad {
+  color: #ff6b8a;
+  background: rgba(255, 79, 184, 0.18);
+  border-radius: 3px;
+}
+
+.rr-ch--gap {
+  background: rgba(255, 79, 184, 0.45);
+}
+
+.rr-ch--cur {
+  box-shadow: inset 0 -3px 0 var(--type);
+  color: var(--ink);
+}
+
+/* Covers the passage so tapping the text is tapping the box. Never seen. */
+.rr-type__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  /* 16px or more, or iOS zooms the page in on focus. */
+  font-size: 16px;
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  cursor: text;
+}
+
+.rr-type__hint {
+  margin: 0;
+  min-height: 2.9em;
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.rr-type__hint--warn {
+  color: #ffd84d;
+}
+
+.rr-type__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.rr-type__big {
+  color: var(--type);
+  font-size: calc(34px * var(--ui-scale));
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.rr-type__line {
+  color: var(--ink);
+  font-size: calc(11px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}

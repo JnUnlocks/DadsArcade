@@ -79,6 +79,12 @@ const MAX_POINTS_PER_WAVE = 15000;
  * has made the Grand Prize Bot keeps scoring with nowhere higher to report.
  */
 const TOP_LEVEL: Readonly<Record<string, number>> = { brickfall: 25, "prize-drop": 10 };
+/**
+ * Boards whose score has a hard top, keyed "game/board". Thumb Storm scores
+ * words a minute over thirty seconds: the fastest typists on a real keyboard
+ * manage about 200, on a phone far fewer, so 250 is room to spare.
+ */
+const BOARD_MAX: Readonly<Record<string, number>> = { "reflex-rush/thumb-storm": 250 };
 /** Slack so short, early runs aren't judged too harshly. */
 const SCORE_GRACE = 10000;
 
@@ -1515,6 +1521,8 @@ function validate(body: unknown): ScoreSubmission | { error: string } {
   const byWave = top !== undefined && wave >= top ? Infinity : MAX_POINTS_PER_WAVE * wave;
   const ceiling = Math.min(MAX_POINTS_PER_SECOND * (durationMs / 1000), byWave) + SCORE_GRACE;
   if (score > ceiling) return { error: "implausible_score" };
+  const boardMax = BOARD_MAX[`${gameId}/${boardId}`];
+  if (boardMax !== undefined && score > boardMax) return { error: "implausible_score" };
 
   return { gameId, initials, deviceId, score, wave, durationMs, boardId };
 }

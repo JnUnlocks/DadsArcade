@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.39.0",
+    date: "2026-11-06",
+    title: "Thumb Storm: who has the fastest thumbs?",
+    notes: [
+      "NEW IN REFLEX RUSH: THUMB STORM, a 30-second typing test. Type the sentences on screen as fast as you can; the clock starts on your first letter.",
+      "Letter by letter only: swipe typing, suggestions, autocorrect and pasting don't count, so everyone is on the same footing.",
+      "Your score is words a minute, less any mistakes you leave unfixed. Backspace to fix one; your accuracy shows at the end.",
+      "It has its own high scores: look for THUMBS on the high-score screen. A phone keyboard and a computer keyboard are very different, so compare on the same kind.",
+    ],
+  },
+  {
     version: "0.38.0",
     date: "2026-11-02",
     title: "Reflex Rush is complete: Zap Dash and Overdrive",
