@@ -309,15 +309,9 @@ export class Shell implements GameHost {
 
       const hud = this.instance.hud();
       const shown = hud.rollScore ? this.rollScore() : this._score;
-      drawHud(
-        ctx,
-        this.view,
-        shown,
-        hud,
-        this._settings,
-        this.module,
-        shown < this._score,
-      );
+      if (!hud.hidden) {
+        drawHud(ctx, this.view, shown, hud, this._settings, this.module, shown < this._score);
+      }
     }
 
     ctx.restore();

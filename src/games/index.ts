@@ -23,6 +23,7 @@ import { wordFinderModule } from "./wordfinder";
 import { sudokuModule } from "./sudoku";
 import { prizeDropModule } from "./prizedrop";
 import { circuitClimbModule } from "./circuitclimb";
+import { marbleSwitchModule } from "./marbleswitch";
 import { wordVoltageModule } from "./wordvoltage";
 import { solitaireModule } from "./solitaire";
 import { reflexRushModule } from "./reflexrush";
@@ -39,8 +40,10 @@ export const GAMES: GameModule[] = [
   sudokuModule,
   // Prize Drop is what most newcomers open first, and now has a daily too.
   prizeDropModule,
-  // The newest cabinet (2026-11-14), up where it's seen.
+  // The newest cabinets, up where they're seen: Circuit Climb (2026-11-14)
+  // and Marble Switch (2026-11-15).
   circuitClimbModule,
+  marbleSwitchModule,
   // Brickfall was the second most likely to bring a player back.
   brickfallModule,
   reflexRushModule,

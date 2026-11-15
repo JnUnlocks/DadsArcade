@@ -161,6 +161,11 @@ export interface HudState {
    * climb is half the reward.
    */
   rollScore?: boolean;
+  /**
+   * True to leave the score line off altogether, for a game that keeps no
+   * score and draws its own header (Marble Switch's level and flips).
+   */
+  hidden?: boolean;
 }
 
 export interface GameInstance {

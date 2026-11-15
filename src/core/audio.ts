@@ -156,7 +156,14 @@ export type SoundName =
   | "climbBreak"
   | "climbRelay"
   | "climbZone"
-  | "climbOver";
+  | "climbOver"
+  // Marble Switch
+  | "marbleRoll"
+  | "marbleClick"
+  | "marbleDrop"
+  | "marbleChime"
+  | "marbleMiss"
+  | "marbleClear";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -813,6 +820,31 @@ export class AudioEngine {
         break;
       case "climbOver":
         this.blip(t, "sine", 520, 110, 0.6, 0.16);
+        break;
+      // ----- Marble Switch -----
+      case "marbleRoll":
+        // Glass on acrylic: a soft, low rumble that repeats while they roll.
+        this.burst(t, 0.12, 900, 300, 0.035);
+        break;
+      case "marbleClick":
+        // The brass lever snapping over.
+        this.blip(t, "square", 1800, 1200, 0.025, 0.07);
+        this.blip(t + 0.02, "triangle", 600, 500, 0.04, 0.06);
+        break;
+      case "marbleDrop":
+        this.blip(t, "triangle", 700, 420, 0.09, 0.1);
+        break;
+      case "marbleChime":
+        // A glass marble settling in its cup.
+        this.blip(t, "sine", 1319, 1319, 0.35, 0.12);
+        this.blip(t + 0.05, "sine", 1976, 1976, 0.3, 0.06);
+        break;
+      case "marbleMiss":
+        // Soft, never a buzzer.
+        this.blip(t, "sine", 330, 247, 0.32, 0.12);
+        break;
+      case "marbleClear":
+        this.arpeggio(t, [659, 784, 988, 1319], 0.08, "sine", 0.16);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child
