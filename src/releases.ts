@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.40.0",
+    date: "2026-11-14",
+    title: "Circuit Climb: bounce JES COIL up the city",
+    notes: [
+      "A new cabinet: CIRCUIT CLIMB. JES COIL is a little spring robot who never stops bouncing. Hold the left or right side of the screen to steer him onto higher pads.",
+      "Land on a relay, the pad with a socket hanging underneath, and part of the city lights back up: 50 points, once each. Every 10 units you climb is another point.",
+      "The climb goes from the rooftops to the antenna district to an orbital station in space. Violet pads with arrows bounce you higher, some pads slide on rails, and cracked ones break after one bounce.",
+      "There is always a way up: the pads you need are solid and never move. The tricky ones are shortcuts and bonuses.",
+      "JUNIOR has wider pads and smaller jumps, with its own high scores.",
+      "It wears a BETA tag while the family tries it out. Thank you to the player who asked for a jumping game.",
+    ],
+  },
+  {
     version: "0.39.0",
     date: "2026-11-06",
     title: "Thumb Storm: who has the fastest thumbs?",

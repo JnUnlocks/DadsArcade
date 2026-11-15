@@ -149,7 +149,14 @@ export type SoundName =
   | "zapBad"
   | "zapFade"
   | "driveTap"
-  | "driveMilestone";
+  | "driveMilestone"
+  // Circuit Climb
+  | "climbBounce"
+  | "climbBoost"
+  | "climbBreak"
+  | "climbRelay"
+  | "climbZone"
+  | "climbOver";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -783,6 +790,29 @@ export class AudioEngine {
         break;
       case "driveMilestone":
         this.arpeggio(t, [523, 784, 1047], 0.05, "square", 0.16);
+        break;
+      // ----- Circuit Climb -----
+      case "climbBounce":
+        // A spring, quietly: it plays on every landing.
+        this.blip(t, "sine", 260, 520, 0.08, 0.09);
+        break;
+      case "climbBoost":
+        this.blip(t, "triangle", 300, 1100, 0.22, 0.15);
+        this.blip(t + 0.05, "sine", 600, 1600, 0.18, 0.08);
+        break;
+      case "climbBreak":
+        this.burst(t, 0.14, 2200, 400, 0.16);
+        this.blip(t, "triangle", 300, 140, 0.1, 0.1);
+        break;
+      case "climbRelay":
+        // Power coming back on: a chime that climbs.
+        this.arpeggio(t, [659, 880, 1319], 0.06, "sine", 0.17);
+        break;
+      case "climbZone":
+        this.arpeggio(t, [392, 523, 659, 784], 0.08, "triangle", 0.18);
+        break;
+      case "climbOver":
+        this.blip(t, "sine", 520, 110, 0.6, 0.16);
         break;
       case "prizeLegendary":
         // Deliberately the longest and brightest sound in the arcade. A child

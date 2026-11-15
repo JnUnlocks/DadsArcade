@@ -22,6 +22,7 @@ import { crosswordModule } from "./crossword";
 import { wordFinderModule } from "./wordfinder";
 import { sudokuModule } from "./sudoku";
 import { prizeDropModule } from "./prizedrop";
+import { circuitClimbModule } from "./circuitclimb";
 import { wordVoltageModule } from "./wordvoltage";
 import { solitaireModule } from "./solitaire";
 import { reflexRushModule } from "./reflexrush";
@@ -33,6 +34,8 @@ export const GAMES: GameModule[] = [
   letterLockModule,
   // The newest cabinet, up where it's seen (2026-11-02).
   reflexRushModule,
+  // The newest cabinet, next to the last newest (2026-11-14).
+  circuitClimbModule,
   // Then the straight arcade games. Order chosen by Justin on 2026-10-16.
   prizeDropModule,
   starfighterModule,

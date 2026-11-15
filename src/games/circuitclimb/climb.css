@@ -1,0 +1,106 @@
+/* Circuit Climb: the title card. Everything else is drawn on the canvas. */
+
+#ui > .climb-root {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 14px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  pointer-events: none;
+  z-index: 4;
+}
+
+#ui > .climb-root > * {
+  pointer-events: auto;
+}
+
+.climb-title {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: calc(14px * var(--ui-scale)) 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(70, 224, 255, 0.4);
+  background: rgba(8, 10, 32, 0.88);
+  box-shadow: 0 0 24px rgba(166, 107, 255, 0.25);
+}
+
+.climb-title__name {
+  margin: 0;
+  text-align: center;
+  font-size: calc(24px * var(--ui-scale));
+  letter-spacing: 0.14em;
+  background: linear-gradient(90deg, #46e0ff 0 52%, #ffb53d 52% 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.climb-title__hero,
+.climb-title__teach {
+  margin: 0;
+  text-align: center;
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.climb-title__teach {
+  color: #ffd99a;
+  font-weight: 700;
+}
+
+.climb-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: calc(64px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 16px;
+  border-radius: 14px;
+  border: 2px solid;
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.climb-mode:active {
+  transform: scale(0.98);
+}
+
+.climb-mode--classic {
+  border-color: #ff8a2a;
+  background: linear-gradient(135deg, rgba(255, 138, 42, 0.32), rgba(8, 10, 32, 0.95) 70%);
+  box-shadow: 0 0 16px rgba(255, 138, 42, 0.25);
+}
+
+.climb-mode--junior {
+  border-color: #46e0ff;
+  background: linear-gradient(135deg, rgba(70, 224, 255, 0.22), rgba(8, 10, 32, 0.95) 70%);
+}
+
+.climb-mode.is-last {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+.climb-mode__name {
+  font-size: calc(17px * var(--ui-scale));
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.climb-mode__pitch {
+  font-size: calc(11px * var(--ui-scale));
+  color: var(--dim);
+  line-height: 1.4;
+}
+
+.climb-mode__best {
+  font-size: calc(10px * var(--ui-scale));
+  color: #ffb53d;
+  letter-spacing: 0.08em;
+}
