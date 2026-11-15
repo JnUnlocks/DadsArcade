@@ -40,10 +40,8 @@ export const GAMES: GameModule[] = [
   sudokuModule,
   // Prize Drop is what most newcomers open first, and now has a daily too.
   prizeDropModule,
-  // The newest cabinets, up where they're seen: Circuit Climb (2026-11-14)
-  // and Marble Switch (2026-11-15).
+  // The newest cabinet (2026-11-14), up where it's seen.
   circuitClimbModule,
-  marbleSwitchModule,
   // Brickfall was the second most likely to bring a player back.
   brickfallModule,
   reflexRushModule,
@@ -64,4 +62,7 @@ export const GAMES: GameModule[] = [
   // Riley's own game, more for her than for the public: at the very bottom,
   // by Justin's choice on 2026-10-28.
   slimeShopModule,
+  // The newest cabinet goes on the very end while it's in BETA, by Justin's
+  // choice on 2026-11-15.
+  marbleSwitchModule,
 ];

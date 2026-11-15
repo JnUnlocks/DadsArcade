@@ -38,7 +38,7 @@ export const RELEASES: readonly Release[] = [
     date: "2026-11-15",
     title: "Marble Switch: flip the switches, roll each marble home",
     notes: [
-      "A new cabinet: MARBLE SWITCH. Glass marbles roll down clear rails. Tap a switch to flip its brass lever, and send each marble into the cup with the same shape: circle, triangle or diamond.",
+      "A new cabinet at the end of the row: MARBLE SWITCH. Glass marbles roll down clear rails. Tap a switch to flip its brass lever, and send each marble into the cup with the same shape: circle, triangle or diamond.",
       "Ten boards to start, from one switch and two cups up to The Marble Machine. Clearing a board unlocks the next.",
       "JUNIOR plays one marble at a time, shows the route the next one will take, and has a HINT. CLASSIC sends the whole queue, spaced out, and you flip switches while the marbles roll.",
       "Every board earns up to three stars: one for clearing it, more for doing it in fewer flips. Three stars is always possible.",
