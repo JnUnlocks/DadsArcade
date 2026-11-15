@@ -28,34 +28,36 @@ import { solitaireModule } from "./solitaire";
 import { reflexRushModule } from "./reflexrush";
 
 export const GAMES: GameModule[] = [
-  // The two daily puzzles share the top row: they're the reason to open the
-  // arcade today, and the cabinets a shared result links to.
+  // Ordered on 2026-11-15 by how the arcade is actually played, from the
+  // scoreboard's play log for the month before: the cabinets people come
+  // back to on another day go first.
+  //
+  // The three daily puzzles lead. Uncle Potato Head's Sudoku brought back
+  // more of its players than any other cabinet (half of them).
   plasmaSortModule,
   letterLockModule,
-  // The newest cabinet, up where it's seen (2026-11-02).
-  reflexRushModule,
-  // The newest cabinet, next to the last newest (2026-11-14).
-  circuitClimbModule,
-  // Then the straight arcade games. Order chosen by Justin on 2026-10-16.
+  sudokuModule,
+  // Prize Drop is what most newcomers open first, and now has a daily too.
   prizeDropModule,
-  starfighterModule,
-  snakeModule,
-  forestDashModule,
+  // The newest cabinet (2026-11-14), up where it's seen.
+  circuitClimbModule,
+  // Brickfall was the second most likely to bring a player back.
+  brickfallModule,
+  reflexRushModule,
   // Mom Mom's Crossword and the Word Finder that helps with it, side by side.
   crosswordModule,
   wordFinderModule,
+  forestDashModule,
+  wordVoltageModule,
+  solitaireModule,
+  // Starfighter and Snake sat in the top rows and few came back to them.
+  starfighterModule,
+  snakeModule,
+  blackDiscModule,
   mallardModule,
   reefModule,
   towerModule,
   crossingModule,
-  brickfallModule,
-  blackDiscModule,
-  sudokuModule,
-  // Placed at the bottom while the family tried it out, by Justin's choice on
-  // 2026-10-21; out of BETA 2026-11-02.
-  wordVoltageModule,
-  // Added 2026-10-22, after Word Voltage; out of BETA 2026-11-02.
-  solitaireModule,
   // Riley's own game, more for her than for the public: at the very bottom,
   // by Justin's choice on 2026-10-28.
   slimeShopModule,

@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.41.0",
+    date: "2026-11-15",
+    title: "Daily Drop, a reminder that asks nicely, and a new running order",
+    notes: [
+      "DAD'S PRIZE DROP has a DAILY DROP: the same prizes in the same order for everyone, every day. Your first go counts for TODAY on the high scores and for your daily streak. It's saved as you play, so a phone call or closing the app carries on where you were.",
+      "After your daily go, play it again for practice (same prizes, no score kept), or pick ENDLESS for a fresh tank any time. A finished daily can be shared to the family chat without giving the prizes away.",
+      "If you've been back on another day and just finished a daily puzzle, the menu now offers a reminder: one nudge in the evening, only on days you haven't played. Say NOT NOW and it won't ask again today.",
+      "A new running order on the menu, from what the family actually comes back to: the three daily puzzles first, then PRIZE DROP, CIRCUIT CLIMB and BRICKFALL.",
+    ],
+  },
+  {
     version: "0.40.0",
     date: "2026-11-14",
     title: "Circuit Climb: bounce JES COIL up the city",

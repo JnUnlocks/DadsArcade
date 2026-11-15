@@ -133,6 +133,12 @@ export interface RunSummary {
    */
   durationMs?: number;
 
+  /**
+   * Something of the game's own for the results card, under the score line:
+   * Prize Drop's SHARE button after a daily. Built when the card is.
+   */
+  extra?: () => HTMLElement;
+
   /** Replaces "GAME OVER" -- for modes where losing isn't a concept. */
   headline?: string;
 

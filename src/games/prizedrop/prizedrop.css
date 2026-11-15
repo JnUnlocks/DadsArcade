@@ -1,0 +1,94 @@
+/* Dad's Prize Drop: the DAILY DROP / ENDLESS chooser, and the share button on the results card. */
+
+/* Centred in the empty tank, clear of the strip of prizes along the bottom. */
+#ui > .drop-root {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 22px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+#ui > .drop-root:empty {
+  display: none;
+}
+
+#ui > .drop-root > * {
+  pointer-events: auto;
+}
+
+.drop-chooser {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.drop-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: calc(66px * var(--ui-scale));
+  padding: calc(10px * var(--ui-scale)) 16px;
+  border-radius: 14px;
+  border: 2px solid;
+  color: var(--ink);
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.drop-mode:active {
+  transform: scale(0.98);
+}
+
+.drop-mode--daily {
+  border-color: #ffd166;
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.28), #0a0f26 70%);
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.22);
+}
+
+.drop-mode--endless {
+  border-color: #45ddf4;
+  background: linear-gradient(135deg, rgba(69, 221, 244, 0.22), #0a0f26 70%);
+}
+
+.drop-mode__name {
+  font-size: calc(17px * var(--ui-scale));
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.drop-mode__pitch {
+  font-size: calc(11px * var(--ui-scale));
+  color: var(--dim);
+  line-height: 1.4;
+}
+
+.drop-mode__note {
+  font-size: calc(10px * var(--ui-scale));
+  color: #ffd166;
+  letter-spacing: 0.08em;
+}
+
+.drop-result-share {
+  display: flex;
+  justify-content: center;
+}
+
+.drop-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.drop-share .share-icon {
+  width: 18px;
+  height: 18px;
+}

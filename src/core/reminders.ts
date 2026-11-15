@@ -48,6 +48,15 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
+/** Whether this phone has said yes to reminders, without asking the browser anything. */
+export function remindersOnHere(): boolean {
+  try {
+    return localStorage.getItem(KEY_REMINDERS) === "on";
+  } catch {
+    return false;
+  }
+}
+
 export async function reminderState(): Promise<ReminderState> {
   if (isIos() && !isStandalone()) return "needs-home-screen";
   if (!pushSupported() || !(await registration()) || !(await serverKey())) return "unavailable";

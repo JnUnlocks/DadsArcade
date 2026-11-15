@@ -24,12 +24,14 @@ import {
   loadPlayer,
   loadSeenVersion,
   loadSettings,
+  loadReminderOffer,
   loadStreakCheered,
   recordBest,
   saveInstallDeclined,
   savePlayer,
   saveSeenVersion,
   saveSettings,
+  saveReminderOffer,
   saveStreakCheered,
   type Player,
   type QueuedScore,
@@ -37,6 +39,9 @@ import {
 } from "./core/storage";
 import { View } from "./core/view";
 import { streakState } from "./core/streak";
+import { shouldOfferReminder } from "./core/reminderOffer";
+import { remindersOnHere } from "./core/reminders";
+import { buildReminderOffer } from "./ui/reminders";
 import { WakeLock } from "./core/wakelock";
 import { drawCrtOverlay, drawHud } from "./ui/hud";
 import { buildAboutScreen } from "./ui/about";
@@ -372,6 +377,26 @@ export class Shell implements GameHost {
         this.showStreak();
       }),
     );
+
+    // Someone back for another day who has just finished a daily: offer the
+    // reminder, once (core/reminderOffer.ts). Most players never open the
+    // streak screen, where the switch lives.
+    const offer = loadReminderOffer();
+    if (shouldOfferReminder(loadDayLog(), today, offer, remindersOnHere())) {
+      screen.append(
+        buildReminderOffer(
+          () => {
+            this.audio.unlock();
+            this.audio.play("uiSelect");
+          },
+          () => saveReminderOffer({ ...loadReminderOffer(), shownOn: today }),
+          () => {
+            const now = loadReminderOffer();
+            saveReminderOffer({ ...now, declines: now.declines + 1 });
+          },
+        ),
+      );
+    }
 
     // A newcomer back from their first game: what to try next, and the offer
     // to keep the arcade on the home screen. Not before the first game, when
@@ -839,6 +864,9 @@ export class Shell implements GameHost {
         `${summary.progressLabel} ${summary.progress}   ·   ${formatDuration(seconds)}`,
       ),
     );
+
+    const extra = summary.extra?.();
+    if (extra) screen.append(extra);
 
     // Where the submission result lands once we know it.
     const status = el("p", "board-status", "");

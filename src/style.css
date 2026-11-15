@@ -2711,3 +2711,37 @@ body {
   font-size: calc(12px * var(--ui-scale));
   line-height: 1.45;
 }
+
+/* ---------- The menu's reminder offer (ui/reminders.ts) ---------- */
+
+.reminder-offer {
+  width: 100%;
+  max-width: 420px;
+  padding: calc(10px * var(--ui-scale)) 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 193, 77, 0.45);
+  background: rgba(255, 193, 77, 0.08);
+}
+
+.reminder-offer:empty {
+  display: none;
+}
+
+.screen p.reminder-offer-text {
+  margin: 0 0 calc(8px * var(--ui-scale));
+  text-align: center;
+  color: var(--ink);
+  font-size: calc(12px * var(--ui-scale));
+  line-height: 1.45;
+}
+
+.reminder-offer-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.reminder-offer-buttons .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}

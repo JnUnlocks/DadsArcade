@@ -23,6 +23,61 @@ function hourLabel(hour: number): string {
   return new Date(2000, 0, 1, hour).toLocaleTimeString(undefined, { hour: "numeric" });
 }
 
+/**
+ * The menu's one-time offer: a nudge tomorrow? Starts empty and only fills
+ * in if this phone can actually take reminders, so an offer is never made
+ * that can't be kept. `onShown` fires once it's on screen; `onDecline` on
+ * NOT NOW.
+ */
+export function buildReminderOffer(
+  onTap: () => void,
+  onShown: () => void,
+  onDecline: () => void,
+): HTMLElement {
+  const box = el("div", "reminder-offer");
+  void reminderState()
+    .catch(() => "unavailable" as const)
+    .then((state) => {
+      if (state !== "off") return;
+      onShown();
+      const when = hourLabel(REMINDER_HOUR);
+      const text = el(
+        "p",
+        "reminder-offer-text",
+        `Want a nudge tomorrow? One reminder at ${when}, only on days you haven't played yet.`,
+      );
+      const yes = el("button", "btn btn--primary reminder-offer-yes", "REMIND ME");
+      const no = el("button", "btn btn--ghost reminder-offer-no", "NOT NOW");
+      const buttons = el("div", "reminder-offer-buttons");
+      buttons.append(yes, no);
+      box.append(text, buttons);
+      let busy = false;
+      yes.addEventListener("click", () => {
+        if (busy) return;
+        busy = true;
+        onTap();
+        yes.textContent = "…";
+        void turnRemindersOn()
+          .catch(() => "off" as const)
+          .then((next) => {
+            text.textContent =
+              next === "on"
+                ? `Done. See you tomorrow at ${when} -- only if you haven't played by then.`
+                : next === "blocked"
+                  ? "Notifications are off for the arcade. You can allow them in your phone's settings."
+                  : "That didn't work this time. You can try again from the streak screen.";
+            buttons.remove();
+          });
+      });
+      no.addEventListener("click", () => {
+        onTap();
+        onDecline();
+        box.remove();
+      });
+    });
+  return box;
+}
+
 /** Starts empty and fills in once the phone has been asked what it supports. */
 export function buildReminderSection(onTap: () => void): HTMLElement {
   const box = el("div", "reminder");

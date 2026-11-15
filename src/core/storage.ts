@@ -7,6 +7,7 @@
  */
 
 import { addFinish, type DayLog, parseDayLog } from "./streak.ts";
+import type { OfferMemory } from "./reminderOffer.ts";
 import { EXISTING } from "./welcome.ts";
 
 const KEY_PLAYER = "hyperdrive.player";
@@ -16,6 +17,7 @@ const KEY_QUEUE = "hyperdrive.queue";
 const KEY_SEEN_VERSION = "hyperdrive.seenVersion";
 const KEY_DAILY_SEEN = "hyperdrive.dailySeen";
 const KEY_PLAYS = "hyperdrive.plays";
+const KEY_REMINDER_OFFER = "hyperdrive.reminderOffer";
 const KEY_STREAK_DAYS = "hyperdrive.streak.days";
 const KEY_STREAK_CHEERED = "hyperdrive.streak.cheered";
 /** Anonymous id for play counts, made before the player ever enters initials. */
@@ -285,6 +287,19 @@ export function markDailyDone(gameId: string, dateKey: string): void {
   const log = loadDayLog();
   const next = addFinish(log, gameId, dateKey);
   if (next !== log) write(KEY_STREAK_DAYS, next);
+}
+
+/** What the menu remembers about offering a daily reminder (core/reminderOffer.ts). */
+export function loadReminderOffer(): OfferMemory {
+  const stored = read<Partial<OfferMemory>>(KEY_REMINDER_OFFER, {});
+  return {
+    shownOn: typeof stored.shownOn === "string" ? stored.shownOn : "",
+    declines: typeof stored.declines === "number" ? stored.declines : 0,
+  };
+}
+
+export function saveReminderOffer(memory: OfferMemory): void {
+  write(KEY_REMINDER_OFFER, memory);
 }
 
 /** The last day the menu cheered for the streak being lit, so it cheers once. */

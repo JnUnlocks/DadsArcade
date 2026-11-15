@@ -23,7 +23,19 @@ import {
   TANK_W,
   TOP_TIER,
 } from "./prizes.ts";
-import { canDrop, clampAim, createRun, drop, DropSequence, stepRun, type Run } from "./rules.ts";
+import {
+  canDrop,
+  clampAim,
+  createDailyRun,
+  createRun,
+  dailyDropSeed,
+  drop,
+  DropSequence,
+  restoreRun,
+  snapshotRun,
+  stepRun,
+  type Run,
+} from "./rules.ts";
 
 const STEP = 1 / 120;
 
@@ -373,5 +385,97 @@ describe("the clock", () => {
     assert.equal(fresh.time, 0);
     assert.equal(fresh.over, false);
     assert.equal(fresh.bestTier, 1);
+  });
+});
+
+describe("the daily drop", () => {
+  it("hands everyone the same prizes on the same day", () => {
+    const a = createDailyRun("2026-11-15");
+    const b = createDailyRun("2026-11-15");
+    for (let i = 0; i < 40; i += 1) {
+      assert.equal(a.current, b.current);
+      assert.ok(drop(a, 100) && drop(b, 100));
+      wait(a, DROP_COOLDOWN);
+      wait(b, DROP_COOLDOWN);
+      if (a.over || b.over) break;
+    }
+  });
+
+  it("is a different run of prizes tomorrow", () => {
+    assert.notEqual(dailyDropSeed("2026-11-15"), dailyDropSeed("2026-11-16"));
+    const today = new DropSequence(dailyDropSeed("2026-11-15"), 0);
+    const tomorrow = new DropSequence(dailyDropSeed("2026-11-16"), 0);
+    const same = Array.from({ length: 40 }, () => today.next() === tomorrow.next()).filter(Boolean);
+    assert.ok(same.length < 40);
+  });
+
+  it("has no easy opening pair", () => {
+    const run = createDailyRun("2026-11-15");
+    const sequence = new DropSequence(dailyDropSeed("2026-11-15"), 0);
+    assert.equal(run.current, sequence.next());
+    assert.equal(run.next, sequence.next());
+  });
+
+  it("picks up exactly where it was saved", () => {
+    const run = createDailyRun("2026-11-15");
+    const aim = new Rng(3);
+    for (let i = 0; i < 25; i += 1) {
+      drop(run, aim.range(0, TANK_W));
+      wait(run, 0.6);
+    }
+    const snap = JSON.parse(JSON.stringify(snapshotRun(run, dailyDropSeed("2026-11-15"), 0)));
+    const back = restoreRun(snap);
+    assert.ok(back);
+    assert.equal(back.score, run.score);
+    assert.equal(back.current, run.current);
+    assert.equal(back.next, run.next);
+    assert.equal(back.world.bodies.length, run.world.bodies.length);
+    // And it carries on identically: the same prizes still to come, the same physics.
+    for (let i = 0; i < 10; i += 1) {
+      const x = aim.range(0, TANK_W);
+      drop(run, x);
+      drop(back, x);
+      wait(run, 0.6);
+      wait(back, 0.6);
+    }
+    assert.equal(back.score, run.score);
+    assert.equal(back.next, run.next);
+    assert.equal(JSON.stringify(back.world.bodies), JSON.stringify(run.world.bodies));
+  });
+
+  it("refuses a save that doesn't add up", () => {
+    const snap = snapshotRun(createDailyRun("2026-11-15"), 1, 0);
+    assert.equal(restoreRun({ ...snap, score: Number.NaN }), null);
+    assert.equal(restoreRun({ ...snap, bodies: [{ ...addBody({ bodies: [], nextId: 1 }, 3, 100, 100), tier: 99 }] }), null);
+    assert.equal(restoreRun({ ...snap, handedOut: 0 }), null);
+  });
+});
+
+describe("today's record and the share text", () => {
+  it("only counts a record for today and today's rules", async () => {
+    const { todays } = await import("./daily.ts");
+    const done = { date: "2026-11-15", rules: 1, status: "done" as const, score: 900, bestTier: 6 };
+    assert.deepEqual(todays(done, "2026-11-15"), done);
+    assert.equal(todays(done, "2026-11-16"), null);
+    assert.equal(todays({ ...done, rules: 99 }, "2026-11-15"), null);
+    assert.equal(todays({ ...done, score: Number.NaN }, "2026-11-15"), null);
+    assert.equal(todays(null, "2026-11-15"), null);
+  });
+
+  it("shares the score and the ladder, never the prizes in order", async () => {
+    const { dailyShareText } = await import("./daily.ts");
+    const text = dailyShareText(2345, 6, "2026-11-15", 3, "https://example.test/?play=prize-drop");
+    assert.equal(
+      text,
+      [
+        "Dad's Arcade · Prize Drop · Nov 15",
+        "🏆 2,345 · best prize: Beep Bot",
+        "🟩🟩🟩🟩🟩🟩⬛⬛⬛⬛",
+        "🔥 3-day streak",
+        "Can you beat my drop?",
+        "https://example.test/?play=prize-drop",
+      ].join("\n"),
+    );
+    assert.ok(!dailyShareText(10, 2, "2026-11-15", 1, "x").includes("streak"));
   });
 });

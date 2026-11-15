@@ -13,7 +13,12 @@
 import type { GameHost, GameInstance, GameModule, HudState, StartOptions } from "../../core/game.ts";
 import type { InputSnapshot } from "../../core/input.ts";
 import { Particles } from "../../core/particles.ts";
-import { loadBests } from "../../core/storage.ts";
+import { dailyKey } from "../../core/rng.ts";
+import { playLink } from "../../core/share.ts";
+import { loadBests, loadDayLog, markDailyDone, markDailySeen } from "../../core/storage.ts";
+import { streakState } from "../../core/streak.ts";
+import { shareButton } from "../../ui/shareButton.ts";
+import { dailyShareText, loadDaily, saveDaily } from "./daily.ts";
 import type { SoundName } from "../../core/audio.ts";
 import {
   DANGER_Y,
@@ -37,10 +42,28 @@ import {
   roundRect,
   type Layout,
 } from "./render.ts";
-import { canDrop, clampAim, createRun, drop, restHeight, stepRun, type Run } from "./rules.ts";
+import {
+  canDrop,
+  clampAim,
+  createDailyRun,
+  createRun,
+  dailyDropSeed,
+  DAILY_RULES,
+  drop,
+  restHeight,
+  restoreRun,
+  snapshotRun,
+  stepRun,
+  type Run,
+} from "./rules.ts";
+import "./prizedrop.css";
 
 const GAME_ID = "prize-drop";
 const SEEN_KEY = "hyperdrive.prizedrop.seenHowTo";
+const MODE_KEY = "hyperdrive.prizedrop.mode";
+
+/** Seconds of play between saves of a daily in progress. */
+const SAVE_EVERY = 1;
 
 /** Tank units a second the aim moves under the arrow keys. */
 const KEY_AIM_SPEED = 250;
@@ -79,16 +102,28 @@ interface Float {
   size: number;
 }
 
-type Phase = "howto" | "play" | "ending";
+type Phase = "choose" | "howto" | "play" | "ending";
+
+/**
+ * ENDLESS is a fresh tank every time. DAILY is today's run of prizes, the same
+ * for everyone, and the first go counts. PRACTICE is the daily again after
+ * that: same prizes, no score kept.
+ */
+type Mode = "endless" | "daily" | "practice";
 
 class PrizeDrop implements GameInstance {
   private readonly host: GameHost;
-  private readonly run: Run;
+  private readonly root: HTMLDivElement;
+  private run: Run;
+  private mode: Mode = "endless";
+  /** The day the daily (or its practice) belongs to: the day it was opened. */
+  private dateKey = dailyKey();
+  private saveTimer = 0;
   private readonly particles = new Particles();
   private rings: Ring[] = [];
   private floats: Float[] = [];
 
-  private phase: Phase;
+  private phase: Phase = "choose";
   private clock = 0;
   private endTimer = 0;
 
@@ -109,10 +144,18 @@ class PrizeDrop implements GameInstance {
 
   constructor(host: GameHost, start?: StartOptions) {
     this.host = host;
+    this.root = document.createElement("div");
+    this.root.className = "drop-root";
     // A fresh run of prizes each time. The seed never touches the effects.
-    this.run = createRun((Date.now() ^ (Math.random() * 0xffffffff)) >>> 0);
+    this.run = createRun(freshSeed());
     this.best = loadBests()[GAME_ID] ?? 0;
-    this.phase = start?.again || hasSeenHowTo() ? "play" : "howto";
+    if (start?.again) {
+      // PLAY AGAIN goes straight back in: another endless tank, or after the
+      // daily, a practice go at today's prizes.
+      this.startMode(loadLastMode());
+    } else {
+      this.buildChooser();
+    }
 
     const canvas = host.view.canvas;
     canvas.addEventListener("pointerdown", this.onPointerDown);
@@ -131,9 +174,14 @@ class PrizeDrop implements GameInstance {
     window.removeEventListener("keydown", this.onKeyDown);
   }
 
-  /** Pausing lets go of the aim without dropping anything. */
+  extraControls(): HTMLElement {
+    return this.root;
+  }
+
+  /** Pausing lets go of the aim without dropping anything, and saves a daily. */
   onPause(): void {
     this.forgetInput();
+    this.saveProgress();
   }
 
   onResume(): void {
@@ -142,6 +190,103 @@ class PrizeDrop implements GameInstance {
 
   pausesWhenHidden(): boolean {
     return this.phase === "play";
+  }
+
+  // ----- Choosing -----
+
+  private buildChooser(): void {
+    const today = loadDaily(this.dateKey);
+    const card = document.createElement("div");
+    card.className = "drop-chooser";
+
+    const option = (kind: "daily" | "endless", name: string, pitch: string, note?: string) => {
+      const button = document.createElement("button");
+      button.className = `drop-mode drop-mode--${kind}`;
+      const title = document.createElement("span");
+      title.className = "drop-mode__name";
+      title.textContent = name;
+      const desc = document.createElement("span");
+      desc.className = "drop-mode__pitch";
+      desc.textContent = pitch;
+      button.append(title, desc);
+      if (note) {
+        const extra = document.createElement("span");
+        extra.className = "drop-mode__note";
+        extra.textContent = note;
+        button.append(extra);
+      }
+      button.addEventListener("click", () => {
+        this.host.sfx("uiSelect");
+        this.startMode(kind);
+      });
+      return button;
+    };
+
+    let daily: HTMLButtonElement;
+    if (today?.status === "done") {
+      daily = option(
+        "daily",
+        "DAILY DROP",
+        "Done for today. Play it again for practice: same prizes, no score kept.",
+        `TODAY ${today.score.toLocaleString("en-US")}  ·  ${prize(today.bestTier).name.toUpperCase()}`,
+      );
+    } else if (today?.status === "playing") {
+      daily = option(
+        "daily",
+        "DAILY DROP",
+        "Carry on with today's drop where you left it.",
+        `SO FAR ${today.snap.score.toLocaleString("en-US")}`,
+      );
+    } else {
+      daily = option("daily", "DAILY DROP", "Today's prizes, the same for everyone. Your first go counts.", "NEW TODAY");
+    }
+    const endless = option(
+      "endless",
+      "ENDLESS",
+      "A fresh tank every time. Play as often as you like.",
+      this.best > 0 ? `YOUR BEST ${this.best.toLocaleString("en-US")}` : undefined,
+    );
+    card.append(daily, endless);
+    this.root.replaceChildren(card);
+  }
+
+  private startMode(kind: "daily" | "endless"): void {
+    this.root.replaceChildren();
+    this.dateKey = dailyKey();
+    if (kind === "endless") {
+      this.mode = "endless";
+      this.run = createRun(freshSeed());
+    } else {
+      const today = loadDaily(this.dateKey);
+      markDailySeen(GAME_ID, this.dateKey);
+      if (today?.status === "done") {
+        this.mode = "practice";
+        this.run = createDailyRun(this.dateKey);
+      } else {
+        this.mode = "daily";
+        const restored = today?.status === "playing" ? restoreRun(today.snap) : null;
+        this.run = restored ?? createDailyRun(this.dateKey);
+        // A restored tank already has its score: the arcade's count starts there.
+        if (restored && restored.score > 0) this.host.addScore(restored.score);
+      }
+    }
+    saveLastMode(kind);
+    this.aimX = clampAim(this.run, TANK_W / 2);
+    this.forgetInput();
+    this.phase = hasSeenHowTo() ? "play" : "howto";
+    // Saved from the first moment, so closing the app is never a fresh try.
+    this.saveProgress();
+  }
+
+  /** Write a daily in progress down, so it can only ever be carried on. */
+  private saveProgress(): void {
+    if (this.mode !== "daily" || this.phase === "choose" || this.run.over) return;
+    saveDaily({
+      date: this.dateKey,
+      rules: DAILY_RULES,
+      status: "playing",
+      snap: snapshotRun(this.run, dailyDropSeed(this.dateKey), 0),
+    });
   }
 
   hud(): HudState {
@@ -279,6 +424,12 @@ class PrizeDrop implements GameInstance {
     }
     this.knockWait -= dt;
 
+    this.saveTimer += dt;
+    if (this.saveTimer >= SAVE_EVERY) {
+      this.saveTimer = 0;
+      this.saveProgress();
+    }
+
     if (run.danger > 0 && !this.warned) {
       this.warned = true;
       this.host.sfx("dropWarn");
@@ -287,6 +438,12 @@ class PrizeDrop implements GameInstance {
     }
 
     if (run.over) {
+      if (this.mode === "daily") {
+        // The one go that counts is over: keep its score, and from now on
+        // today's drop is practice.
+        saveDaily({ date: this.dateKey, rules: DAILY_RULES, status: "done", score: run.score, bestTier: run.bestTier });
+        markDailyDone(GAME_ID, this.dateKey);
+      }
       this.phase = "ending";
       this.endTimer = END_PAUSE;
       this.forgetInput();
@@ -373,12 +530,37 @@ class PrizeDrop implements GameInstance {
 
   private finish(): void {
     const run = this.run;
-    this.host.gameOver({
+    const base = {
       progress: run.bestTier,
       progressLabel: `Best prize: ${prize(run.bestTier).name}, number`,
-      headline: "CABINET FULL!",
       // Time in the tank, not time spent reading the card.
       durationMs: run.time * 1000,
+    };
+    if (this.mode === "endless") {
+      this.host.gameOver({ ...base, headline: "CABINET FULL!" });
+      return;
+    }
+    if (this.mode === "practice") {
+      this.host.gameOver({ ...base, headline: "PRACTICE OVER", ranked: false });
+      return;
+    }
+    const dateKey = this.dateKey;
+    const score = run.score;
+    const bestTier = run.bestTier;
+    this.host.gameOver({
+      ...base,
+      headline: "TODAY'S DROP DONE!",
+      boardId: `daily-${dateKey}`,
+      extra: () => {
+        const box = document.createElement("div");
+        box.className = "drop-result-share";
+        box.append(
+          shareButton("btn drop-share", () =>
+            dailyShareText(score, bestTier, dateKey, streakState(loadDayLog()).count, playLink(GAME_ID)),
+          ),
+        );
+        return box;
+      },
     });
   }
 
@@ -641,6 +823,26 @@ class PrizeDrop implements GameInstance {
   }
 }
 
+function freshSeed(): number {
+  return (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
+}
+
+function loadLastMode(): "endless" | "daily" {
+  try {
+    return localStorage.getItem(MODE_KEY) === "daily" ? "daily" : "endless";
+  } catch {
+    return "endless";
+  }
+}
+
+function saveLastMode(mode: "endless" | "daily"): void {
+  try {
+    localStorage.setItem(MODE_KEY, mode);
+  } catch {
+    // Storage disabled -- PLAY AGAIN just starts an endless tank.
+  }
+}
+
 function hasSeenHowTo(): boolean {
   try {
     return localStorage.getItem(SEEN_KEY) === "1";
@@ -668,9 +870,11 @@ export const prizeDropModule: GameModule = {
     "Two matching toys become a bigger prize.",
     "Keep the pile below the glowing line.",
     "Can you make the Grand Prize Bot?",
+    "DAILY DROP hands everyone the same prizes each day. Your first go counts, and it's saved as you play.",
     "On a keyboard, the arrow keys aim and Space drops.",
   ],
   accent: "#45ddf4",
+  hasDailyChallenge: true,
   drawIcon: drawPrizeDropIcon,
   create: (host: GameHost, start?: StartOptions): GameInstance => new PrizeDrop(host, start),
 };

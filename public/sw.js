@@ -8,7 +8,7 @@
  * Bump CACHE_VERSION on any release that changes the shell.
  */
 
-const CACHE_VERSION = "dads-arcade-v36";
+const CACHE_VERSION = "dads-arcade-v37";
 
 /**
  * Enough to boot offline; hashed build assets are cached on first visit.
