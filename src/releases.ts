@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.43.0",
+    date: "2026-11-16",
+    title: "Marble Switch: The Workshop, ten new boards with moving parts",
+    notes: [
+      "MARBLE SWITCH has ten new boards: THE WORKSHOP. It opens when you clear level 10, in either JUNIOR or CLASSIC.",
+      "New pieces that move by themselves. Orange FLIPPERS flip after every marble. TURNTABLES turn one notch per marble, or per tap. GEARED switches flip together on one tap. A LIGHT GATE stays shut until a marble rolls over the light it is wired to, and marbles wait at it until then.",
+      "The whole machine lights up, on all twenty boards. Rails glow where a marble has just rolled, each cup has bulbs that light up as it fills, and the cabinet runs its marquee lights when you clear a board. Three stars runs a brighter double chase. A wrong cup makes the lights flicker and dim.",
+      "Your taps are counted on a little mechanical counter at the top. Fewer taps, more stars, and three stars is always possible.",
+      "HINT in JUNIOR now works out the next tap from wherever you are, not just from the start.",
+    ],
+  },
+  {
     version: "0.42.0",
     date: "2026-11-15",
     title: "Marble Switch: flip the switches, roll each marble home",

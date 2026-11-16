@@ -163,7 +163,13 @@ export type SoundName =
   | "marbleDrop"
   | "marbleChime"
   | "marbleMiss"
-  | "marbleClear";
+  | "marbleClear"
+  | "marbleFlipper"
+  | "marbleTurn"
+  | "marbleGear"
+  | "marbleTrip"
+  | "marbleGate"
+  | "marbleLights";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -842,6 +848,34 @@ export class AudioEngine {
       case "marbleMiss":
         // Soft, never a buzzer.
         this.blip(t, "sine", 330, 247, 0.32, 0.12);
+        break;
+      case "marbleFlipper":
+        // A spring-loaded kick: a sharp snap and a little boing.
+        this.blip(t, "square", 2200, 900, 0.03, 0.06);
+        this.blip(t + 0.02, "sine", 300, 620, 0.12, 0.08);
+        break;
+      case "marbleTurn":
+        // A ratchet: three quick clicks as the wheel steps round.
+        for (let i = 0; i < 3; i += 1) this.blip(t + i * 0.045, "square", 1500 - i * 150, 1100, 0.018, 0.05);
+        break;
+      case "marbleGear":
+        this.blip(t, "triangle", 420, 380, 0.08, 0.08);
+        this.blip(t + 0.05, "square", 1600, 1200, 0.02, 0.05);
+        break;
+      case "marbleTrip":
+        // A bulb warming up: a soft hum that rises into a ding.
+        this.blip(t, "sine", 180, 360, 0.18, 0.06);
+        this.blip(t + 0.12, "sine", 1568, 1568, 0.4, 0.1);
+        break;
+      case "marbleGate":
+        // The gate sliding open: a soft mechanical thunk.
+        this.burst(t, 0.08, 1200, 300, 0.08);
+        this.blip(t, "triangle", 220, 160, 0.1, 0.09);
+        break;
+      case "marbleLights":
+        // A perfect run: the clear fanfare with the lights running round it.
+        this.arpeggio(t, [659, 784, 988, 1319, 1568], 0.07, "sine", 0.16);
+        this.arpeggio(t + 0.4, [1319, 1568, 1976], 0.06, "triangle", 0.08);
         break;
       case "marbleClear":
         this.arpeggio(t, [659, 784, 988, 1319], 0.08, "sine", 0.16);

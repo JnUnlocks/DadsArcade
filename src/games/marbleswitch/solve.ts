@@ -1,165 +1,244 @@
 /**
  * Solving Marble Switch boards: proof that every level can be cleared, the
- * fewest flips it takes (which sets the stars), and a hint for Junior.
+ * fewest taps it takes (which sets the stars), and Junior's hint.
  *
- * Junior is planned marble by marble: before each drop, set the switches on
- * one route to a matching cup. The fewest flips over the whole queue is a
- * small search over every setting of the switches.
+ * The Workshop's pieces move by themselves -- a flipper flips, a turntable
+ * turns, a trip light opens a gate -- so a route can't be worked out from
+ * the track alone. Both solvers play the real simulation forward instead.
  *
- * Classic is checked by playing it: a careful player flips each switch only
- * when the next marble to reach it needs the other side, a little before it
- * gets there. If that clears the board, and every flip it needed had a fair
- * window to make it in, the level works on a phone.
+ * Junior is a shortest-path search over machine states. Before each drop the
+ * player can set every control any way they like, at a cost of one tap per
+ * flip or notch; the marble then rolls to rest and leaves the machine in a
+ * new state. The cheapest way from the start to a cleared board is the
+ * three-star number.
+ *
+ * Classic is a depth-first search over taps made as marbles arrive at
+ * controls, with the budget raised one tap at a time, so the first schedule
+ * found is the cheapest. A tap only counts if a phone player would have time
+ * for it: the control must have been quiet for MIN_WINDOW seconds before.
  */
 
-import type { Board, Branch, Symbol } from "./graph.ts";
-import { advance, arrivalTime, drop, flip, isRolling, startAttempt, type Attempt } from "./sim.ts";
+import { isControl, type Board, type NodeDef, type Symbol } from "./graph.ts";
+import {
+  advance,
+  cloneAttempt,
+  drop,
+  flip,
+  isRolling,
+  peekEvent,
+  startAttempt,
+  type Attempt,
+} from "./sim.ts";
 
-/** One way to a matching cup: the setting each switch on the way needs. */
-export type Route = ReadonlyMap<string, Branch>;
+// ----- Junior -----
 
-/** Every route from the launcher to a cup with this symbol. */
-export function routesTo(board: Board, symbol: Symbol): Route[] {
-  const found: Route[] = [];
-  const walk = (nodeId: string, needs: Map<string, Branch>) => {
-    const node = board.nodes.get(nodeId)!;
-    if (node.kind === "cup") {
-      if (node.symbol === symbol) found.push(new Map(needs));
-      return;
+/** One way to set the controls before a drop: the taps, in order. */
+type Setting = string[];
+
+/**
+ * Every way to set the controls, with its taps. Geared switches move
+ * together, so a gear is one choice, not one per switch.
+ */
+function settings(board: Board): Setting[] {
+  // Each unit is its alternatives, as comma-separated taps ("" for none).
+  const units: string[][] = [];
+  const geared = new Set<string>();
+  for (const node of board.controls) {
+    if (node.kind === "turntable") {
+      // Leave it, or turn it one or two notches.
+      units.push(["", node.id, `${node.id},${node.id}`]);
+    } else if (node.link) {
+      if (geared.has(node.link)) continue;
+      geared.add(node.link);
+      units.push(["", node.id]);
+    } else {
+      units.push(["", node.id]);
     }
-    for (const edge of board.out.get(nodeId) ?? []) {
-      if (node.kind === "switch") {
-        const next = new Map(needs);
-        next.set(node.id, edge.branch!);
-        walk(edge.to, next);
-      } else {
-        walk(edge.to, needs);
+  }
+  let all: Setting[] = [[]];
+  for (const choices of units) {
+    const next: Setting[] = [];
+    for (const taps of all) {
+      for (const choice of choices) next.push(choice ? [...taps, ...choice.split(",")] : taps);
+    }
+    all = next;
+  }
+  return all.sort((p, q) => p.length - q.length);
+}
+
+function machineKey(a: Attempt): string {
+  const controls = [...a.switches.entries()].map(([id, exit]) => `${id}${exit[0]}`).join("");
+  const lights = [...a.lights].sort().join(",");
+  const held = a.marbles.map((m) => m.heldAt ?? "-").join(",");
+  return `${a.dropped}|${controls}|${lights}|${held}`;
+}
+
+export interface JuniorPlan {
+  /** Fewest taps that clear the board from here. */
+  taps: number;
+  /** The taps to make before each remaining drop. */
+  steps: Setting[];
+}
+
+/** The cheapest way to clear a Junior board from where it stands. Null if it can't be cleared. */
+export function solveJunior(start: Attempt): JuniorPlan | null {
+  const options = settings(start.board);
+  const best = new Map<string, number>();
+  // Costs are small whole numbers: a bucket queue is all it needs.
+  const buckets: Array<Array<{ a: Attempt; steps: Setting[] }>> = [[{ a: start, steps: [] }]];
+  for (let cost = 0; cost < buckets.length; cost += 1) {
+    for (const { a, steps } of buckets[cost] ?? []) {
+      if (a.phase === "cleared") return { taps: cost, steps };
+      const key = machineKey(a);
+      if ((best.get(key) ?? Infinity) < cost) continue;
+      for (const taps of options) {
+        const b = cloneAttempt(a);
+        b.flips = 0;
+        if (!taps.every((id) => flip(b, id))) continue;
+        if (!drop(b)) continue;
+        advance(b, 120);
+        if (b.phase === "missed") continue;
+        const next = cost + taps.length;
+        const k = machineKey(b);
+        if ((best.get(k) ?? Infinity) <= next) continue;
+        best.set(k, next);
+        (buckets[next] ??= []).push({ a: b, steps: [...steps, taps] });
       }
     }
-  };
-  walk(board.launcher.id, new Map());
-  return found;
-}
-
-export interface Plan {
-  /** Fewest flips that clear the queue. */
-  flips: number;
-  /** For each marble, the route that plan sends it down. */
-  routes: Route[];
-}
-
-/** The cheapest way through a queue, planning each marble before it drops. Null if there is none. */
-export function plan(board: Board, queue: readonly Symbol[]): Plan | null {
-  const ids = board.switches.map((s) => s.id);
-  const key = (setting: ReadonlyMap<string, Branch>) => ids.map((id) => (setting.get(id) === "left" ? "L" : "R")).join("");
-  const start = new Map(board.switches.map((s) => [s.id, s.start ?? "left"] as const));
-
-  interface Step {
-    cost: number;
-    setting: Map<string, Branch>;
-    routes: Route[];
-  }
-  let frontier = new Map<string, Step>([[key(start), { cost: 0, setting: start, routes: [] }]]);
-  for (const symbol of queue) {
-    const options = routesTo(board, symbol);
-    if (options.length === 0) return null;
-    const next = new Map<string, Step>();
-    for (const step of frontier.values()) {
-      for (const route of options) {
-        let cost = step.cost;
-        const setting = new Map(step.setting);
-        for (const [id, side] of route) {
-          if (setting.get(id) !== side) cost += 1;
-          setting.set(id, side);
-        }
-        const k = key(setting);
-        const known = next.get(k);
-        if (!known || cost < known.cost) next.set(k, { cost, setting, routes: [...step.routes, route] });
-      }
-    }
-    frontier = next;
-  }
-  let best: Step | null = null;
-  for (const step of frontier.values()) if (!best || step.cost < best.cost) best = step;
-  return best ? { flips: best.cost, routes: best.routes } : null;
-}
-
-/** The switch to flip next for Junior's hint, or null when the setting already works. */
-export function hintFor(a: Attempt, route: Route | undefined): string | null {
-  if (!route) return null;
-  for (const s of a.board.switches) {
-    const want = route.get(s.id);
-    if (want && a.switches.get(s.id) !== want) return s.id;
   }
   return null;
 }
 
-/** How long before a marble reaches a switch the careful player flips it. */
-const LEAD = 0.45;
-const FRAME = 1 / 120;
+/** The control to tap next for Junior's hint, or null when the next drop needs none. */
+export function hintFor(a: Attempt): string | null {
+  return solveJunior(cloneAttempt(a))?.steps[0]?.[0] ?? null;
+}
 
-export interface ClassicRun {
-  cleared: boolean;
-  flips: number;
-  /** The tightest window any flip had: from the last marble crossing that switch to the next one needing it changed. */
-  tightest: number;
-  /** When each flip was made, after DROP. */
-  schedule: Array<{ at: number; switchId: string }>;
+// ----- Classic -----
+
+/** A tap in a Classic schedule: seconds after DROP, and the control. */
+export type Tap = readonly [number, string];
+
+export interface ClassicPlan {
+  taps: number;
+  schedule: Tap[];
+}
+
+/** A schedule's tap is made this long before the marble that needs it arrives. */
+const TAP_LEAD = 0.25;
+
+/** Symbols that can be reached from each piece, whatever the controls do. */
+function reachable(board: Board): Map<string, Set<Symbol>> {
+  const memo = new Map<string, Set<Symbol>>();
+  const walk = (id: string): Set<Symbol> => {
+    const known = memo.get(id);
+    if (known) return known;
+    const node = board.nodes.get(id)!;
+    const set = new Set<Symbol>(node.symbol ? [node.symbol] : []);
+    for (const edge of board.out.get(id) ?? []) for (const s of walk(edge.to)) set.add(s);
+    memo.set(id, set);
+    return set;
+  };
+  for (const id of board.nodes.keys()) walk(id);
+  return memo;
+}
+
+/** When a control (or anything geared to it) last had a marble go through it. */
+function lastCrossed(a: Attempt, node: NodeDef): number {
+  const group = new Set([node.id]);
+  if (node.link) for (const s of a.board.switches) if (s.link === node.link) group.add(s.id);
+  let last = -Infinity;
+  for (const e of a.events) if (e.kind === "cross" && group.has(e.node)) last = Math.max(last, e.at);
+  return last;
 }
 
 /**
- * Play Classic the careful way, following the routes in `routes` (one per
- * marble), and report how it went.
+ * The cheapest Classic schedule, trying budgets up to `maxTaps`, with every
+ * tap given at least `window` seconds of quiet. Null if there's none.
  */
-export function playClassic(
+export function solveClassic(
   board: Board,
   queue: readonly Symbol[],
   releases: readonly number[],
-  routes: readonly Route[],
-): ClassicRun {
+  window: number,
+  maxTaps = 12,
+): ClassicPlan | null {
+  const reach = reachable(board);
+  const canStillWin = (a: Attempt) =>
+    a.marbles.every((m) => !isRolling(m) || reach.get(m.edge!.to)!.has(m.symbol));
+
+  for (let budget = 0; budget <= maxTaps; budget += 1) {
+    const start = startAttempt({ board, mode: "classic", queue, releases });
+    drop(start);
+    const found = search(start, budget, [], window, canStillWin);
+    if (found) return { taps: found.length, schedule: found };
+  }
+  return null;
+}
+
+function search(
+  from: Attempt,
+  budget: number,
+  taps: Tap[],
+  window: number,
+  canStillWin: (a: Attempt) => boolean,
+): Tap[] | null {
+  const a = cloneAttempt(from);
+  a.events = [...from.events];
+  for (let guard = 0; guard < 2000; guard += 1) {
+    if (a.phase === "cleared") return taps;
+    if (a.phase === "missed" || !canStillWin(a)) return null;
+    const event = peekEvent(a);
+    if (!event) {
+      advance(a, 0.001);
+      if (a.phase === "rolling" && !peekEvent(a)) return null;
+      continue;
+    }
+    const node = event.kind === "arrive" ? a.board.nodes.get(event.marble.edge!.to)! : null;
+    if (node && isControl(node)) {
+      const steps = node.kind === "turntable" ? [0, 1, 2] : [0, 1];
+      for (const k of steps) {
+        if (k > budget) break;
+        if (k > 0 && event.at - lastCrossed(a, node) < window) continue;
+        const b = cloneAttempt(a);
+        b.events = [...a.events];
+        advance(b, event.at - b.time);
+        for (let i = 0; i < k; i += 1) flip(b, node.id);
+        advance(b, 1e-6);
+        const at = Math.round((event.at - (b.droppedAt ?? 0) - TAP_LEAD) * 1000) / 1000;
+        const next: Tap[] = [...taps, ...Array.from({ length: k }, (): Tap => [at, node.id])];
+        const found = search(b, budget - k, next, window, canStillWin);
+        if (found) return found;
+      }
+      return null;
+    }
+    advance(a, event.at - a.time + 1e-6);
+  }
+  return null;
+}
+
+export interface ClassicReplay {
+  cleared: boolean;
+  taps: number;
+  /** The shortest quiet any tap had before it: from the last marble through that control. */
+  tightest: number;
+}
+
+/** Play a Classic schedule for real, as a player tapping at those times would. */
+export function replayClassic(board: Board, queue: readonly Symbol[], releases: readonly number[], schedule: readonly Tap[]): ClassicReplay {
   const a = startAttempt({ board, mode: "classic", queue, releases });
-  const schedule: Array<{ at: number; switchId: string }> = [];
-  const lastCrossed = new Map<string, number>();
   let tightest = Infinity;
-
-  // Anything the first marble needs is set before DROP, as a player would.
-  const firstRoute = routes[0];
-  if (firstRoute) {
-    for (const [id, side] of firstRoute) {
-      if (a.switches.get(id) !== side) {
-        flip(a, id);
-        schedule.push({ at: 0, switchId: id });
-      }
-    }
-  }
+  const ordered = [...schedule].sort((p, q) => p[0] - q[0]);
+  const early = ordered.filter(([at]) => at < 0);
+  for (const [, id] of early) flip(a, id);
   drop(a);
-
-  for (let guard = 0; guard < 120 * 600 && a.phase === "rolling"; guard += 1) {
-    // Who reaches each switch next, and when.
-    const coming = new Map<string, { at: number; marble: number }>();
-    for (const m of a.marbles) {
-      if (!isRolling(m)) continue;
-      const to = m.edge!.to;
-      if (a.board.nodes.get(to)?.kind !== "switch") continue;
-      const at = arrivalTime(m);
-      const seen = coming.get(to);
-      if (!seen || at < seen.at || (at === seen.at && m.index < seen.marble)) coming.set(to, { at, marble: m.index });
-    }
-    for (const [switchId, next] of coming) {
-      const want = routes[next.marble]?.get(switchId);
-      if (!want || a.switches.get(switchId) === want) continue;
-      if (next.at - a.time > LEAD) continue;
-      flip(a, switchId);
-      schedule.push({ at: a.time - (a.droppedAt ?? 0), switchId });
-      tightest = Math.min(tightest, next.at - (lastCrossed.get(switchId) ?? -Infinity));
-    }
-    const before = a.marbles.map((m) => m.edge?.from);
-    advance(a, FRAME);
-    a.marbles.forEach((m, i) => {
-      if (m.edge && m.edge.from !== before[i] && a.board.nodes.get(m.edge.from)?.kind === "switch") {
-        lastCrossed.set(m.edge.from, m.enteredAt);
-      }
-    });
+  for (const [at, id] of ordered.filter(([at]) => at >= 0)) {
+    advance(a, Math.max(0, at - a.time));
+    if (a.phase !== "rolling") break;
+    const node = board.nodes.get(id)!;
+    tightest = Math.min(tightest, a.time - lastCrossed(a, node));
+    flip(a, id);
   }
-  return { cleared: a.phase === "cleared", flips: a.flips, tightest, schedule };
+  for (let i = 0; i < 400 && a.phase === "rolling"; i += 1) advance(a, 0.5);
+  return { cleared: a.phase === "cleared", taps: a.flips, tightest };
 }

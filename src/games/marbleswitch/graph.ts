@@ -3,24 +3,38 @@
  *
  * A board is a directed graph with no loops. A launcher feeds one rail; a
  * switch sends what arrives down its left or right rail; a junction joins
- * rails into one; a cup is the end of the line. Every rail is a run of
- * points with its corners rounded off, measured once so a marble can be
- * placed anywhere along it by distance, and so knows how long the trip takes.
+ * rails into one; a cup is the end of the line. The Workshop adds four more:
  *
- * No drawing and no DOM here.
+ *   - a flipper: a switch that flips itself each time a marble passes;
+ *   - a turntable: three exits, turning one notch per marble (or per tap);
+ *   - a gear pair: switches sharing a `link`, so one tap flips them all;
+ *   - a trip light and a gate: the gate holds marbles until a marble has
+ *     rolled over the trip light it is wired to.
+ *
+ * Every rail is a run of points with its corners rounded off, measured once
+ * so a marble can be placed anywhere along it by distance, and so knows how
+ * long the trip takes. No drawing and no DOM here.
  */
 
 export type Symbol = "circle" | "triangle" | "diamond";
-export type Branch = "left" | "right";
-export type NodeKind = "launcher" | "switch" | "junction" | "cup";
+export type Exit = "left" | "middle" | "right";
+/** A switch's two sides. Kept as its own name for the boards that only have switches. */
+export type Branch = Exit;
+export type NodeKind = "launcher" | "switch" | "junction" | "cup" | "turntable" | "trip" | "gate";
 
 export interface NodeDef {
   readonly id: string;
   readonly kind: NodeKind;
   readonly x: number;
   readonly y: number;
-  /** A switch's setting at the start of an attempt. */
-  readonly start?: Branch;
+  /** A switch's or turntable's setting at the start of an attempt. */
+  readonly start?: Exit;
+  /** A switch that flips itself each time a marble goes through: a flipper. */
+  readonly auto?: boolean;
+  /** Switches with the same link are geared together: one tap flips them all. */
+  readonly link?: string;
+  /** A gate's trip light: the gate opens once a marble has rolled over it. */
+  readonly key?: string;
   /** A cup's symbol. */
   readonly symbol?: Symbol;
 }
@@ -29,8 +43,8 @@ export interface EdgeDef {
   readonly id: string;
   readonly from: string;
   readonly to: string;
-  /** Which way out of a switch this rail is. */
-  readonly branch?: Branch;
+  /** Which way out of a switch or turntable this rail is. */
+  readonly branch?: Exit;
   /** Corners the rail turns at between its two ends. */
   readonly via?: ReadonlyArray<readonly [number, number]>;
   /** Drawn as an overpass: it crosses another rail without meeting it. */
@@ -52,12 +66,22 @@ export interface Edge extends EdgeDef {
 export interface Board {
   readonly nodes: ReadonlyMap<string, NodeDef>;
   readonly edges: ReadonlyMap<string, Edge>;
-  /** Rails leaving each node: one, or a switch's two. */
+  /** Rails leaving each node: one, a switch's two, or a turntable's three. */
   readonly out: ReadonlyMap<string, readonly Edge[]>;
   readonly launcher: NodeDef;
-  /** Switches in the order they're met top to bottom, for numbering. */
+  /** Everything a player can tap -- switches and turntables -- top to bottom, for naming. */
+  readonly controls: readonly NodeDef[];
+  /** Switches only (flippers and geared ones included). */
   readonly switches: readonly NodeDef[];
   readonly cups: readonly NodeDef[];
+}
+
+/** The ways out of a switch, and of a turntable, in the order a turntable turns. */
+export const SWITCH_EXITS: readonly Exit[] = ["left", "right"];
+export const TURNTABLE_EXITS: readonly Exit[] = ["left", "middle", "right"];
+
+export function isControl(node: NodeDef): boolean {
+  return node.kind === "switch" || node.kind === "turntable";
 }
 
 /** How round a rail's corners are. */
@@ -73,7 +97,11 @@ export function buildBoard(nodes: readonly NodeDef[], edges: readonly EdgeDef[])
     const a = nodeMap.get(def.from);
     const b = nodeMap.get(def.to);
     if (!a || !b) throw new Error(`Rail ${def.id} doesn't join two pieces`);
-    const corners: Array<[number, number]> = [[a.x, a.y], ...(def.via ?? []).map((p) => [p[0], p[1]] as [number, number]), [b.x, b.y]];
+    const corners: Array<[number, number]> = [
+      [a.x, a.y],
+      ...(def.via ?? []).map((p) => [p[0], p[1]] as [number, number]),
+      [b.x, b.y],
+    ];
     const samples = sampleRail(corners);
     const edge: Edge = { ...def, samples, length: samples[samples.length - 1]!.d };
     edgeMap.set(def.id, edge);
@@ -83,23 +111,32 @@ export function buildBoard(nodes: readonly NodeDef[], edges: readonly EdgeDef[])
   }
   const launcher = nodes.find((n) => n.kind === "launcher");
   if (!launcher) throw new Error("A board needs a launcher");
-  const switches = nodes.filter((n) => n.kind === "switch").sort((p, q) => p.y - q.y || p.x - q.x);
+  const byPlace = (p: NodeDef, q: NodeDef) => p.y - q.y || p.x - q.x;
+  const controls = nodes.filter(isControl).sort(byPlace);
+  const switches = nodes.filter((n) => n.kind === "switch").sort(byPlace);
   const cups = nodes.filter((n) => n.kind === "cup").sort((p, q) => p.x - q.x);
-  return { nodes: nodeMap, edges: edgeMap, out, launcher, switches, cups };
+  return { nodes: nodeMap, edges: edgeMap, out, launcher, controls, switches, cups };
 }
 
-/** The rail leaving a switch on one side. */
-export function branchEdge(board: Board, switchId: string, branch: Branch): Edge {
-  const edge = board.out.get(switchId)?.find((e) => e.branch === branch);
-  if (!edge) throw new Error(`Switch ${switchId} has no ${branch} rail`);
+/** The rail leaving a switch or turntable by one exit. */
+export function branchEdge(board: Board, nodeId: string, exit: Exit): Edge {
+  const edge = board.out.get(nodeId)?.find((e) => e.branch === exit);
+  if (!edge) throw new Error(`${nodeId} has no ${exit} rail`);
   return edge;
 }
 
-/** The one rail leaving a launcher or junction. */
+/** The one rail leaving a launcher, junction, trip light or gate. */
 export function onlyEdge(board: Board, nodeId: string): Edge {
   const edge = board.out.get(nodeId)?.[0];
   if (!edge) throw new Error(`${nodeId} leads nowhere`);
   return edge;
+}
+
+/** The switches geared to this one, itself included. */
+export function gearedWith(board: Board, nodeId: string): NodeDef[] {
+  const node = board.nodes.get(nodeId);
+  if (!node?.link) return node ? [node] : [];
+  return board.switches.filter((s) => s.link === node.link);
 }
 
 /** Where along a rail a distance is. */
@@ -124,7 +161,6 @@ export function pointAt(edge: Edge, distance: number): { x: number; y: number } 
  * distance travelled to each.
  */
 function sampleRail(corners: ReadonlyArray<[number, number]>): Sample[] {
-  // The shape: straight runs between corners, each corner a quadratic curve.
   const path: Array<[number, number]> = [];
   const push = (x: number, y: number) => path.push([x, y]);
   push(corners[0]![0], corners[0]![1]);
@@ -149,7 +185,6 @@ function sampleRail(corners: ReadonlyArray<[number, number]>): Sample[] {
   const last = corners[corners.length - 1]!;
   push(last[0], last[1]);
 
-  // Evenly spaced by distance.
   const samples: Sample[] = [{ x: path[0]![0], y: path[0]![1], d: 0 }];
   let travelled = 0;
   for (let i = 1; i < path.length; i += 1) {
@@ -171,9 +206,9 @@ function sampleRail(corners: ReadonlyArray<[number, number]>): Sample[] {
 
 /**
  * Everything wrong with a board, as sentences; empty when it's sound. Every
- * rail joins two pieces that exist; launchers and junctions have one way out,
- * switches a left and a right, cups none; nothing loops back; and every piece
- * can be reached from the launcher.
+ * rail joins two pieces that exist; each piece has the right ways out;
+ * nothing loops back; every piece can be reached from the launcher; gears
+ * come in groups; and every gate is wired to a trip light.
  */
 export function boardProblems(nodes: readonly NodeDef[], edges: readonly EdgeDef[]): string[] {
   const problems: string[] = [];
@@ -190,16 +225,22 @@ export function boardProblems(nodes: readonly NodeDef[], edges: readonly EdgeDef
   if (launchers.length !== 1) problems.push(`${launchers.length} launchers`);
   for (const n of nodes) {
     const leaving = out.get(n.id) ?? [];
+    const sides = leaving.map((e) => e.branch).sort().join(",");
     if (n.kind === "switch") {
-      const sides = leaving.map((e) => e.branch).sort().join(",");
       if (sides !== "left,right") problems.push(`switch ${n.id} needs one left and one right rail`);
       if (n.start !== "left" && n.start !== "right") problems.push(`switch ${n.id} has no starting side`);
+    } else if (n.kind === "turntable") {
+      if (sides !== "left,middle,right") problems.push(`turntable ${n.id} needs left, middle and right rails`);
+      if (!n.start) problems.push(`turntable ${n.id} has no starting exit`);
     } else if (n.kind === "cup") {
       if (leaving.length) problems.push(`cup ${n.id} has a rail leaving it`);
       if (!n.symbol) problems.push(`cup ${n.id} has no symbol`);
     } else if (leaving.length !== 1) {
       problems.push(`${n.kind} ${n.id} needs exactly one rail out`);
     }
+    if (n.kind === "gate" && byId.get(n.key ?? "")?.kind !== "trip") problems.push(`gate ${n.id} isn't wired to a trip light`);
+    if (n.link && n.kind !== "switch") problems.push(`${n.id} has gears but isn't a switch`);
+    if (n.link && nodes.filter((m) => m.link === n.link).length < 2) problems.push(`gear ${n.link} has only one switch`);
     if (n.kind === "launcher" && (into.get(n.id) ?? 0) > 0) problems.push("a rail runs into the launcher");
     if (n.kind !== "launcher" && !(into.get(n.id) ?? 0)) problems.push(`${n.id} can't be reached`);
   }

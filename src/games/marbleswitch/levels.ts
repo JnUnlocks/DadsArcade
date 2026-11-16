@@ -27,6 +27,12 @@ export interface LevelDef {
   readonly releases: readonly number[];
   /** Junior's hint, in words. */
   readonly hint: string;
+  /**
+   * A Classic schedule that clears the board in the three-star number of
+   * taps: seconds after DROP, and the control. Found by solve.ts and replayed
+   * by the tests, so it can't go stale.
+   */
+  readonly solution: readonly (readonly [number, string])[];
   /** Flips for two stars, then for three, per mode. */
   readonly stars: Readonly<Record<Mode, readonly [number, number]>>;
 }
@@ -35,6 +41,11 @@ const launcher = (y = 40): NodeDef => ({ id: "L", kind: "launcher", x: 180, y })
 const sw = (id: string, x: number, y: number, start: "left" | "right"): NodeDef => ({ id, kind: "switch", x, y, start });
 const cup = (id: string, x: number, symbol: Symbol): NodeDef => ({ id, kind: "cup", x, y: 470, symbol });
 const join = (id: string, x: number, y: number): NodeDef => ({ id, kind: "junction", x, y });
+const flipper = (id: string, x: number, y: number, start: "left" | "right"): NodeDef => ({ id, kind: "switch", x, y, start, auto: true });
+const geared = (id: string, x: number, y: number, start: "left" | "right", link: string): NodeDef => ({ id, kind: "switch", x, y, start, link });
+const wheel = (id: string, x: number, y: number, start: "left" | "middle" | "right"): NodeDef => ({ id, kind: "turntable", x, y, start });
+const trip = (id: string, x: number, y: number): NodeDef => ({ id, kind: "trip", x, y });
+const gate = (id: string, x: number, y: number, key: string): NodeDef => ({ id, kind: "gate", x, y, key });
 
 export const LEVELS: readonly LevelDef[] = [
   {
@@ -50,6 +61,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["circle"],
     releases: [0],
     hint: "Tap the switch so its arrow points to the circle cup, then DROP.",
+    solution: [[1.141, "A"]],
     stars: { junior: [2, 1], classic: [2, 1] },
   },
   {
@@ -65,6 +77,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["triangle", "circle"],
     releases: [0, 3.6],
     hint: "Each marble needs the switch pointing at its own shape. Flip it between marbles.",
+    solution: [[1.141, "A"], [4.741, "A"]],
     stars: { junior: [3, 2], classic: [3, 2] },
   },
   {
@@ -89,6 +102,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["circle", "triangle"],
     releases: [0, 4],
     hint: "Follow the circle's path down: both switches it passes must point its way.",
+    solution: [[0.707, "A"], [2.066, "B"], [6.066, "B"]],
     stars: { junior: [4, 3], classic: [4, 3] },
   },
   {
@@ -113,6 +127,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["diamond", "circle", "triangle"],
     releases: [0, 3.4, 6.8],
     hint: "The circle only needs the top switch. Triangle and diamond need both.",
+    solution: [[0.707, "A"], [2.098, "B"], [4.107, "A"], [7.507, "A"], [8.898, "B"]],
     stars: { junior: [7, 5], classic: [7, 5] },
   },
   {
@@ -130,6 +145,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["circle", "triangle"],
     releases: [0, 1.8],
     hint: "Both top rails meet at the bottom switch. Only the bottom switch decides the cup.",
+    solution: [[5.54, "B"]],
     stars: { junior: [2, 1], classic: [2, 1] },
   },
   {
@@ -145,6 +161,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["triangle", "circle", "triangle"],
     releases: [0, 3.8, 7.6],
     hint: "Follow the rails, not the arrow: the left rail goes over the bridge to the right-hand cup.",
+    solution: [[0.707, "A"], [4.507, "A"], [8.307, "A"]],
     stars: { junior: [4, 3], classic: [4, 3] },
   },
   {
@@ -169,6 +186,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["circle", "triangle", "circle", "diamond"],
     releases: [0, 3.2, 6.4, 9.6],
     hint: "Set the top switch for each marble just after the one before has gone past it.",
+    solution: [[3.907, "A"], [5.353, "B"], [7.107, "A"], [10.307, "A"], [11.753, "B"]],
     stars: { junior: [7, 5], classic: [7, 5] },
   },
   {
@@ -198,6 +216,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["triangle", "diamond", "circle"],
     releases: [0, 3.4, 6.8],
     hint: "Two rails join above the lowest switch. Whichever way a marble came, that switch picks its cup.",
+    solution: [[3.275, "C"], [3.846, "A"], [5.065, "B"], [8.465, "B"], [10.317, "C"]],
     stars: { junior: [7, 5], classic: [7, 5] },
   },
   {
@@ -225,6 +244,7 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["diamond", "triangle", "circle", "diamond"],
     releases: [0, 2.8, 5.6, 8.4],
     hint: "The right-hand rail is a shortcut to the bottom switch. Only the circle has to go left twice.",
+    solution: [[2.83, "C"], [5.63, "C"], [5.959, "A"], [10.186, "B"], [11.759, "C"]],
     stars: { junior: [7, 5], classic: [7, 5] },
   },
   {
@@ -258,6 +278,273 @@ export const LEVELS: readonly LevelDef[] = [
     queue: ["circle", "triangle", "diamond", "circle", "triangle"],
     releases: [0, 2.9, 5.8, 8.7, 11.6],
     hint: "There are two circle cups. Pick the one that saves you a flip.",
+    solution: [[4.428, "B"], [6.159, "A"], [10.228, "C"], [11.879, "D"], [14.779, "D"]],
+    stars: { junior: [7, 5], classic: [7, 5] },
+  },
+
+  // ----- The Workshop: pieces that move by themselves -----
+  {
+    number: 11,
+    name: "Flipper",
+    teaches: "A switch that flips itself every time a marble goes through.",
+    nodes: [launcher(), flipper("A", 180, 190, "left"), cup("c1", 100, "circle"), cup("c2", 260, "triangle")],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "c1", branch: "left", via: [[100, 290]] },
+      { id: "e3", from: "A", to: "c2", branch: "right", via: [[260, 290]] },
+    ],
+    queue: ["circle", "triangle", "circle", "circle"],
+    releases: [0, 2.8, 5.6, 8.4],
+    hint: "The orange switch flips itself after every marble. Let it work, and only step in when it is about to go the wrong way.",
+    solution: [[9.454, "A"]],
+    stars: { junior: [2, 1], classic: [2, 1] },
+  },
+  {
+    number: 12,
+    name: "Odd One Out",
+    teaches: "A flipper feeding a switch you control.",
+    nodes: [
+      launcher(),
+      flipper("A", 180, 150, "left"),
+      sw("B", 100, 285, "right"),
+      cup("c1", 45, "circle"),
+      cup("c2", 160, "diamond"),
+      cup("c3", 295, "triangle"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[100, 220]] },
+      { id: "e3", from: "A", to: "c3", branch: "right", via: [[295, 260]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[45, 370]] },
+      { id: "e5", from: "B", to: "c2", branch: "right", via: [[160, 370]] },
+    ],
+    queue: ["circle", "triangle", "diamond", "triangle", "circle"],
+    releases: [0, 2.6, 5.2, 7.8, 10.4],
+    hint: "Every other marble is sent right by the flipper. The ones it sends left need the lower switch set.",
+    solution: [[2.169, "B"], [7.369, "B"], [12.569, "B"]],
+    stars: { junior: [4, 3], classic: [4, 3] },
+  },
+  {
+    number: 13,
+    name: "Counting Marbles",
+    teaches: "Two flippers in a row count marbles like a binary counter.",
+    nodes: [
+      launcher(),
+      flipper("A", 180, 140, "left"),
+      flipper("B", 110, 280, "left"),
+      cup("c1", 50, "circle"),
+      cup("c2", 170, "triangle"),
+      cup("c3", 295, "diamond"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[110, 210]] },
+      { id: "e3", from: "A", to: "c3", branch: "right", via: [[295, 250]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[50, 370]] },
+      { id: "e5", from: "B", to: "c2", branch: "right", via: [[170, 370]] },
+    ],
+    queue: ["circle", "diamond", "circle", "diamond", "triangle", "diamond"],
+    releases: [0, 2.6, 5.2, 7.8, 10.4, 13],
+    hint: "Left alone, this machine sends circle, diamond, triangle, diamond, circle, and so on. Find the marble that breaks the pattern.",
+    solution: [[7.266, "B"]],
+    stars: { junior: [2, 1], classic: [2, 1] },
+  },
+  {
+    number: 14,
+    name: "Turntable",
+    teaches: "A wheel with three exits that turns one notch for every marble.",
+    nodes: [launcher(), wheel("A", 180, 210, "left"), cup("c1", 70, "circle"), cup("c2", 180, "triangle"), cup("c3", 290, "diamond")],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "c1", branch: "left", via: [[70, 320]] },
+      { id: "e3", from: "A", to: "c2", branch: "middle" },
+      { id: "e4", from: "A", to: "c3", branch: "right", via: [[290, 320]] },
+    ],
+    queue: ["triangle", "diamond", "circle", "circle"],
+    releases: [0, 2.8, 5.6, 8.4],
+    hint: "The wheel turns left, middle, right, then back to left, one notch per marble. A tap turns it one notch too.",
+    solution: [[1.228, "A"], [9.628, "A"], [9.628, "A"]],
+    stars: { junior: [4, 3], classic: [4, 3] },
+  },
+  {
+    number: 15,
+    name: "Wheel and Switch",
+    teaches: "A switch that decides which marbles meet the wheel.",
+    nodes: [
+      launcher(),
+      sw("A", 180, 110, "left"),
+      wheel("B", 115, 245, "middle"),
+      cup("c1", 45, "circle"),
+      cup("c2", 120, "triangle"),
+      cup("c3", 200, "diamond"),
+      cup("c4", 305, "diamond"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[115, 170]] },
+      { id: "e3", from: "A", to: "c4", branch: "right", via: [[305, 250]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[45, 345]] },
+      { id: "e5", from: "B", to: "c2", branch: "middle" },
+      { id: "e6", from: "B", to: "c3", branch: "right", via: [[200, 345]] },
+    ],
+    queue: ["diamond", "triangle", "circle", "diamond", "circle"],
+    releases: [0, 2.6, 5.2, 7.8, 10.4],
+    hint: "A diamond can go either way. Sending one round the wheel turns it on a notch for free.",
+    solution: [[1.755, "B"], [4.355, "B"], [6.955, "B"], [9.555, "B"]],
+    stars: { junior: [6, 4], classic: [6, 4] },
+  },
+  {
+    number: 16,
+    name: "Clockwork",
+    teaches: "A flipper and a wheel working together.",
+    nodes: [
+      launcher(),
+      flipper("A", 180, 110, "right"),
+      wheel("B", 120, 250, "left"),
+      cup("c1", 45, "circle"),
+      cup("c2", 125, "diamond"),
+      cup("c3", 210, "triangle"),
+      cup("c4", 305, "triangle"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[120, 175]] },
+      { id: "e3", from: "A", to: "c4", branch: "right", via: [[305, 250]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[45, 350]] },
+      { id: "e5", from: "B", to: "c2", branch: "middle" },
+      { id: "e6", from: "B", to: "c3", branch: "right", via: [[210, 350]] },
+    ],
+    queue: ["triangle", "diamond", "circle", "diamond", "triangle", "triangle"],
+    releases: [0, 2.6, 5.2, 7.8, 10.4, 13],
+    hint: "Only every other marble reaches the wheel. Count which notch it will be on when each one gets there.",
+    solution: [[4.359, "B"], [5.559, "A"], [6.959, "B"], [8.159, "A"]],
+    stars: { junior: [6, 4], classic: [6, 4] },
+  },
+  {
+    number: 17,
+    name: "Gear Pair",
+    teaches: "Two switches geared together: one tap flips both.",
+    nodes: [
+      launcher(),
+      sw("A", 180, 120, "left"),
+      geared("B", 100, 260, "left", "g"),
+      geared("C", 260, 260, "right", "g"),
+      cup("c1", 45, "circle"),
+      cup("c2", 150, "triangle"),
+      cup("c3", 210, "diamond"),
+      cup("c4", 315, "circle"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[100, 190]] },
+      { id: "e3", from: "A", to: "C", branch: "right", via: [[260, 190]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[45, 360]] },
+      { id: "e5", from: "B", to: "c2", branch: "right", via: [[150, 360]] },
+      { id: "e6", from: "C", to: "c3", branch: "left", via: [[210, 360]] },
+      { id: "e7", from: "C", to: "c4", branch: "right", via: [[315, 360]] },
+    ],
+    queue: ["triangle", "circle", "diamond", "circle", "triangle"],
+    releases: [0, 2.8, 5.6, 8.4, 11.2],
+    hint: "The two lower switches are geared: they always point opposite ways. There is a circle cup on each side.",
+    solution: [[1.952, "B"], [4.752, "B"], [6.046, "A"], [7.552, "C"], [10.352, "C"], [11.646, "A"], [13.152, "B"]],
+    stars: { junior: [9, 7], classic: [9, 7] },
+  },
+  {
+    number: 18,
+    name: "Meshed",
+    teaches: "Gears and a flipper on the same route.",
+    nodes: [
+      launcher(),
+      geared("A", 180, 120, "left", "g"),
+      flipper("B", 250, 225, "left"),
+      geared("C", 190, 335, "right", "g"),
+      cup("c1", 50, "circle"),
+      cup("c2", 135, "triangle"),
+      cup("c3", 245, "circle"),
+      cup("c4", 315, "diamond"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "c1", branch: "left", via: [[50, 240]] },
+      { id: "e3", from: "A", to: "B", branch: "right", via: [[250, 170]] },
+      { id: "e4", from: "B", to: "C", branch: "left", via: [[190, 280]] },
+      { id: "e5", from: "B", to: "c4", branch: "right", via: [[315, 320]] },
+      { id: "e6", from: "C", to: "c2", branch: "left", via: [[135, 410]] },
+      { id: "e7", from: "C", to: "c3", branch: "right", via: [[245, 410]] },
+    ],
+    queue: ["triangle", "diamond", "circle", "triangle", "circle"],
+    releases: [0, 2.8, 5.6, 8.4, 11.2],
+    hint: "The top and bottom switches are geared. Turning the top one to send a marble right turns the bottom one too.",
+    solution: [[0.446, "A"], [6.046, "A"], [8.846, "A"], [12.839, "B"], [13.999, "C"]],
+    stars: { junior: [6, 4], classic: [7, 5] },
+  },
+  {
+    number: 19,
+    name: "Light Gate",
+    teaches: "A gate that waits until a marble rolls over its trip light.",
+    nodes: [
+      launcher(),
+      sw("A", 180, 120, "left"),
+      trip("K", 90, 235),
+      gate("G", 265, 235, "K"),
+      sw("B", 265, 330, "left"),
+      cup("c1", 60, "circle"),
+      cup("c2", 205, "triangle"),
+      cup("c3", 315, "diamond"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "K", branch: "left", via: [[90, 175]] },
+      { id: "e3", from: "A", to: "G", branch: "right", via: [[265, 175]] },
+      { id: "e4", from: "K", to: "c1", via: [[60, 340]] },
+      { id: "e5", from: "G", to: "B" },
+      { id: "e6", from: "B", to: "c2", branch: "left", via: [[205, 400]] },
+      { id: "e7", from: "B", to: "c3", branch: "right", via: [[315, 400]] },
+    ],
+    queue: ["triangle", "circle", "diamond"],
+    releases: [0, 2.8, 5.6],
+    hint: "The right-hand gate stays shut until a marble rolls over the light on the left. A marble can wait at the gate.",
+    solution: [[0.446, "A"], [3.246, "A"], [6.046, "A"], [8.237, "B"]],
+    stars: { junior: [6, 4], classic: [6, 4] },
+  },
+  {
+    number: 20,
+    name: "The Clockwork",
+    teaches: "Everything in the Workshop, in one machine.",
+    nodes: [
+      launcher(),
+      flipper("A", 180, 100, "left"),
+      wheel("B", 100, 205, "left"),
+      trip("K", 270, 175),
+      geared("C", 270, 255, "right", "g"),
+      gate("G", 115, 320, "K"),
+      join("J", 195, 300),
+      geared("D", 195, 365, "left", "g"),
+      cup("c1", 40, "circle"),
+      cup("c2", 115, "triangle"),
+      cup("c3", 200, "diamond"),
+      cup("c4", 262, "triangle"),
+      cup("c5", 322, "diamond"),
+    ],
+    edges: [
+      { id: "e1", from: "L", to: "A" },
+      { id: "e2", from: "A", to: "B", branch: "left", via: [[100, 150]] },
+      { id: "e3", from: "A", to: "K", branch: "right", via: [[270, 140]] },
+      { id: "e4", from: "B", to: "c1", branch: "left", via: [[40, 320]] },
+      { id: "e5", from: "B", to: "G", branch: "middle" },
+      { id: "e6", from: "B", to: "J", branch: "right", via: [[160, 255]] },
+      { id: "e7", from: "G", to: "c2" },
+      { id: "e8", from: "K", to: "C" },
+      { id: "e9", from: "C", to: "J", branch: "left", via: [[225, 290]] },
+      { id: "e10", from: "C", to: "c5", branch: "right", via: [[322, 340]] },
+      { id: "e11", from: "J", to: "D" },
+      { id: "e12", from: "D", to: "c3", branch: "left", via: [[200, 420]] },
+      { id: "e13", from: "D", to: "c4", branch: "right", via: [[262, 420]] },
+    ],
+    queue: ["triangle", "circle", "diamond", "triangle", "circle", "diamond"],
+    releases: [0, 2.6, 5.2, 7.8, 10.4, 13],
+    hint: "A flipper, a wheel, a gear pair and a light gate. The triangle cup on the left is behind the gate: light it first.",
+    solution: [[1.533, "B"], [2.872, "A"], [4.133, "B"], [10.672, "A"], [11.933, "B"]],
     stars: { junior: [7, 5], classic: [7, 5] },
   },
 ];

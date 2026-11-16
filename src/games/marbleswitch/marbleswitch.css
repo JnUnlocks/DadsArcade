@@ -165,8 +165,12 @@
   letter-spacing: 0.1em;
 }
 
-.ms-header__flips {
+.ms-header__break {
   flex-basis: 100%;
+  height: 0;
+}
+
+.ms-header__flips {
   color: var(--dim);
   font-size: calc(11px * var(--ui-scale));
   letter-spacing: 0.06em;
@@ -336,4 +340,84 @@
 
 .ms-result__buttons .ms-btn--drop {
   flex-basis: 100%;
+}
+
+/* ----- The Workshop ----- */
+
+.ms-pack {
+  margin: 8px 0 0;
+  width: 100%;
+  max-width: 420px;
+  color: #ffd27a;
+  font-size: calc(13px * var(--ui-scale));
+  letter-spacing: 0.14em;
+}
+
+.ms-pack__pitch {
+  margin: 0;
+  width: 100%;
+  max-width: 420px;
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.4;
+}
+
+.ms-level--workshop:not(.is-locked) {
+  border-color: rgba(181, 140, 255, 0.75);
+  background: linear-gradient(135deg, rgba(181, 140, 255, 0.2), #111a4a 70%);
+}
+
+/* ----- The tap counter: three wheels, like an old mechanical counter ----- */
+
+.ms-header__target {
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  letter-spacing: 0.06em;
+}
+
+.ms-header__flips {
+  flex-basis: auto;
+}
+
+.ms-counter {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.ms-counter__digit {
+  display: inline-block;
+  min-width: 1.1em;
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: linear-gradient(#f4ecd8, #cfc4a8 50%, #f4ecd8);
+  color: #1b1408;
+  font-size: calc(12px * var(--ui-scale));
+  font-weight: 800;
+  text-align: center;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.ms-counter__digit.is-rolling {
+  animation: ms-roll 0.18s ease-out;
+}
+
+@keyframes ms-roll {
+  from {
+    transform: translateY(-60%);
+    opacity: 0.2;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ms-root.is-calm .ms-counter__digit.is-rolling {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-counter__digit.is-rolling {
+    animation: none;
+  }
 }

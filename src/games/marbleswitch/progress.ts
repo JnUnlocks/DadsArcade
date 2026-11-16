@@ -61,7 +61,18 @@ export function starsFor(level: LevelDef, mode: Mode, flips: number): number {
   return flips <= three ? 3 : flips <= two ? 2 : 1;
 }
 
-/** Whether a level can be played yet: the first always, then one per clear. */
+/** The first level of the Workshop, the second pack. */
+export const WORKSHOP_FIRST = 11;
+
+/**
+ * Whether a level can be played yet: the first always, then one per clear in
+ * the same mode. The Workshop opens once level 10 is cleared in either mode,
+ * so someone who learned on Junior can start it in Classic.
+ */
 export function isUnlocked(progress: Progress, mode: Mode, level: number): boolean {
-  return level === 1 || (progress[mode][level - 1] ?? 0) > 0;
+  if (level === 1) return true;
+  if (level === WORKSHOP_FIRST) {
+    return (progress.junior[level - 1] ?? 0) > 0 || (progress.classic[level - 1] ?? 0) > 0;
+  }
+  return (progress[mode][level - 1] ?? 0) > 0;
 }
