@@ -133,9 +133,15 @@ left open.
 ## Reading feedback
 
 **SEND A NOTE** on the Settings screen (and at the end of The Story) opens a
-note box on its own screen. Notes go into the same D1 database as the scores, tagged with the sender's initials
+note box on its own screen. **SEND FEEDBACK** on every game's pause screen opens
+the same box with the game attached: the note's context records the game id, an
+optional kind the player picks (bug / idea / love) and, for games that implement
+`feedbackContext()`, where they were ("level 12 Spiral, Classic"). The game
+stays paused underneath, and keys typed into the note never reach it. Notes go
+into the same D1 database as the scores, tagged with the sender's initials
 plus app version, screen size and whether they'd installed it — enough to act on
-a report without having to ask non-technical questions.
+a report without having to ask non-technical questions. `/admin` shows the
+game, place and kind in its own column.
 
 To read what's come in:
 

@@ -49,7 +49,7 @@ import { buildReleaseNotesScreen } from "./ui/releases";
 import { LATEST_RELEASE, unseenReleases } from "./releases";
 import { buildInitialsPrompt, buildLeaderboardScreen } from "./ui/leaderboard";
 import { separateBoardIds, standaloneBoardIds, standaloneKey } from "./ui/boardFilter";
-import { buildFeedbackScreen, focusFeedback } from "./ui/feedback";
+import { buildFeedbackScreen, focusFeedback, type FeedbackGame } from "./ui/feedback";
 import { buildHowToScreen, buildSettingsScreen } from "./ui/settings";
 import { MENU_SORT_LABELS, nextMenuSort, sortGames } from "./ui/menuSort";
 import { buildStreakScreen, buildStreakStrip } from "./ui/streak";
@@ -111,6 +111,19 @@ export class Shell implements GameHost {
     this.loop = new GameLoop(this.step, this.draw);
     this.applyAccessibilitySettings();
     this.attachLifecycleHandlers();
+
+    // While a game isn't running -- paused, writing a note from the pause
+    // screen, entering initials -- keys typed on the arcade's own screens stop
+    // here and never reach the game. Many games listen to the whole window,
+    // so a note typed from the pause screen would otherwise have been typed
+    // into Letter Lock, or flipped Marble Switch's switches. The key still
+    // does its usual job where it was pressed (a letter in the box, a press
+    // of a button); only the game behind doesn't hear it.
+    const quiet = (event: KeyboardEvent) => {
+      if (this.instance && this.screen !== "playing" && this.screen !== "resuming") event.stopPropagation();
+    };
+    this.ui.addEventListener("keydown", quiet);
+    this.ui.addEventListener("keyup", quiet);
   }
 
   // ----- GameHost -----
@@ -623,9 +636,9 @@ export class Shell implements GameHost {
   }
 
   /** The note box. `onBack` returns to whichever screen it was opened from. */
-  showFeedback(onBack: () => void): void {
+  showFeedback(onBack: () => void, game: FeedbackGame | null = null): void {
     this.clearUi();
-    const screen = buildFeedbackScreen(this.player, onBack);
+    const screen = buildFeedbackScreen(this.player, onBack, game);
     this.ui.append(screen);
     focusFeedback(screen);
   }
@@ -708,7 +721,30 @@ export class Shell implements GameHost {
     const quit = el("button", "btn btn--danger", "QUIT TO ARCADE");
     quit.addEventListener("click", () => this.showMenu());
 
-    screen.append(resume, restart, quit);
+    // A note about this game, from inside it: where a bug or an idea occurs
+    // to someone, rather than three screens away in Settings. It sits under
+    // the three that run the game, quieter, so RESUME stays where a thumb
+    // expects it. The game stays paused while the note is written, and BACK
+    // comes back here.
+    const feedback = el("button", "btn btn--quiet pause-feedback", "✎  SEND FEEDBACK");
+    feedback.setAttribute("aria-label", `Send feedback about ${this.module?.title ?? "this game"}`);
+    feedback.addEventListener("click", () => {
+      this.audio.unlock();
+      this.audio.play("uiMove");
+      const module = this.module;
+      let at: string | undefined;
+      try {
+        at = this.instance?.feedbackContext?.() || undefined;
+      } catch {
+        at = undefined;
+      }
+      this.showFeedback(
+        () => this.renderPauseMenu(),
+        module ? { id: module.id, title: module.title, ...(at ? { at } : {}) } : null,
+      );
+    });
+
+    screen.append(resume, restart, quit, feedback);
 
     // Under the buttons, so RESUME stays where a thumb expects it.
     const lines = this.module?.howToPlay;

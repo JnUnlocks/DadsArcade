@@ -122,6 +122,11 @@ class CircuitClimb implements GameInstance {
     return this.phase === "play";
   }
 
+  feedbackContext(): string {
+    if (this.phase === "title") return "title card";
+    return `${this.mode === "junior" ? "Junior" : "Play"}, height ${heightPoints(this.climb)}`;
+  }
+
   hud(): HudState {
     return {
       lives: 0,

@@ -2745,3 +2745,45 @@ body {
   flex: 1 1 0;
   min-width: 0;
 }
+
+/* ---------- Feedback from the pause screen ---------- */
+
+.pause-feedback {
+  margin-top: calc(-4px * var(--ui-scale));
+}
+
+.screen p.feedback-about {
+  margin: calc(-6px * var(--ui-scale)) 0 0;
+  max-width: 360px;
+  text-align: center;
+  color: var(--dim);
+  font-size: calc(11px * var(--ui-scale));
+  line-height: 1.45;
+}
+
+.feedback-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.feedback-kind {
+  min-height: calc(36px * var(--ui-scale));
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 224, 255, 0.45);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: calc(10px * var(--ui-scale));
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.feedback-kind.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #05070f;
+}

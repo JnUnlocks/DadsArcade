@@ -34,6 +34,17 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.44.0",
+    date: "2026-11-16",
+    title: "Tell us what you think, right from the pause screen",
+    notes: [
+      "Pause any game and there's a new SEND FEEDBACK button under QUIT TO ARCADE. Spotted a bug, have an idea, or just love a game? Tell us there and then.",
+      "Your note already knows which game you were playing, and for some games where you were in it, like the Marble Switch level or the Brickfall level, so you don't have to explain.",
+      "Pick SOMETHING'S WRONG, AN IDEA or I LOVE IT if you like. It's optional, but it helps us sort the notes.",
+      "The game stays paused while you write, and BACK TO THE GAME takes you straight back to the pause menu.",
+    ],
+  },
+  {
     version: "0.43.0",
     date: "2026-11-16",
     title: "Marble Switch: The Workshop, ten new boards with moving parts. And a Brickfall fix",

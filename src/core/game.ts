@@ -207,6 +207,13 @@ export interface GameInstance {
    * each time the game is paused; the game owns it and what it does.
    */
   pauseExtras?(): HTMLElement;
+
+  /**
+   * Where in the game the player is, in a few words, sent with a feedback
+   * note made from the pause screen -- "level 12, Classic", "BRICK BLAST".
+   * The game's name is sent anyway; this is what it can add.
+   */
+  feedbackContext?(): string;
 }
 
 /** One game's scoreboard in a cabinet of several (see GameModule.modeBoards). */

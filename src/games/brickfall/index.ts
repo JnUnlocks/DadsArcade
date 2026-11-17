@@ -319,6 +319,11 @@ export class Brickfall implements GameInstance {
     }
   }
 
+  feedbackContext(): string {
+    if (this.blast) return "BRICK BLAST";
+    return this.phase === "choosing" ? "choosing a mode" : `CLASSIC, level ${this.level}`;
+  }
+
   hud(): HudState {
     if (this.blast) return this.blast.hud();
     // No lives in this genre; the well filling up is the whole failure state.

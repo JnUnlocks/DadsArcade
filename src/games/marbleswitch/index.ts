@@ -129,6 +129,11 @@ class MarbleSwitch implements GameInstance {
     window.removeEventListener("keydown", this.onKey);
   }
 
+  feedbackContext(): string {
+    const mode = this.mode === "junior" ? "Junior" : "Classic";
+    return this.screen === "board" ? `level ${this.level.number} ${this.level.name}, ${mode}` : `level list, ${mode}`;
+  }
+
   hud(): HudState {
     return { lives: 0, progress: 0, progressLabel: "", hidden: true };
   }

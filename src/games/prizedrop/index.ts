@@ -289,6 +289,12 @@ class PrizeDrop implements GameInstance {
     });
   }
 
+  feedbackContext(): string {
+    if (this.phase === "choose") return "choosing a mode";
+    const mode = this.mode === "endless" ? "Endless" : this.mode === "daily" ? "Daily Drop" : "Daily Drop practice";
+    return `${mode}, best prize ${prize(this.run.bestTier).name}`;
+  }
+
   hud(): HudState {
     return {
       lives: 0,

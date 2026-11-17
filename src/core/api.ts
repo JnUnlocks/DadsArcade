@@ -104,9 +104,20 @@ export async function flushQueue(player: Player): Promise<number> {
  * player's text in the box and let them retry -- silently swallowing someone's
  * typed-out bug report would be worse than telling them it didn't send.
  */
+/** What a note is about, when it was sent from inside a game. */
+export interface FeedbackAbout {
+  /** The game's id. */
+  game?: string;
+  /** "bug", "idea" or "love", if the player picked one. */
+  kind?: string;
+  /** Where in the game, from GameInstance.feedbackContext. */
+  at?: string;
+}
+
 export async function submitFeedback(
   message: string,
   player: Player | null,
+  about: FeedbackAbout = {},
 ): Promise<boolean> {
   const response = await request("/api/feedback", {
     method: "POST",
@@ -115,7 +126,7 @@ export async function submitFeedback(
       message,
       deviceId: player?.deviceId ?? "anonymous-device-00",
       initials: player?.initials ?? null,
-      context: describeEnvironment(),
+      context: describeEnvironment(about),
     }),
   });
   return response?.ok ?? false;
@@ -156,9 +167,14 @@ function isInstalled(): boolean {
 }
 
 /** Enough detail to act on a report without interrogating the reporter. */
-function describeEnvironment(): string {
+function describeEnvironment(about: FeedbackAbout = {}): string {
   const installed = window.matchMedia("(display-mode: standalone)").matches;
+  // The game and what it's about go first: the server keeps 500 characters,
+  // and if anything is cut it should be the end of the browser's name.
   return JSON.stringify({
+    ...(about.game ? { game: about.game } : {}),
+    ...(about.kind ? { kind: about.kind } : {}),
+    ...(about.at ? { at: about.at.slice(0, 60) } : {}),
     v: __APP_VERSION__,
     screen: `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}`,
     installed,

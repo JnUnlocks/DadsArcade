@@ -256,7 +256,7 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
     <h2>Feedback</h2>
     <p class="hint" id="fbHint"></p>
     <div class="table-wrap"><table id="feedbackTable"><thead><tr>
-      <th>When</th><th>Initials</th><th>Note</th><th>Version</th><th>Screen</th>
+      <th>When</th><th>Initials</th><th>Game</th><th>Note</th><th>Version</th><th>Screen</th>
     </tr></thead><tbody></tbody></table></div>
   </section>
 
@@ -800,15 +800,21 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
     document.getElementById("fbHint").textContent = fmtNum(n) + " in the last 7 days. Newest first, the latest 30; " +
       "notes from the last 7 days are marked New.";
     tbody("feedbackTable", rows.map(function (r) {
-      var version = "—", screen = "—";
+      var version = "—", screen = "—", game = "—", kind = "";
       if (r.context) {
-        try { var p = JSON.parse(r.context); version = p.v || "—"; screen = p.screen || "—"; }
+        try {
+          var p = JSON.parse(r.context); version = p.v || "—"; screen = p.screen || "—";
+          // Notes sent from a game's pause screen say which game, where in it, and what kind.
+          if (p.game) game = p.game + (p.at ? " · " + p.at : "");
+          if (p.kind) kind = p.kind === "bug" ? "Bug" : p.kind === "idea" ? "Idea" : p.kind === "love" ? "Love it" : "";
+        }
         catch (e) { screen = r.context; }
       }
       var fresh = r.createdAt >= weekAgo;
       return "<tr>" + "<td>" + (fresh ? "<span class='pill warn'>New</span> " : "") + esc(ago(r.createdAt, d.generatedAt)) + "</td>" +
-        td(r.initials || "—") + "<td class='msg'>" + esc(r.message) + "</td>" + td(version) + td(screen) + "</tr>";
-    }).join("") || emptyRow(5, "No feedback yet."));
+        td(r.initials || "—") + "<td>" + (kind ? "<span class='pill'>" + esc(kind) + "</span> " : "") + esc(game) + "</td>" +
+        "<td class='msg'>" + esc(r.message) + "</td>" + td(version) + td(screen) + "</tr>";
+    }).join("") || emptyRow(6, "No feedback yet."));
   }
 
   function render(d) {
