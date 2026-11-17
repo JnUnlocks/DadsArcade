@@ -355,7 +355,15 @@ export class Brickfall implements GameInstance {
     const { view } = this.host;
     const panelW = 76;
     const top = view.insetTop + 62;
-    const bottom = view.insetBottom + 76; // room for the DROP button
+    // Room for the DROP button: worked out from where the button really is
+    // on screen when it's there, so the well can never run underneath it,
+    // whatever the phone's safe area or the text size does to the button.
+    let bottom = view.insetBottom + 76;
+    const button = this.root.querySelector(".drop-btn");
+    if (button instanceof HTMLElement && button.isConnected) {
+      const rect = button.getBoundingClientRect();
+      if (rect.height > 0) bottom = Math.max(bottom, view.h - view.toWorldY(rect.top) + 8);
+    }
     const cell = Math.min(
       (view.w - panelW - 16) / COLS,
       (view.h - top - bottom) / ROWS,

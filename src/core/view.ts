@@ -56,6 +56,19 @@ export class View {
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
 
+    // The buttons and menus sit in the same frame as the canvas (#app), and
+    // it has to be exactly the size the canvas was measured at. Left to CSS,
+    // an iPhone running the arcade from its home screen can make that frame
+    // shorter than the window by about the height of the status bar, while
+    // the canvas is still the full height -- so everything anchored to the
+    // bottom of the screen floated up over the game. Brickfall's DROP button
+    // sat on the bottom rows of the well (iPhone 15 Pro Max, November 2026).
+    const frame = this.canvas.parentElement;
+    if (frame) {
+      frame.style.width = `${cssW}px`;
+      frame.style.height = `${cssH}px`;
+    }
+
     this.ctx.setTransform(
       this.scale * dpr,
       0,
