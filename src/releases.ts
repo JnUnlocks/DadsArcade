@@ -35,7 +35,7 @@ export interface Release {
 export const RELEASES: readonly Release[] = [
   {
     version: "0.44.0",
-    date: "2026-11-16",
+    date: "2026-11-18",
     title: "Tell us what you think, right from the pause screen",
     notes: [
       "Pause any game and there's a new SEND FEEDBACK button under QUIT TO ARCADE. Spotted a bug, have an idea, or just love a game? Tell us there and then.",
