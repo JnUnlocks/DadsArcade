@@ -34,6 +34,15 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.46.0",
+    date: "2026-11-25",
+    title: "Fact Frenzy: three new outfits for Digit",
+    notes: [
+      "Three new outfits in Digit's closet. Rocket Pilot: set a best on 3 different decks. Math Wizard: get 10 or more right with no misses in one round. Arcade Champion: beat your best 5 times.",
+      "Digit now celebrates and thinks in whatever you've dressed them in, so the Star Jacket stays on when you beat your best.",
+    ],
+  },
+  {
     version: "0.45.1",
     date: "2026-11-25",
     title: "American spelling everywhere",

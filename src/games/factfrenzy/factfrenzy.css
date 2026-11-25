@@ -1431,8 +1431,32 @@
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.45));
 }
 
-.ff-page--results.is-record .ff-result-pose--jump {
+.ff-page--results.is-record .ff-result-pose.is-celebrating {
   animation: ff-burst 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+/* An outfit drawn only standing jumps by animation instead. */
+.ff-page--results.is-record .ff-result-pose.is-leap {
+  transform-origin: 50% 100%;
+  animation:
+    ff-burst 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both,
+    ff-leap 0.6s 0.7s ease-in-out 3;
+}
+
+@keyframes ff-leap {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  15% {
+    transform: translateY(0) scale(1.06, 0.92);
+  }
+  50% {
+    transform: translateY(-22%) scale(0.96, 1.05) rotate(-4deg);
+  }
+  85% {
+    transform: translateY(0) scale(1.05, 0.94);
+  }
 }
 
 @keyframes ff-burst {

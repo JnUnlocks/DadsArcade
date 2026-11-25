@@ -226,15 +226,47 @@ describe("fact frenzy players", () => {
     assert.deepEqual(kid.bests, { "g2-mix20": 18, "g2-mix100": 6 });
   });
 
+  const won = (step: { outcome: { prizes: readonly ({ kind: "outfit"; outfit: { id: string } } | { kind: "fur"; fur: { id: string } })[] } }) =>
+    step.outcome.prizes.map((p) => (p.kind === "outfit" ? p.outfit.id : p.fur.id));
+
   it("wins the goggles on the first round and the jacket on the first record", () => {
-    let step = finishRound(riley(), "g2-mix20", 18);
-    assert.deepEqual(step.outcome.prizes.map((p) => (p.kind === "outfit" ? p.outfit.id : p.fur.id)), ["goggles"]);
-    step = finishRound(step.kid, "g2-mix20", 17);
+    let step = finishRound(riley(), "g2-mix20", 18, 2);
+    assert.deepEqual(won(step), ["goggles"]);
+    step = finishRound(step.kid, "g2-mix20", 17, 2);
     assert.deepEqual(step.outcome.prizes, [], "nothing new for a lower round");
-    step = finishRound(step.kid, "g2-mix20", 21);
-    assert.deepEqual(step.outcome.prizes.map((p) => (p.kind === "outfit" ? p.outfit.id : p.fur.id)), ["jacket", "gray"]);
-    step = finishRound(step.kid, "g2-mix20", 25);
+    step = finishRound(step.kid, "g2-mix20", 21, 1);
+    assert.deepEqual(won(step), ["jacket", "gray"]);
+    step = finishRound(step.kid, "g2-mix20", 25, 1);
     assert.ok(!step.outcome.prizes.some((p) => p.kind === "outfit"), "the jacket is won once");
+  });
+
+  it("wins the Math Wizard for 10 or more right with no misses", () => {
+    let step = finishRound(riley(), "g2-mix20", 9, 0);
+    assert.ok(!won(step).includes("wizard"), "nine isn't enough");
+    step = finishRound(step.kid, "g2-mix20", 14, 1);
+    assert.ok(!won(step).includes("wizard"), "a miss spoils it");
+    step = finishRound(step.kid, "g2-mix20", 10, 0);
+    assert.ok(won(step).includes("wizard"));
+  });
+
+  it("wins the Rocket Pilot for bests on three different decks", () => {
+    let step = finishRound(riley(), "g2-add20", 5, 1);
+    step = finishRound(step.kid, "g2-take20", 5, 1);
+    assert.ok(!step.kid.outfits.includes("rocket"));
+    step = finishRound(step.kid, "g2-take20", 6, 1);
+    assert.ok(!won(step).includes("rocket"), "the same deck twice doesn't count");
+    step = finishRound(step.kid, "g2-mix100", 3, 1);
+    assert.ok(won(step).includes("rocket"));
+  });
+
+  it("wins the Arcade Champion on the fifth record", () => {
+    let step = finishRound(riley(), "g2-mix20", 1, 1);
+    const records: number[] = [];
+    for (let score = 2; score <= 6; score += 1) {
+      step = finishRound(step.kid, "g2-mix20", score, 1);
+      if (won(step).includes("champion")) records.push(step.kid.records);
+    }
+    assert.deepEqual(records, [5]);
   });
 
   it("unlocks a fur colour every few rounds, even without a record", () => {

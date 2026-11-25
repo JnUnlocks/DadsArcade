@@ -18,7 +18,7 @@ import type { GameHost, GameInstance, GameModule, HudState, StartOptions } from 
 import type { InputSnapshot } from "../../core/input";
 import { Rng } from "../../core/rng";
 import { GRADES, GRADE_NAMES, STARTING_DECK, deckById, decksFor, factText, type Deck, type Fact, type Grade, type Num } from "./decks";
-import { ART, digitImg, warmDigit, type Pose } from "./digit";
+import { ART, digitImg, reaction, warmDigit } from "./digit";
 import { hintPicture } from "./hint";
 import {
   FURS,
@@ -124,7 +124,7 @@ class FactFrenzy implements GameInstance {
     window.addEventListener("keydown", this.onKey);
 
     const kid = currentKid(this.save);
-    if (kid) warmDigit(kid.fur, [kid.outfit, "think", "jump"]);
+    if (kid) this.warm(kid);
     const again = start?.again && lastPlay ? this.save.kids.find((k) => k.id === lastPlay!.kidId) : null;
     const deck = lastPlay ? deckById(lastPlay.deckId) : undefined;
     if (again && deck) this.startRound(again, deck);
@@ -215,6 +215,11 @@ class FactFrenzy implements GameInstance {
   private store(save: Save): void {
     this.save = save;
     storeSave(save);
+  }
+
+  /** Start painting the pictures a player's round will need. */
+  private warm(kid: Kid): void {
+    warmDigit(kid.fur, [kid.outfit, reaction(kid.outfit, "think").pose, reaction(kid.outfit, "jump").pose]);
   }
 
   private updateKid(kid: Kid): void {
@@ -339,7 +344,7 @@ class FactFrenzy implements GameInstance {
       } else {
         const kid = newKid(newId(), name, grade, fur);
         this.store({ kids: [...this.save.kids, kid], current: kid.id });
-        warmDigit(kid.fur, ["think", "jump"]);
+        this.warm(kid);
       }
       this.showHome();
     }, existing ? "Save" : "Let's go!");
@@ -394,7 +399,7 @@ class FactFrenzy implements GameInstance {
         () => {
           this.tap("uiSelect");
           this.store({ ...this.save, current: kid.id });
-          warmDigit(kid.fur, [kid.outfit, "think", "jump"]);
+          this.warm(kid);
           this.showHome();
         },
         digitImg(kid.outfit, kid.fur, "ff-player-digit"),
@@ -597,7 +602,7 @@ class FactFrenzy implements GameInstance {
               this.tap("uiSelect");
               kid = { ...kid, fur: fur.id };
               this.updateKid(kid);
-              warmDigit(fur.id, ["think", "jump"]);
+              this.warm(kid);
               paint();
             },
             swatch,
@@ -726,7 +731,7 @@ class FactFrenzy implements GameInstance {
     }
     help.classList.add("is-hint");
     help.replaceChildren(
-      digitImg("think", kid.fur, "ff-help-digit ff-help-digit--think"),
+      digitImg(reaction(kid.outfit, "think").pose, kid.fur, "ff-help-digit ff-help-digit--think"),
       h("div", "ff-hint", h("p", "ff-hint-say", fact.hint.say), hintPicture(fact.hint)),
     );
   }
@@ -784,7 +789,7 @@ class FactFrenzy implements GameInstance {
   private finish(): void {
     const round = this.round!;
     const before = this.save.kids.find((k) => k.id === this.roundKid!.id) ?? this.roundKid!;
-    const { kid, outcome } = finishRound(before, round.deck.id, round.score);
+    const { kid, outcome } = finishRound(before, round.deck.id, round.score, round.missed.length);
     this.store({ ...withKid(this.save, kid), current: kid.id });
     this.showResults(kid, round, outcome);
     this.round = null;
@@ -800,14 +805,20 @@ class FactFrenzy implements GameInstance {
     const previous =
       outcome.previous !== null ? h("div", "ff-best ff-best--small", h("span", "", record ? "Previous best" : "Your best"), h("strong", "", String(outcome.previous))) : null;
     const digitBox = h("div", "ff-result-digit");
-    const showDigit = (pose: Pose) => digitBox.replaceChildren(digitImg(pose, kid.fur, `ff-result-pose ff-result-pose--${pose}`));
-    showDigit(kid.outfit);
+    let celebrating = false;
+    // Digit in what they're wearing: standing, or jumping once it's a record.
+    const showDigit = () => {
+      const { pose, leap } = celebrating ? reaction(kid.outfit, "jump") : { pose: kid.outfit, leap: false };
+      const cls = `ff-result-pose${celebrating ? " is-celebrating" : ""}${leap ? " is-leap" : ""}`;
+      digitBox.replaceChildren(digitImg(pose, kid.fur, cls));
+    };
+    showDigit();
 
     const prizes = h("div", "ff-prizes");
     for (const prize of outcome.prizes) prizes.append(this.prizeCard(prize, () => kid, (next) => {
       kid = next;
       this.updateKid(kid);
-      showDigit(kid.outfit);
+      showDigit();
     }));
 
     const practice = round.missed.length
@@ -855,7 +866,8 @@ class FactFrenzy implements GameInstance {
         this.root.dataset.backdrop = "tickets";
         this.root.style.setProperty("--ff-backdrop", `url("${ART.tickets}")`);
         page.classList.add("is-record");
-        showDigit("jump");
+        celebrating = true;
+        showDigit();
         this.host.sfx("factRecord");
         this.host.buzz([30, 60, 30, 60, 80]);
       } else {
@@ -926,7 +938,7 @@ export const factFrenzyModule: GameModule = {
     "Tap Play 2 minutes and answer as many facts as you can.",
     "A right answer on your first tap scores a point.",
     "Miss one and Digit shows you a picture to count. Find the answer and carry on.",
-    "Beat your best score to win prizes for Digit, like the Star Jacket.",
+    "Win outfits for Digit: the Star Jacket for beating your best, the wizard hat for a round with no misses, and more.",
     "Each player keeps their own scores and closet. Tap your name to switch.",
   ],
   drawIcon(ctx, size) {

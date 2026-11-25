@@ -15,7 +15,7 @@ import { GRADES, STARTING_DECK, deckById, type Grade } from "./decks.ts";
 
 // ----- Digit's closet -----
 
-export type OutfitId = "overalls" | "goggles" | "jacket";
+export type OutfitId = "overalls" | "goggles" | "jacket" | "rocket" | "wizard" | "champion";
 
 export interface Outfit {
   id: OutfitId;
@@ -28,7 +28,19 @@ export const OUTFITS: readonly Outfit[] = [
   { id: "overalls", name: "Work Overalls", earn: "Digit's everyday look." },
   { id: "goggles", name: "Teal Goggles", earn: "Finish your first round." },
   { id: "jacket", name: "Star Jacket", earn: "Beat one of your best scores." },
+  // The later three each reward something different: trying new facts,
+  // getting every one right, and sticking with it.
+  { id: "rocket", name: "Rocket Pilot", earn: "Set a best on 3 different decks." },
+  { id: "wizard", name: "Math Wizard", earn: "Get 10 or more right with no misses in one round." },
+  { id: "champion", name: "Arcade Champion", earn: "Beat your best 5 times." },
 ];
+
+/** The Math Wizard's perfect round: at least this many right, none missed. */
+export const PERFECT_ROUND = 10;
+
+/** Different decks with a best for the Rocket Pilot, and records for the Arcade Champion. */
+export const ROCKET_DECKS = 3;
+export const CHAMPION_RECORDS = 5;
 
 export interface Fur {
   id: string;
@@ -145,8 +157,11 @@ export interface Outcome {
   prizes: Prize[];
 }
 
-/** Files a round played to the end. A round left early never reaches here. */
-export function finishRound(kid: Kid, deckId: string, score: number): { kid: Kid; outcome: Outcome } {
+/**
+ * Files a round played to the end. A round left early never reaches here.
+ * `misses` is how many facts were missed at least once.
+ */
+export function finishRound(kid: Kid, deckId: string, score: number, misses = 0): { kid: Kid; outcome: Outcome } {
   const previous = kid.bests[deckId] ?? null;
   const kind: Outcome["kind"] =
     previous === null ? "first" : score > previous ? "record" : score === previous ? "tie" : "under";
@@ -167,6 +182,9 @@ export function finishRound(kid: Kid, deckId: string, score: number): { kid: Kid
   };
   if (next.rounds >= 1) win("goggles");
   if (next.records >= 1) win("jacket");
+  if (Object.keys(next.bests).length >= ROCKET_DECKS) win("rocket");
+  if (score >= PERFECT_ROUND && misses === 0) win("wizard");
+  if (next.records >= CHAMPION_RECORDS) win("champion");
   for (const fur of FURS) {
     if (fur.rounds > 0 && kid.rounds < fur.rounds && next.rounds >= fur.rounds) prizes.push({ kind: "fur", fur });
   }

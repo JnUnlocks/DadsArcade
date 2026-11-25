@@ -14,6 +14,16 @@ import jacket from "./art/digit-jacket.webp";
 import wave from "./art/digit-wave.webp";
 import think from "./art/digit-think.webp";
 import jump from "./art/digit-jump.webp";
+import jumpPlain from "./art/digit-jump-plain.webp";
+import thinkPlain from "./art/digit-think-plain.webp";
+import jumpJacket from "./art/digit-jump-jacket.webp";
+import thinkJacket from "./art/digit-think-jacket.webp";
+import rocket from "./art/digit-rocket.webp";
+import wizard from "./art/digit-wizard.webp";
+import champion from "./art/digit-champion.webp";
+import itemRocket from "./art/item-rocket.webp";
+import itemWizard from "./art/item-wizard.webp";
+import itemChampion from "./art/item-champion.webp";
 import thumbs from "./art/digit-thumbs.webp";
 import itemOveralls from "./art/item-overalls.webp";
 import itemGoggles from "./art/item-goggles.webp";
@@ -29,16 +39,36 @@ import { furById, type OutfitId } from "./profiles";
  * its own -- painted too, so the Star Jacket in the closet is the colour
  * Digit will wear it in.
  */
-export type Pose = OutfitId | "wave" | "think" | "jump" | "thumbs" | `item-${OutfitId}`;
+export type Pose =
+  | OutfitId
+  | "wave"
+  | "think"
+  | "jump"
+  | "thumbs"
+  | "jump-plain"
+  | "think-plain"
+  | "jump-jacket"
+  | "think-jacket"
+  | `item-${OutfitId}`;
 
 const POSES: Record<Pose, string> = {
   overalls,
   goggles,
   jacket,
+  rocket,
+  wizard,
+  champion,
   wave,
   think,
   jump,
   thumbs,
+  "jump-plain": jumpPlain,
+  "think-plain": thinkPlain,
+  "jump-jacket": jumpJacket,
+  "think-jacket": thinkJacket,
+  "item-rocket": itemRocket,
+  "item-wizard": itemWizard,
+  "item-champion": itemChampion,
   "item-overalls": itemOveralls,
   "item-goggles": itemGoggles,
   "item-jacket": itemJacket,
@@ -50,6 +80,24 @@ export const ART = {
   workshop,
   tickets,
 };
+
+/**
+ * Digit jumping for joy, or thinking about a hint, in what they're wearing.
+ * The newer outfits are only drawn standing, so they stand in for both:
+ * `leap` asks for the standing picture to jump by animation instead.
+ */
+export function reaction(outfit: OutfitId, kind: "jump" | "think"): { pose: Pose; leap: boolean } {
+  switch (outfit) {
+    case "overalls":
+      return { pose: kind === "jump" ? "jump-plain" : "think-plain", leap: false };
+    case "goggles":
+      return { pose: kind, leap: false };
+    case "jacket":
+      return { pose: kind === "jump" ? "jump-jacket" : "think-jacket", leap: false };
+    default:
+      return { pose: outfit, leap: kind === "jump" };
+  }
+}
 
 const painted = new Map<string, Promise<string>>();
 
