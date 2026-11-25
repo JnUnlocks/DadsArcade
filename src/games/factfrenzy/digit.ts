@@ -21,6 +21,10 @@ import thinkJacket from "./art/digit-think-jacket.webp";
 import rocket from "./art/digit-rocket.webp";
 import wizard from "./art/digit-wizard.webp";
 import champion from "./art/digit-champion.webp";
+import cap from "./art/digit-cap.webp";
+import cape from "./art/digit-cape.webp";
+import itemCap from "./art/item-cap.webp";
+import itemCape from "./art/item-cape.webp";
 import itemRocket from "./art/item-rocket.webp";
 import itemWizard from "./art/item-wizard.webp";
 import itemChampion from "./art/item-champion.webp";
@@ -58,6 +62,8 @@ const POSES: Record<Pose, string> = {
   rocket,
   wizard,
   champion,
+  cap,
+  cape,
   wave,
   think,
   jump,
@@ -72,6 +78,9 @@ const POSES: Record<Pose, string> = {
   "item-overalls": itemOveralls,
   "item-goggles": itemGoggles,
   "item-jacket": itemJacket,
+  // Word Workshop's cap and cape are drawn on Digit, so the closet shows Digit wearing them.
+  "item-cap": itemCap,
+  "item-cape": itemCape,
 };
 
 export const ART = {

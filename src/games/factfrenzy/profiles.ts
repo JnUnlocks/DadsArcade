@@ -3,6 +3,12 @@
  * each: their best score on every deck, what Digit is wearing, what they've
  * won. Two children sharing a phone each keep their own.
  *
+ * Every LEARN & PLAY cabinet shares these players and Digit's closet, so a
+ * child is set up once and Digit wears the same outfit in every game. Word
+ * Workshop reads and writes them here and keeps its own scores apart (see
+ * wordworkshop/records.ts). The storage key keeps its first name so no
+ * family's save has to move.
+ *
  * Kept on the device only. A child's name never leaves it -- Fact Frenzy has
  * no scoreboard, because a second grader's 21 and a fifth grader's 21 aren't
  * the same thing, and the only score worth beating is your own.
@@ -15,24 +21,29 @@ import { GRADES, STARTING_DECK, deckById, type Grade } from "./decks.ts";
 
 // ----- Digit's closet -----
 
-export type OutfitId = "overalls" | "goggles" | "jacket" | "rocket" | "wizard" | "champion";
+export type OutfitId = "overalls" | "goggles" | "jacket" | "rocket" | "wizard" | "champion" | "cap" | "cape";
 
 export interface Outfit {
   id: OutfitId;
   name: string;
   /** How it's won, for a locked one in the closet. */
   earn: string;
+  /** The LEARN & PLAY game that wins it, for the closet the games share. */
+  game: "Fact Frenzy" | "Word Workshop";
 }
 
 export const OUTFITS: readonly Outfit[] = [
-  { id: "overalls", name: "Work Overalls", earn: "Digit's everyday look." },
-  { id: "goggles", name: "Teal Goggles", earn: "Finish your first round." },
-  { id: "jacket", name: "Star Jacket", earn: "Beat one of your best scores." },
+  { id: "overalls", name: "Work Overalls", earn: "Digit's everyday look.", game: "Fact Frenzy" },
+  { id: "goggles", name: "Teal Goggles", earn: "Finish your first round.", game: "Fact Frenzy" },
+  { id: "jacket", name: "Star Jacket", earn: "Beat one of your best scores.", game: "Fact Frenzy" },
   // The later three each reward something different: trying new facts,
   // getting every one right, and sticking with it.
-  { id: "rocket", name: "Rocket Pilot", earn: "Set a best on 3 different decks." },
-  { id: "wizard", name: "Math Wizard", earn: "Get 10 or more right with no misses in one round." },
-  { id: "champion", name: "Arcade Champion", earn: "Beat your best 5 times." },
+  { id: "rocket", name: "Rocket Pilot", earn: "Set a best on 3 different decks.", game: "Fact Frenzy" },
+  { id: "wizard", name: "Math Wizard", earn: "Get 10 or more right with no misses in one round.", game: "Fact Frenzy" },
+  { id: "champion", name: "Arcade Champion", earn: "Beat your best 5 times.", game: "Fact Frenzy" },
+  // Won in Word Workshop, worn everywhere.
+  { id: "cap", name: "Red Cap", earn: "Finish a round in Word Workshop.", game: "Word Workshop" },
+  { id: "cape", name: "Red Cape", earn: "Finish 3 rounds in Word Workshop.", game: "Word Workshop" },
 ];
 
 /** The Math Wizard's perfect round: at least this many right, none missed. */

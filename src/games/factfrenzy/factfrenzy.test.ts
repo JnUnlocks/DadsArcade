@@ -301,7 +301,7 @@ describe("fact frenzy players", () => {
     assert.deepEqual(parseSave(JSON.stringify(save)), save);
     assert.deepEqual(parseSave("{not json"), { kids: [], current: null });
     assert.deepEqual(parseSave(null), { kids: [], current: null });
-    const damaged = parseSave(JSON.stringify({ kids: [{ id: "x", name: "Sam", outfit: "cape", fur: "pink", deck: "gone" }] }));
+    const damaged = parseSave(JSON.stringify({ kids: [{ id: "x", name: "Sam", outfit: "cloak", fur: "pink", deck: "gone" }] }));
     const sam = damaged.kids[0]!;
     assert.equal(sam.outfit, "overalls");
     assert.equal(sam.fur, "purple", "a colour not yet won is taken back off");

@@ -34,6 +34,19 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.47.0",
+    date: "2026-11-25",
+    title: "Word Workshop: spelling and sentences with Digit",
+    notes: [
+      "A new LEARN & PLAY game. Build a Word: Digit says a word and a sentence, and you set wooden letter blocks in a row. Fix a Sentence: find the one thing that's wrong and choose what it should be.",
+      "No timer. Getting it right on your own the first time scores a point, and Hint and Show me are always there when you're stuck. Words you needed help with come back in a later round.",
+      "Six spelling decks and three sentence decks for second grade, starting with Digit's cap-to-cape lesson on the quiet e.",
+      "Every round earns a workshop stamp. Your first stamp wins the Red Cap and your third wins the Red Cape, and Digit can wear them in Fact Frenzy too.",
+      "Players are shared: a child set up in Fact Frenzy is ready to go in Word Workshop, with their own scores in each.",
+      "After a round, try the Pencil Bonus: Digit reads a sentence and you write it on paper.",
+    ],
+  },
+  {
     version: "0.46.0",
     date: "2026-11-25",
     title: "Fact Frenzy: three new outfits for Digit",

@@ -177,7 +177,10 @@ export type SoundName =
   | "factTick"
   | "factTimeUp"
   | "factRecord"
-  | "factPrize";
+  | "factPrize"
+  // Word Workshop
+  | "wordTile"
+  | "wordStamp";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -913,6 +916,18 @@ export class AudioEngine {
       case "factPrize":
         this.burst(t, 0.06, 3200, 1400, 0.12);
         this.arpeggio(t + 0.02, [784, 988, 1175, 1568], 0.07, "triangle", 0.15);
+        break;
+      // ----- Word Workshop -----
+      case "wordTile":
+        // A wooden letter block set down: a short knock, not a beep.
+        this.burst(t, 0.03, 1800, 600, 0.08);
+        this.blip(t, "triangle", 520, 420, 0.05, 0.09);
+        break;
+      case "wordStamp":
+        // The workshop stamp coming down on the card.
+        this.burst(t, 0.07, 900, 200, 0.16);
+        this.blip(t, "square", 196, 131, 0.12, 0.12);
+        this.arpeggio(t + 0.12, [784, 1047], 0.08, "sine", 0.1);
         break;
       case "marbleClear":
         this.arpeggio(t, [659, 784, 988, 1319], 0.08, "sine", 0.16);

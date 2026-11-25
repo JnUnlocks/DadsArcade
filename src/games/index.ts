@@ -28,6 +28,7 @@ import { wordVoltageModule } from "./wordvoltage";
 import { solitaireModule } from "./solitaire";
 import { reflexRushModule } from "./reflexrush";
 import { factFrenzyModule } from "./factfrenzy";
+import { wordWorkshopModule } from "./wordworkshop";
 
 export const GAMES: GameModule[] = [
   // Ordered on 2026-11-15 by how the arcade is actually played, from the
@@ -68,4 +69,5 @@ export const GAMES: GameModule[] = [
   marbleSwitchModule,
   // LEARN & PLAY (GameModule.section): listed under the arcade machines.
   factFrenzyModule,
+  wordWorkshopModule,
 ];
