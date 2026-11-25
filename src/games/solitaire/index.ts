@@ -1244,7 +1244,7 @@ export const solitaireModule: GameModule = {
   blurb: "Klondike on green felt, like the old office computer.",
   howToPlay: [
     "Build the four piles at the top up from ace to king, one suit each.",
-    "On the table, stack cards down in alternating colours. Only a king goes in an empty column.",
+    "On the table, stack cards down in alternating colors. Only a king goes in an empty column.",
     "Tap a card to send it where it fits, or drag it. Tap the deck to turn over more.",
     "Score like the PC: points for each move, two off every ten seconds, and a bonus for a fast win.",
     "Draw One and Draw Three have their own high scores. Only won games go on the board.",

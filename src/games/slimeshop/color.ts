@@ -233,7 +233,7 @@ const NAMED: ReadonlyArray<{ name: string; rgb: Rgb }> = [
   { name: "Root Beer", rgb: { r: 0.42, g: 0.24, b: 0.12 } },
   { name: "Midnight Goo", rgb: { r: 0.2, g: 0.094, b: 0.0 } },
   { name: "Charcoal", rgb: { r: 0.25, g: 0.25, b: 0.28 } },
-  { name: "Storm Grey", rgb: { r: 0.55, g: 0.55, b: 0.58 } },
+  { name: "Storm Gray", rgb: { r: 0.55, g: 0.55, b: 0.58 } },
   { name: "Vanilla", rgb: { r: 1.0, g: 1.0, b: 1.0 } },
 ];
 
@@ -262,7 +262,7 @@ function rgbToHsl(c: Rgb): Hsl {
  * Distance used for *naming* -- deliberately not the same metric as scoring.
  *
  * Reusing colourMatch here produced a memorable bug: a bright lime slime got
- * called "Storm Grey". The scoring metric answers "how close is this to the
+ * called "Storm Gray". The scoring metric answers "how close is this to the
  * target", and under it every unrelated colour scores a samey 0.65-0.75, so
  * picking a name became a near-tie that a mid-grey wins by sitting in the
  * middle of RGB space and being vaguely equidistant from everything.

@@ -789,7 +789,7 @@ export class PlasmaSort implements GameInstance {
     const centre = top + (view.h - panelUnits - top) / 2;
 
     drawText(ctx, "PLASMA SORT", view.w / 2, centre - 112, 26, INK, { bold: true, spacing: 4 });
-    drawText(ctx, "ONE COLOUR PER TUBE", view.w / 2, centre - 86, 10, DIM, { spacing: 2 });
+    drawText(ctx, "ONE COLOR PER TUBE", view.w / 2, centre - 86, 10, DIM, { spacing: 2 });
     drawTitleArt(ctx, view.w, centre + 6, this.time, settings.highContrast, settings.reducedMotion);
 
     if (this.titleStreak > 1) {
@@ -905,10 +905,10 @@ export class PlasmaSort implements GameInstance {
     const panel = div("plasma-panel plasma-panel--modes");
     panel.append(
       dailyRow,
-      modeButton("FREE PLAY", "A fresh six-colour puzzle. Ranked.", "free", () =>
+      modeButton("FREE PLAY", "A fresh six-color puzzle. Ranked.", "free", () =>
         this.begin("free"),
       ),
-      modeButton("WARM-UP", "Four colours. No score, no hurry.", "warmup", () =>
+      modeButton("WARM-UP", "Four colors. No score, no hurry.", "warmup", () =>
         this.begin("warmup"),
       ),
     );
@@ -954,9 +954,9 @@ export class PlasmaSort implements GameInstance {
 
     const list = div("howto");
     for (const [icon, text] of [
-      ["1", "Tap a tube to pick up the colour on top. Tap another tube to pour it in."],
-      ["2", "You can only pour onto the same colour, or into an empty tube. A tube holds four."],
-      ["3", "Sort every tube down to a single colour and the puzzle's done."],
+      ["1", "Tap a tube to pick up the color on top. Tap another tube to pour it in."],
+      ["2", "You can only pour onto the same color, or into an empty tube. A tube holds four."],
+      ["3", "Sort every tube down to a single color and the puzzle's done."],
       ["↶", "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose -- only not finish yet."],
       ["★", "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour."],
     ] as const) {
@@ -1119,13 +1119,13 @@ export const plasmaSortModule: GameModule = {
   id: "plasma-sort",
   title: "PLASMA SORT",
   progressShort: "P",
-  blurb: "Tap a tube, tap another to pour. One colour each.",
+  blurb: "Tap a tube, tap another to pour. One color each.",
   // The same five points as the HOW TO PLAY card on the title screen, above.
   // Change one and change the other.
   howToPlay: [
-    "Tap a tube to pick up the colour on top. Tap another tube to pour it in.",
-    "You can only pour onto the same colour, or into an empty tube. A tube holds four.",
-    "Sort every tube down to a single colour and the puzzle's done.",
+    "Tap a tube to pick up the color on top. Tap another tube to pour it in.",
+    "You can only pour onto the same color, or into an empty tube. A tube holds four.",
+    "Sort every tube down to a single color and the puzzle's done.",
     "UNDO takes back your last pour. RESET starts the puzzle over. You can't lose, only not finish yet.",
     "PAR is the fewest pours it can be done in. Match it for three stars. Undone pours still count, so look before you pour.",
     "Today's puzzle counts toward the arcade's daily streak: finish any two dailies a day.",

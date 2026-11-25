@@ -63,7 +63,7 @@ export function buildSettingsScreen(
     ),
     toggle(
       "High contrast",
-      "Brighter, plainer colours for the score and ships.",
+      "Brighter, plainer colors for the score and ships.",
       settings.highContrast,
       (v) => onChange({ highContrast: v }),
     ),

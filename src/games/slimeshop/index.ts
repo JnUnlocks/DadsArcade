@@ -616,7 +616,7 @@ export class SlimeShop implements GameInstance {
 
     ctx.fillStyle = SHOP_PALETTE.dim;
     ctx.font = "8px ui-monospace, Menlo, Consolas, monospace";
-    const bits = [`COLOUR ${v.colourPercent}%`];
+    const bits = [`COLOR ${v.colourPercent}%`];
     if (v.textureMatched) bits.push("TEXTURE");
     if (v.mixInsCorrect > 0) bits.push(`${v.mixInsCorrect} MIX-IN`);
     if (v.streakAfter > 1) bits.push(`x${v.streakAfter} STREAK`);
@@ -1258,10 +1258,10 @@ export const slimeShopModule: GameModule = {
   title: "RILEY'S SLIME SHOP",
   shortTitle: "SLIME SHOP",
   progressShort: "ORD",
-  blurb: "Mix the colour, match the order. Or just squish it.",
+  blurb: "Mix the color, match the order. Or just squish it.",
   howToPlay: [
-    "A customer asks for a slime. Tap bottles to mix its colour. They mix like paint: blue and yellow make green.",
-    "Match the texture and the mix-ins on the order too. Getting the colour close is worth the most.",
+    "A customer asks for a slime. Tap bottles to mix its color. They mix like paint: blue and yellow make green.",
+    "Match the texture and the mix-ins on the order too. Getting the color close is worth the most.",
     "You can't lose. A slime that's a bit off still gets served, it just scores less.",
     "Being quick adds a bonus. Taking your time costs nothing else.",
     "TODAY'S SPECIAL is the same six orders for everyone and counts toward the daily streak. SLIME LAB is free play.",

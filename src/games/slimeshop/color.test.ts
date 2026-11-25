@@ -152,11 +152,11 @@ describe("ticket wording", () => {
 
   it("never calls a colourful slime a neutral", () => {
     // The bug this pins: mixing blue + 2 yellow + white makes a bright lime,
-    // and it was being called "Storm Grey" because the scoring metric was
+    // and it was being called "Storm Gray" because the scoring metric was
     // reused for naming and greys sit near the middle of RGB space, winning
     // ties against everything. A ticket that names a vivid colour after a
     // neutral is actively misleading.
-    const neutrals = new Set(["Storm Grey", "Charcoal", "Vanilla", "Midnight Goo"]);
+    const neutrals = new Set(["Storm Gray", "Charcoal", "Vanilla", "Midnight Goo"]);
 
     for (const parts of [
       { blue: 1, yellow: 2, white: 1 },
@@ -182,7 +182,7 @@ describe("ticket wording", () => {
     // The other half of the same rule: neutrals must still win when the
     // colour really is one, or the fix would just move the bug.
     assert.ok(
-      ["Storm Grey", "Charcoal", "Vanilla", "Midnight Goo"].includes(
+      ["Storm Gray", "Charcoal", "Vanilla", "Midnight Goo"].includes(
         colourName({ r: 0.55, g: 0.55, b: 0.57 }),
       ),
     );

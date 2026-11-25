@@ -34,6 +34,14 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.45.1",
+    date: "2026-11-25",
+    title: "American spelling everywhere",
+    notes: [
+      "Every game now spells the American way: Fact Frenzy says \"Practice these\" and \"Digit's color\", Plasma Sort and Slime Shop say color, Highway Hop says curb, and Slime Shop's gray is Storm Gray.",
+    ],
+  },
+  {
     version: "0.45.0",
     date: "2026-11-25",
     title: "Fact Frenzy! Two-minute math facts with Digit the raccoon",
@@ -42,7 +50,7 @@ export const RELEASES: readonly Release[] = [
       "Answer as many math facts as you can in two minutes. A right answer on your first tap scores a point. Miss one and Digit shows you a picture to count, then you carry on.",
       "Facts for every grade from Kindergarten to Grade 5: picture sums, adding and taking away, two-digit sums, times tables, division, decimals and fractions.",
       "Every child on the phone gets their own player, with their own best scores, their own Digit and their own closet. Beat your best and Digit goes wild.",
-      "Win Digit's Teal Goggles on your first round and the Star Jacket the first time you beat your best. Finish more rounds to unlock new fur colours.",
+      "Win Digit's Teal Goggles on your first round and the Star Jacket the first time you beat your best. Finish more rounds to unlock new fur colors.",
     ],
   },
   {
@@ -162,7 +170,7 @@ export const RELEASES: readonly Release[] = [
       "Press up or down near a ladder and JB walks over and grabs it. You don't have to stop exactly on it any more.",
       "Tap JUMP a moment before JB lands or steps off a ladder and he jumps as soon as he can, instead of the tap getting lost.",
       "Fixed JB's legs coming loose from his shirt in mid-air.",
-      "A new picture on the Tower Trouble cabinet: JB hopping a tyre, with the good boy waiting on the roof.",
+      "A new picture on the Tower Trouble cabinet: JB hopping a tire, with the good boy waiting on the roof.",
       "RILEY'S SLIME SHOP moves to the end of the arcade.",
     ],
   },
@@ -222,7 +230,7 @@ export const RELEASES: readonly Release[] = [
       "NEW CABINET: SOLITAIRE, at the bottom of the arcade with a BETA badge while the family tries it out. Tell us what you think with SEND A NOTE. It's the card game from the old office PC: seven columns on green felt, build each suit from ace to king, and when you win the cards bounce off the table just like they used to.",
       "Made for the phone on its side. If your phone won't turn the screen round, the table turns itself: hold the phone sideways with the top to the left. You can switch that off under GAME.",
       "Tap a card and it goes where it fits, or drag it yourself. Tap the deck to turn over more. UNDO takes back as many moves as you like.",
-      "Pick DRAW ONE or DRAW THREE, and a card back: blue, red, or one in the arcade's own colours. Each draw has its own high scores, and only won games go on the board.",
+      "Pick DRAW ONE or DRAW THREE, and a card back: blue, red, or one in the arcade's own colors. Each draw has its own high scores, and only won games go on the board.",
       "Scored like the PC: points for every good move, two off every ten seconds, and a big bonus for a quick win. Once every card is face up, FINISH plays the rest out for you.",
     ],
   },
@@ -313,7 +321,7 @@ export const RELEASES: readonly Release[] = [
     notes: [
       "A new cabinet at the end of the row: UNCLE POTATO HEAD NUMBER GAME. It's Sudoku, run by a potato in a bow tie who has something encouraging to say every day.",
       "One puzzle a day, the same grid for the whole family, and one go at it. The week climbs like a newspaper's: easy on Monday, the hard one on Sunday. Free play has EASY, MEDIUM, HARD and EXPERT whenever you like.",
-      "Built for one thumb. Tap a number, then every square it goes in. Or tap a square, then its number. Every number has its own colour, on the keys and on the board.",
+      "Built for one thumb. Tap a number, then every square it goes in. Or tap a square, then its number. Every number has its own color, on the keys and on the board.",
       "Nobody loses. A wrong number shows red and adds 30 seconds, and HINT fills in a square for 60. NOTES is your pencil, and AUTO pencils in everything that still fits.",
       "Every puzzle is saved as you go, and a finished daily can be shared to the family chat without giving anything away.",
       "It wears a BETA tag while the family tries it out. Tell us which puzzles felt too hard or too easy.",
@@ -534,7 +542,7 @@ export const RELEASES: readonly Release[] = [
     notes: [
       "A new cabinet, the arcade's tenth: Letter Lock. Guess the five-letter word in six tries. After each guess the tiles tell you how close you are: a solid blue tile is the right letter in the right spot, an orange ring is a letter that's in the word but somewhere else, and a dark tile isn't in the word at all.",
       "TODAY'S WORD is the same for everyone, with its own scoreboard for the day. Your first go is the one that counts, and it's saved after every guess, so you can put the phone down and come back to it.",
-      "Finish it and tap SHARE to send your grid to the family chat. It shows the colours of each guess but never the letters, so it can't spoil the word for anyone, and the link opens Letter Lock straight to today's word.",
+      "Finish it and tap SHARE to send your grid to the family chat. It shows the colors of each guess but never the letters, so it can't spoil the word for anyone, and the link opens Letter Lock straight to today's word.",
       "Run out of tries and it simply tells you the word. Nothing goes on the scoreboard, and there's a new word tomorrow. FREE PLAY and PRACTICE give you a fresh word whenever you like.",
       "Letter Lock and Plasma Sort now share the top row of the arcade, so both of the day's puzzles are the first thing you see.",
     ],
@@ -545,7 +553,7 @@ export const RELEASES: readonly Release[] = [
     title: "Share today's puzzle with the family",
     notes: [
       "Solve Today's Puzzle in Plasma Sort and a SHARE button appears under your result. It opens your phone's share sheet, so it's one tap into the family group chat.",
-      "What gets sent gives nothing away: a row of six coloured squares for the six tubes you sorted, a black square for every pour over par, your stars, your time and your streak. A perfect solve is a clean rainbow.",
+      "What gets sent gives nothing away: a row of six colored squares for the six tubes you sorted, a black square for every pour over par, your stars, your time and your streak. A perfect solve is a clean rainbow.",
       "The link at the bottom opens Plasma Sort straight to today's puzzle, so whoever taps it can have a go and send theirs back.",
       "Missed the moment? Today's result stays shareable all day from the SHARE button next to TODAY'S PUZZLE.",
     ],
@@ -556,7 +564,7 @@ export const RELEASES: readonly Release[] = [
     title: "Sort the arcade your way",
     notes: [
       "A new SORT button next to SETTINGS. Tap it to switch between the usual arcade order, MOST PLAYED (the games you open most on this phone come first) and A-Z. It remembers your choice.",
-      "Every cabinet now has its own colour. Starfighter, Plasma Sort and the Reef were all the same blue, and the Mallard Challenge was a muddy brown -- they're now blue, magenta, a deeper ocean blue, and gold.",
+      "Every cabinet now has its own color. Starfighter, Plasma Sort and the Reef were all the same blue, and the Mallard Challenge was a muddy brown -- they're now blue, magenta, a deeper ocean blue, and gold.",
     ],
   },
   {
@@ -572,7 +580,7 @@ export const RELEASES: readonly Release[] = [
     date: "2026-09-30",
     title: "Plasma Sort: a new puzzle every day",
     notes: [
-      "A new cabinet: Plasma Sort. Tap a tube, tap another, and the colour on top pours across. Get every tube down to one colour.",
+      "A new cabinet: Plasma Sort. Tap a tube, tap another, and the color on top pours across. Get every tube down to one color.",
       "TODAY'S PUZZLE is the same for everyone, with its own scoreboard for the day. Your first solve is the one that counts, so take your time -- there's no clock running out, and UNDO always works.",
       "Every puzzle has a PAR: the fewest pours it can be done in. Match it for three stars. A pour you take back still counts, so it pays to look before you pour.",
       "Solve the daily puzzle on back-to-back days and the game keeps your streak. FREE PLAY deals a fresh puzzle whenever you like, and WARM-UP is a smaller one with no score at all.",
@@ -681,7 +689,7 @@ export const RELEASES: readonly Release[] = [
     title: "JB's Tower Trouble",
     notes: [
       "A new cabinet: JB's Tower Trouble. The Scrap King robot has the good boy stuck on the roof. Climb the tower and rescue him.",
-      "Drag anywhere to walk and climb. Tap JUMP to hop over tyres, cable spools, paint cans and toolboxes.",
+      "Drag anywhere to walk and climb. Tap JUMP to hop over tires, cable spools, paint cans and toolboxes.",
       "Grab a wrench to smash junk for a few seconds. You can't climb while you're holding it.",
       "Three hearts, plus one for every rescue. Getting hit puts you back on the girder you reached, not at the bottom.",
     ],
@@ -693,7 +701,7 @@ export const RELEASES: readonly Release[] = [
     notes: [
       "HIGH SCORES on the menu now shows every game. It used to show only Starfighter.",
       "Filter by game along the top of the screen, or see every game's top three at once.",
-      "Every score shows which game it's from, in that game's colour, with SEE ALL to open its full board.",
+      "Every score shows which game it's from, in that game's color, with SEE ALL to open its full board.",
       "Scores show each game's own progress: LV for level, RD for round, ORD for orders, instead of W for everything.",
     ],
   },
@@ -752,7 +760,7 @@ export const RELEASES: readonly Release[] = [
     date: "2026-09-06",
     title: "Riley's Slime Shop",
     notes: [
-      "New machine: Riley's Slime Shop. Mix colours like paint to match customers' orders.",
+      "New machine: Riley's Slime Shop. Mix colors like paint to match customers' orders.",
       "Slime Lab for free play, with no score and no timer.",
       "Today's Special: everyone gets the same six orders each day, with its own TODAY high-score board.",
     ],

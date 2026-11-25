@@ -361,7 +361,7 @@ class FactFrenzy implements GameInstance {
       parts.push(h("h2", "ff-title", existing ? "Edit player" : "New player"));
     }
     parts.push(
-      h("div", "ff-card ff-form", label, input, h("span", "ff-label", "Grade"), grades, gradeNote, existing ? null : h("span", "ff-label", "Digit's colour"), existing ? null : colours),
+      h("div", "ff-card ff-form", label, input, h("span", "ff-label", "Grade"), grades, gradeNote, existing ? null : h("span", "ff-label", "Digit's color"), existing ? null : colours),
       go,
     );
     if (!first) parts.push(button("ff-btn ff-btn--quiet", () => (this.tap(), existing ? this.showPlayers() : this.showHome()), "Cancel"));
@@ -814,7 +814,7 @@ class FactFrenzy implements GameInstance {
       ? h(
           "div",
           "ff-card ff-practice",
-          h("h3", "ff-subtitle", "Practise these"),
+          h("h3", "ff-subtitle", "Practice these"),
           h("div", "ff-practice-list", ...round.missed.slice(0, 6).map((f) => h("span", "ff-practice-fact", factText(f)))),
         )
       : null;
