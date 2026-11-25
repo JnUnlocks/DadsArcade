@@ -418,12 +418,23 @@ export class Shell implements GameHost {
     // as buttons-plus-blurbs overflowed the screen; as tiles they fit, and the
     // floor finally looks like an arcade instead of a list.
     const cabinets = el("div", "cabinets");
+    // LEARN & PLAY sits under the arcade machines, sorted the same way, on
+    // wide tiles that lead with the game's character (GameModule.section).
+    const learning = el("div", "cabinets cabinets--learn");
     const fillCabinets = () => {
       const ordered = sortGames(this.games, this._settings.menuSort, loadPlayCounts());
-      cabinets.replaceChildren(...ordered.map((game) => this.buildCabinet(game)));
+      cabinets.replaceChildren(
+        ...ordered.filter((game) => !game.section).map((game) => this.buildCabinet(game)),
+      );
+      learning.replaceChildren(
+        ...ordered.filter((game) => game.section === "learn").map((game) => this.buildCabinet(game)),
+      );
     };
     fillCabinets();
     screen.append(cabinets);
+    if (learning.childElementCount > 0) {
+      screen.append(el("h2", "menu-section", "LEARN & PLAY"), learning);
+    }
 
     const board = el("button", "btn btn--ghost", "HIGH SCORES");
     board.addEventListener("click", () => {
@@ -512,21 +523,31 @@ export class Shell implements GameHost {
         (hasFreshDaily ? " Today's challenge is up." : ""),
     );
 
-    const art = document.createElement("canvas");
-    art.className = "cabinet-art";
-    art.setAttribute("aria-hidden", "true");
-
-    // Drawn at device resolution so the vector art stays crisp; drawIcon
-    // works in a 0..size box, so the context is scaled rather than the art.
-    const size = 64;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    art.width = size * dpr;
-    art.height = size * dpr;
-    const ctx = art.getContext("2d");
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-      game.drawIcon(ctx, size);
+    let art: HTMLElement;
+    if (game.tileImage) {
+      const img = document.createElement("img");
+      img.className = "cabinet-art cabinet-art--image";
+      img.src = game.tileImage;
+      img.alt = "";
+      img.decoding = "async";
+      art = img;
+    } else {
+      const canvas = document.createElement("canvas");
+      canvas.className = "cabinet-art";
+      // Drawn at device resolution so the vector art stays crisp; drawIcon
+      // works in a 0..size box, so the context is scaled rather than the art.
+      const size = 64;
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(dpr, dpr);
+        game.drawIcon(ctx, size);
+      }
+      art = canvas;
     }
+    art.setAttribute("aria-hidden", "true");
 
     const name = el("span", "cabinet-name", game.title);
 
@@ -544,7 +565,14 @@ export class Shell implements GameHost {
      */
     const hint = el("span", "cabinet-hint", game.blurb);
 
-    button.append(art, name, hint);
+    if (game.section === "learn") {
+      button.classList.add("cabinet--wide");
+      const words = el("span", "cabinet-words");
+      words.append(name, hint);
+      button.append(art, words);
+    } else {
+      button.append(art, name, hint);
+    }
     if (game.beta) {
       button.append(el("span", "cabinet-badge cabinet-badge--beta", "BETA"));
     } else if (game.newUntil && dailyKey() <= game.newUntil) {

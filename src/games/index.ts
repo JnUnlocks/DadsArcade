@@ -27,6 +27,7 @@ import { marbleSwitchModule } from "./marbleswitch";
 import { wordVoltageModule } from "./wordvoltage";
 import { solitaireModule } from "./solitaire";
 import { reflexRushModule } from "./reflexrush";
+import { factFrenzyModule } from "./factfrenzy";
 
 export const GAMES: GameModule[] = [
   // Ordered on 2026-11-15 by how the arcade is actually played, from the
@@ -65,4 +66,6 @@ export const GAMES: GameModule[] = [
   // The newest cabinet goes on the very end while it's in BETA, by Justin's
   // choice on 2026-11-15.
   marbleSwitchModule,
+  // LEARN & PLAY (GameModule.section): listed under the arcade machines.
+  factFrenzyModule,
 ];

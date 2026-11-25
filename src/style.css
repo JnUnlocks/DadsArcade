@@ -1157,6 +1157,65 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* LEARN & PLAY: a heading under the arcade machines, then wide tiles that
+   lead with the game's character, so a child finds theirs by sight. */
+.menu-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  margin: calc(8px * var(--ui-scale)) 0 0;
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: 0.18em;
+  color: var(--accent-warm);
+}
+
+.menu-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--accent-warm) 45%, transparent);
+}
+
+.cabinets--learn {
+  grid-template-columns: 1fr;
+}
+
+.cabinet--wide {
+  flex-direction: row;
+  gap: 12px;
+  padding: calc(10px * var(--ui-scale)) 14px calc(10px * var(--ui-scale)) 10px;
+  text-align: left;
+}
+
+.cabinet-art--image {
+  width: calc(76px * var(--ui-scale));
+  height: calc(76px * var(--ui-scale));
+  flex-shrink: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  image-rendering: auto;
+}
+
+.cabinet-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cabinet--wide .cabinet-name {
+  font-size: calc(12px * var(--ui-scale));
+  text-align: left;
+}
+
+.cabinet--wide .cabinet-hint {
+  font-size: calc(9px * var(--ui-scale));
+  text-align: left;
+}
+
 /* A single cabinet on a very narrow phone would look stranded in one column,
    so the grid only collapses when it truly cannot fit two. */
 @media (max-width: 290px) {

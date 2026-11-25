@@ -34,6 +34,18 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.45.0",
+    date: "2026-11-24",
+    title: "Fact Frenzy! Two-minute math facts with Digit the raccoon",
+    notes: [
+      "A new LEARN & PLAY section at the bottom of the arcade, and its first game: Fact Frenzy! Scroll down and look for Digit, the purple raccoon with teal goggles.",
+      "Answer as many math facts as you can in two minutes. A right answer on your first tap scores a point. Miss one and Digit shows you a picture to count, then you carry on.",
+      "Facts for every grade from Kindergarten to Grade 5: picture sums, adding and taking away, two-digit sums, times tables, division, decimals and fractions.",
+      "Every child on the phone gets their own player, with their own best scores, their own Digit and their own closet. Beat your best and Digit goes wild.",
+      "Win Digit's Teal Goggles on your first round and the Star Jacket the first time you beat your best. Finish more rounds to unlock new fur colours.",
+    ],
+  },
+  {
     version: "0.44.0",
     date: "2026-11-18",
     title: "Tell us what you think, right from the pause screen",

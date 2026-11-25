@@ -169,7 +169,15 @@ export type SoundName =
   | "marbleGear"
   | "marbleTrip"
   | "marbleGate"
-  | "marbleLights";
+  | "marbleLights"
+  // Fact Frenzy
+  | "factGo"
+  | "factRight"
+  | "factMiss"
+  | "factTick"
+  | "factTimeUp"
+  | "factRecord"
+  | "factPrize";
 
 export class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -876,6 +884,35 @@ export class AudioEngine {
         // A perfect run: the clear fanfare with the lights running round it.
         this.arpeggio(t, [659, 784, 988, 1319, 1568], 0.07, "sine", 0.16);
         this.arpeggio(t + 0.4, [1319, 1568, 1976], 0.06, "triangle", 0.08);
+        break;
+      // ----- Fact Frenzy -----
+      case "factGo":
+        this.arpeggio(t, [523, 784], 0.07, "square", 0.12);
+        break;
+      case "factRight":
+        // Short and bright: it plays twenty times a round and must never tire.
+        this.blip(t, "sine", 1047, 1047, 0.07, 0.14);
+        this.blip(t + 0.05, "sine", 1568, 1568, 0.1, 0.11);
+        break;
+      case "factMiss":
+        // A soft low boop, never a buzzer: a miss is where the hint starts.
+        this.blip(t, "sine", 330, 262, 0.16, 0.12);
+        break;
+      case "factTick":
+        this.blip(t, "square", 1320, 1320, 0.025, 0.05);
+        break;
+      case "factTimeUp":
+        this.arpeggio(t, [784, 659, 523], 0.09, "triangle", 0.14);
+        break;
+      case "factRecord":
+        // Three rising notes, then the sparkle on top.
+        this.arpeggio(t, [523, 659, 784], 0.16, "square", 0.15);
+        this.arpeggio(t + 0.5, [1047, 1319, 1568, 2093], 0.06, "sine", 0.14);
+        this.blip(t + 0.78, "sine", 2093, 2093, 0.4, 0.1, 7);
+        break;
+      case "factPrize":
+        this.burst(t, 0.06, 3200, 1400, 0.12);
+        this.arpeggio(t + 0.02, [784, 988, 1175, 1568], 0.07, "triangle", 0.15);
         break;
       case "marbleClear":
         this.arpeggio(t, [659, 784, 988, 1319], 0.08, "sine", 0.16);

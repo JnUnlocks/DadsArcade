@@ -301,6 +301,18 @@ export interface GameModule {
    */
   readonly noLeaderboard?: boolean;
   /**
+   * "learn" puts the cabinet in the menu's LEARN & PLAY section, under the
+   * arcade machines, on a wide tile of its own: games for practising
+   * something, where a child should find their game quickly.
+   */
+  readonly section?: "learn";
+  /**
+   * A picture for the cabinet's tile, used in place of drawIcon there: a
+   * learning cabinet's character, which a child spots before they can read
+   * the name.
+   */
+  readonly tileImage?: string;
+  /**
    * For a game that ranks times rather than scores -- Forest Dash, where the
    * fastest run of a course wins. Its place on the high-score screen is then
    * these boards, one tab each, in place of ALL TIME / THIS WEEK / TODAY,
