@@ -35,7 +35,7 @@ export interface Release {
 export const RELEASES: readonly Release[] = [
   {
     version: "0.45.0",
-    date: "2026-11-24",
+    date: "2026-11-25",
     title: "Fact Frenzy! Two-minute math facts with Digit the raccoon",
     notes: [
       "A new LEARN & PLAY section at the bottom of the arcade, and its first game: Fact Frenzy! Scroll down and look for Digit, the purple raccoon with teal goggles.",
