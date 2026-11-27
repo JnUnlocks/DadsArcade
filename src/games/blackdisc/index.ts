@@ -53,6 +53,8 @@ const TEAM_NAME_MAX = 14;
 
 /** Team names, play-to score and buzzer length, remembered on this device. */
 const PREFS_KEY = "blackdisc.prefs";
+/** Words drawn so far in each category, so a reshuffle waits for the whole list. */
+const SEEN_KEY = "blackdisc.seen";
 
 /** Tick cadence at the very start of a round, in milliseconds. */
 const TICK_START_MS = 820;
@@ -203,6 +205,12 @@ export class BlackDisc implements GameInstance {
 
   /** Shuffled draw piles, refilled and reshuffled once a category runs dry. */
   private readonly bag: Record<string, string[]> = {};
+  /**
+   * Words already drawn, per category, kept on the phone. Without it every
+   * visit started a fresh shuffle, so leaving and coming back on the same
+   * game night served words the table had just played.
+   */
+  private readonly seen: Record<string, Set<string>> = loadSeen();
 
   constructor(private readonly host: GameHost) {
     this.root.className = "disc-root";
@@ -391,13 +399,24 @@ export class BlackDisc implements GameInstance {
 
   private pickPhrase(): void {
     const cat = findCategory(this.category);
+    const seen = (this.seen[cat.id] ??= new Set());
     let pile = this.bag[cat.id];
     if (!pile || pile.length === 0) {
-      pile = shuffled(cat.words);
+      let fresh = cat.words.filter((w) => !seen.has(w));
+      if (fresh.length === 0) {
+        // Every word has been played: start the deck over, but not with the
+        // one that's on the card right now.
+        seen.clear();
+        const showing = this.phraseEl.textContent ?? "";
+        fresh = cat.words.filter((w) => w !== showing);
+      }
+      pile = shuffled(fresh);
       this.bag[cat.id] = pile;
     }
     const word = pile.pop();
     if (word === undefined) return;
+    seen.add(word);
+    saveSeen(this.seen);
     this.phraseEl.textContent = word;
     this.categoryTagEl.textContent = cat.label;
   }
@@ -541,7 +560,11 @@ export class BlackDisc implements GameInstance {
 
     // The word just drawn for the other team goes back on the pile unseen.
     const current = this.phraseEl.textContent ?? "";
-    if (current) this.bag[this.category]?.push(current);
+    if (current) {
+      this.bag[this.category]?.push(current);
+      this.seen[this.category]?.delete(current);
+      saveSeen(this.seen);
+    }
 
     this.team = pass.team;
     this.phraseEl.textContent = pass.word;
@@ -1106,6 +1129,36 @@ function savePrefs(prefs: DiscPrefs): void {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
     // Storage disabled -- the names just won't be remembered.
+  }
+}
+
+function loadSeen(): Record<string, Set<string>> {
+  const seen: Record<string, Set<string>> = {};
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    if (!raw) return seen;
+    const saved = JSON.parse(raw) as Record<string, unknown>;
+    for (const cat of CATEGORIES) {
+      const list = saved[cat.id];
+      if (!Array.isArray(list)) continue;
+      // Only words still in the list count, so edits to words.ts never
+      // leave a category stuck thinking it's been played through.
+      const known = new Set(cat.words);
+      seen[cat.id] = new Set(list.filter((w): w is string => typeof w === "string" && known.has(w)));
+    }
+  } catch {
+    // Unreadable or storage disabled -- every word counts as fresh.
+  }
+  return seen;
+}
+
+function saveSeen(seen: Record<string, Set<string>>): void {
+  try {
+    const out: Record<string, string[]> = {};
+    for (const [id, words] of Object.entries(seen)) out[id] = [...words];
+    localStorage.setItem(SEEN_KEY, JSON.stringify(out));
+  } catch {
+    // Storage disabled -- repeats can come back after leaving the game.
   }
 }
 

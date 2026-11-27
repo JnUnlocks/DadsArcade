@@ -34,6 +34,16 @@ export interface Release {
 
 export const RELEASES: readonly Release[] = [
   {
+    version: "0.48.0",
+    date: "2026-11-26",
+    title: "Pass the Disc: hundreds more words and two new categories",
+    notes: [
+      "Every category has a lot more to describe now: over 100 words each, and most have close to 200.",
+      "Two new categories: Sports & Games, and Around the World.",
+      "No more repeats on the same night. The game remembers which words you've already played, even if you leave and come back, and only starts a category over once you've been through all of it.",
+    ],
+  },
+  {
     version: "0.47.0",
     date: "2026-11-25",
     title: "Word Workshop: spelling and sentences with Digit",
