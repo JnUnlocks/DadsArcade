@@ -203,10 +203,12 @@ export class SlimeShop implements GameInstance {
    * conversion depends on view.scale, which changes with the viewport, while
    * the ResizeObserver only fires when the panel's own pixel height moves.
    */
+  private readonly storefront = new Image();
   private panelPx = 200;
   private panelObserver: ResizeObserver | null = null;
 
   constructor(private readonly host: GameHost) {
+    this.storefront.src = "/slimeshop/storefront.webp";
     this.root.className = "slime-root";
     this.buildModeChooser();
     this.watchPanelHeight();
@@ -483,17 +485,19 @@ export class SlimeShop implements GameInstance {
     blobY: number,
     blobRadius: number,
   ): void {
-    ctx.save();
-    ctx.textAlign = "center";
-
-    ctx.fillStyle = SHOP_PALETTE.neon;
-    ctx.font = "700 24px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText("SLIME SHOP", w / 2, blobY - blobRadius - 34);
-
-    ctx.fillStyle = SHOP_PALETTE.dim;
-    ctx.font = "10px ui-monospace, Menlo, Consolas, monospace";
-    ctx.fillText("mix it. match it. serve it.", w / 2, blobY - blobRadius - 16);
-    ctx.restore();
+    const art = this.storefront;
+    const top = this.host.view.insetTop + 48;
+    if (art.complete && art.naturalWidth > 0) {
+      const height = Math.min(w * 2 / 3, this.layout().counterY - top);
+      if (height > 0) ctx.drawImage(art, 0, top, w, height);
+    } else {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.fillStyle = SHOP_PALETTE.neon;
+      ctx.font = "700 24px ui-monospace, monospace";
+      ctx.fillText("Riley’s Slime Shop", w / 2, blobY - blobRadius - 20);
+      ctx.restore();
+    }
 
     // A demo blob so the shop is never a dead screen while you choose -- and
     // it is draggable, so the first thing you can do here is squish something.
@@ -706,6 +710,12 @@ export class SlimeShop implements GameInstance {
       ),
     );
 
+    const jar = document.createElement("button");
+    jar.className = "slime-act slime-act--jar";
+    const stats = collectionStats(loadCollection());
+    jar.textContent = `My Prize Jar · ${stats.distinct}/${stats.possible}`;
+    jar.addEventListener("click", () => this.showJar());
+    panel.append(jar);
     this.root.replaceChildren(panel);
   }
 
@@ -1196,10 +1206,11 @@ export class SlimeShop implements GameInstance {
 
     const back = document.createElement("button");
     back.className = "slime-act slime-act--serve";
-    back.textContent = "BACK TO THE SLIME";
+    back.textContent = this.phase === "choosing" ? "BACK TO SHOP" : "BACK TO THE SLIME";
     back.addEventListener("click", () => {
       this.host.sfx("uiSelect");
-      this.buildPlayControls();
+      if (this.phase === "choosing") this.buildModeChooser();
+      else this.buildPlayControls();
     });
 
     panel.append(head, grid, back);
