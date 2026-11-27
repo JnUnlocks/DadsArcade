@@ -2846,3 +2846,12 @@ body {
   border-color: var(--accent);
   color: #05070f;
 }
+
+.slime-chip--mixin { display: grid; place-items: center; gap: 2px; padding: 3px; flex: 1 1 0; min-height: 46px; }
+.slime-chip--mixin::before { content: ""; width: 26px; height: 26px; background: url("/slimeshop/charms.webp") no-repeat; background-size: 300% 200%; }
+.slime-chip[data-mixin="glitter"]::before { background-position: 0% 0%; }
+.slime-chip[data-mixin="beads"]::before { background-position: 50% 0%; }
+.slime-chip[data-mixin="boba"]::before { background-position: 100% 0%; }
+.slime-chip[data-mixin="star"]::before { background-position: 0% 100%; }
+.slime-chip[data-mixin="heart"]::before { background-position: 50% 100%; }
+.slime-chip[data-mixin="taco"]::before { background-position: 100% 100%; }
